@@ -1,0 +1,193 @@
+{
+  "entities": {
+    "CareerProfile": {
+      "title": "CareerProfile",
+      "description": "Persistent player career profile, fleet ownership, truck upgrades, unlocked routes, and game settings for Truck Simulator Pro.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase user UID."
+        },
+        "driverName": {
+          "type": "string",
+          "description": "Driver callsign or display name."
+        },
+        "money": {
+          "type": "integer",
+          "description": "In-game currency balance in USD."
+        },
+        "xp": {
+          "type": "integer",
+          "description": "Accumulated experience points."
+        },
+        "level": {
+          "type": "integer",
+          "description": "Current driver level."
+        },
+        "selectedTruckId": {
+          "type": "string",
+          "description": "Active tractor truck model ID."
+        },
+        "ownedTruckIds": {
+          "type": "array",
+          "description": "List of owned truck model IDs."
+        },
+        "truckPaintHex": {
+          "type": "string",
+          "description": "Hex color of the active truck cab."
+        },
+        "engineLevel": {
+          "type": "integer",
+          "description": "Engine upgrade level (1 to 5)."
+        },
+        "transmissionLevel": {
+          "type": "integer",
+          "description": "Transmission upgrade level (1 to 5)."
+        },
+        "suspensionLevel": {
+          "type": "integer",
+          "description": "Suspension upgrade level (1 to 5)."
+        },
+        "tankLevel": {
+          "type": "integer",
+          "description": "Fuel tank capacity upgrade level (1 to 5)."
+        },
+        "unlockedRouteIds": {
+          "type": "array",
+          "description": "List of unlocked highway/region route IDs."
+        },
+        "totalDistanceKm": {
+          "type": "number",
+          "description": "Total kilometers driven."
+        },
+        "completedMissionsCount": {
+          "type": "integer",
+          "description": "Total completed cargo deliveries."
+        },
+        "graphicsQuality": {
+          "type": "string",
+          "enum": ["LOW", "MEDIUM", "HIGH"],
+          "description": "3D rendering quality preset."
+        },
+        "gearboxMode": {
+          "type": "string",
+          "enum": ["AUTO", "MANUAL"],
+          "description": "Transmission shifting mode."
+        },
+        "steeringMode": {
+          "type": "string",
+          "enum": ["WHEEL", "BUTTONS"],
+          "description": "Touch steering input mode."
+        },
+        "soundEnabled": {
+          "type": "boolean",
+          "description": "Whether synthesized engine and horn audio is enabled."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when profile was created (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "driverName",
+        "money",
+        "xp",
+        "level",
+        "selectedTruckId",
+        "ownedTruckIds",
+        "truckPaintHex",
+        "engineLevel",
+        "transmissionLevel",
+        "suspensionLevel",
+        "tankLevel",
+        "unlockedRouteIds",
+        "totalDistanceKm",
+        "completedMissionsCount",
+        "graphicsQuality",
+        "gearboxMode",
+        "steeringMode",
+        "soundEnabled",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "DeliveryRecord": {
+      "title": "DeliveryRecord",
+      "description": "Completed freight delivery log entry.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase UID."
+        },
+        "missionId": {
+          "type": "string",
+          "description": "Mission template identifier."
+        },
+        "cargoName": {
+          "type": "string",
+          "description": "Delivered cargo description."
+        },
+        "originName": {
+          "type": "string",
+          "description": "Pickup hub name."
+        },
+        "destinationName": {
+          "type": "string",
+          "description": "Delivery hub name."
+        },
+        "truckId": {
+          "type": "string",
+          "description": "Truck model used."
+        },
+        "distanceKm": {
+          "type": "number",
+          "description": "Distance covered in kilometers."
+        },
+        "rewardMoney": {
+          "type": "integer",
+          "description": "Cash payout earned."
+        },
+        "damagePercent": {
+          "type": "integer",
+          "description": "Cargo/truck damage percentage (0 to 100)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of completion (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "missionId",
+        "cargoName",
+        "originName",
+        "destinationName",
+        "truckId",
+        "distanceKm",
+        "rewardMoney",
+        "damagePercent",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/CareerProfile" },
+      "description": "Player career profile and garage progress."
+    },
+    "/users/{userId}/deliveries/{deliveryId}": {
+      "schema": { "$ref": "#/entities/DeliveryRecord" },
+      "description": "Player completed delivery history."
+    }
+  }
+}

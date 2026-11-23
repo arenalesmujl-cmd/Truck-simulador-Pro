@@ -1,0 +1,6 @@
+{
+  "name": "Truck Simulator Pro",
+  "description": "Simulador de camiones 3D completo con conducción realista, misiones de carga, clima dinámico, tráfico y garaje.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

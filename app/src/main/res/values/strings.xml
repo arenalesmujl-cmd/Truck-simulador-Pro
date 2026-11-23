@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Truck Simulator Pro</string>
+    <string name="brand_title">TRUCK SIMULATOR PRO</string>
+    <string name="brand_subtitle">SIMULADOR DE TRANSPORTE PESADO 3D</string>
+    <string name="sign_in_google">Iniciar sesión con Google</string>
+    <string name="sign_in_tagline">Guarda tu flota, dinero, rutas y misiones en la nube</string>
+    <string name="menu_play">JUGAR</string>
+    <string name="menu_trucks">SELECCIONAR CAMIÓN</string>
+    <string name="menu_garage">GARAJE</string>
+    <string name="menu_map">MAPA</string>
+    <string name="menu_missions">MISIONES</string>
+    <string name="menu_settings">CONFIGURACIÓN</string>
+    <string name="sign_out">Cerrar sesión</string>
+    <string name="back">Volver</string>
+</resources>

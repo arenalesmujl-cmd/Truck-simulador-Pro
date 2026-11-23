@@ -1,0 +1,141 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidTruckId(truckId) {
+      return truckId in ['titan_680', 'euro_fh16', 'volcano_v8', 'arctic_hauler'];
+    }
+
+    function isValidCareerProfile(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.driverName is string && data.driverName.size() >= 1 && data.driverName.size() <= 40 &&
+             data.money is int && data.money >= 0 && data.money <= 100000000 &&
+             data.xp is int && data.xp >= 0 && data.xp <= 100000000 &&
+             data.level is int && data.level >= 1 && data.level <= 999 &&
+             data.selectedTruckId is string && isValidTruckId(data.selectedTruckId) &&
+             data.ownedTruckIds is list && data.ownedTruckIds.size() >= 1 && data.ownedTruckIds.size() <= 10 &&
+             data.ownedTruckIds[0] is string &&
+             data.truckPaintHex is string && data.truckPaintHex.size() == 7 && data.truckPaintHex.matches('^#[0-9A-Fa-f]{6}$') &&
+             data.engineLevel is int && data.engineLevel >= 1 && data.engineLevel <= 5 &&
+             data.transmissionLevel is int && data.transmissionLevel >= 1 && data.transmissionLevel <= 5 &&
+             data.suspensionLevel is int && data.suspensionLevel >= 1 && data.suspensionLevel <= 5 &&
+             data.tankLevel is int && data.tankLevel >= 1 && data.tankLevel <= 5 &&
+             data.unlockedRouteIds is list && data.unlockedRouteIds.size() >= 1 && data.unlockedRouteIds.size() <= 20 &&
+             data.unlockedRouteIds[0] is string &&
+             (data.totalDistanceKm is float || data.totalDistanceKm is int) && data.totalDistanceKm >= 0 &&
+             data.completedMissionsCount is int && data.completedMissionsCount >= 0 &&
+             data.graphicsQuality in ['LOW', 'MEDIUM', 'HIGH'] &&
+             data.gearboxMode in ['AUTO', 'MANUAL'] &&
+             data.steeringMode in ['WHEEL', 'BUTTONS'] &&
+             data.soundEnabled is bool;
+    }
+
+    function isValidDeliveryRecord(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.missionId is string && data.missionId.size() >= 1 && data.missionId.size() <= 64 &&
+             data.cargoName is string && data.cargoName.size() >= 1 && data.cargoName.size() <= 80 &&
+             data.originName is string && data.originName.size() >= 1 && data.originName.size() <= 60 &&
+             data.destinationName is string && data.destinationName.size() >= 1 && data.destinationName.size() <= 60 &&
+             data.truckId is string && isValidTruckId(data.truckId) &&
+             (data.distanceKm is float || data.distanceKm is int) && data.distanceKm >= 0 && data.distanceKm <= 100000 &&
+             data.rewardMoney is int && data.rewardMoney >= 0 && data.rewardMoney <= 5000000 &&
+             data.damagePercent is int && data.damagePercent >= 0 && data.damagePercent <= 100;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if isSignedIn() && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll([
+                         'userId', 'driverName', 'money', 'xp', 'level',
+                         'selectedTruckId', 'ownedTruckIds', 'truckPaintHex',
+                         'engineLevel', 'transmissionLevel', 'suspensionLevel', 'tankLevel',
+                         'unlockedRouteIds', 'totalDistanceKm', 'completedMissionsCount',
+                         'graphicsQuality', 'gearboxMode', 'steeringMode', 'soundEnabled',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'driverName', 'money', 'xp', 'level',
+                         'selectedTruckId', 'ownedTruckIds', 'truckPaintHex',
+                         'engineLevel', 'transmissionLevel', 'suspensionLevel', 'tankLevel',
+                         'unlockedRouteIds', 'totalDistanceKm', 'completedMissionsCount',
+                         'graphicsQuality', 'gearboxMode', 'steeringMode', 'soundEnabled',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       isValidCareerProfile(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       isValidCareerProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       (
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'money', 'xp', 'level', 'totalDistanceKm', 'completedMissionsCount', 'unlockedRouteIds', 'updatedAt'
+                         ]) ||
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'money', 'selectedTruckId', 'ownedTruckIds', 'truckPaintHex',
+                           'engineLevel', 'transmissionLevel', 'suspensionLevel', 'tankLevel', 'updatedAt'
+                         ]) ||
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'graphicsQuality', 'gearboxMode', 'steeringMode', 'soundEnabled', 'driverName', 'updatedAt'
+                         ])
+                       );
+
+      allow delete: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      match /deliveries/{deliveryId} {
+        allow get: if isSignedIn() && isValidId(userId) && isValidId(deliveryId) && request.auth.uid == userId;
+        allow list: if isSignedIn() && request.auth.uid == userId;
+
+        allow create: if isSignedIn() &&
+                         isValidId(userId) &&
+                         isValidId(deliveryId) &&
+                         request.auth.uid == userId &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll([
+                           'userId', 'missionId', 'cargoName', 'originName', 'destinationName',
+                           'truckId', 'distanceKm', 'rewardMoney', 'damagePercent', 'createdAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'missionId', 'cargoName', 'originName', 'destinationName',
+                           'truckId', 'distanceKm', 'rewardMoney', 'damagePercent', 'createdAt'
+                         ]) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         isValidDeliveryRecord(incoming());
+
+        allow update: if false;
+        allow delete: if isSignedIn() && isValidId(userId) && isValidId(deliveryId) && request.auth.uid == userId;
+      }
+    }
+  }
+}
