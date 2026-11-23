@@ -413,9 +413,26 @@ class GameViewModel(
         }
     }
 
-    // Driving controls delegated to physicsEngine
+    // Driving & On-Foot Driver controls delegated to physicsEngine
     fun cycleCamera() {
         physicsEngine.cameraMode = physicsEngine.cameraMode.next()
+        physicsEngine.resetCameraOrbit()
+    }
+
+    fun toggleDriverMode() {
+        if (physicsEngine.controlMode == com.example.model.PlayerControlMode.IN_TRUCK) {
+            if (!physicsEngine.exitTruck()) {
+                _statusBanner.value = "Detén o reduce la velocidad del camión (< 10 km/h) para bajar"
+            }
+        } else {
+            if (!physicsEngine.enterTruck()) {
+                _statusBanner.value = "Acércate a la puerta de la cabina del camión para subir"
+            }
+        }
+    }
+
+    fun resetCameraOrbit() {
+        physicsEngine.resetCameraOrbit()
     }
 
     fun cycleHeadlights() {

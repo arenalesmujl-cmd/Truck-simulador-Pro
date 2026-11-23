@@ -233,6 +233,8 @@ private fun AuthenticatedGameHost(
                             activeMission = activeMission,
                             missionLoaded = missionLoaded,
                             onCycleCamera = { viewModel.cycleCamera() },
+                            onToggleDriverMode = { viewModel.toggleDriverMode() },
+                            onOrbitCamera = { dy, dp -> viewModel.physicsEngine.addCameraOrbit(dy, dp) },
                             onCycleHeadlights = { viewModel.cycleHeadlights() },
                             onToggleLeftBlinker = { viewModel.toggleBlinkerLeft() },
                             onToggleRightBlinker = { viewModel.toggleBlinkerRight() },

@@ -229,49 +229,107 @@ fun TruckSilhouettePreview(
         // Road floor
         drawLine(
             color = Color(0xFF334155),
-            start = Offset(w * 0.05f, baseY + 12f),
-            end = Offset(w * 0.95f, baseY + 12f),
+            start = Offset(w * 0.04f, baseY + 13f),
+            end = Offset(w * 0.96f, baseY + 13f),
             strokeWidth = 3f
         )
 
-        // Chassis
+        // Heavy ladder chassis + fifth wheel
         drawRoundRect(
             color = Color(0xFF1E293B),
-            topLeft = Offset(w * 0.16f, baseY - 12f),
-            size = Size(w * 0.68f, 14f),
+            topLeft = Offset(w * 0.14f, baseY - 12f),
+            size = Size(w * 0.72f, 13f),
             cornerRadius = CornerRadius(4f, 4f)
+        )
+        drawRect(Color(0xFF475569), Offset(w * 0.18f, baseY - 16f), Size(w * 0.14f, 5f))
+
+        // Aluminum cylindrical fuel tank
+        drawRoundRect(
+            color = Color(0xFFCBD5E1),
+            topLeft = Offset(w * 0.41f, baseY - 11f),
+            size = Size(w * 0.16f, 12f),
+            cornerRadius = CornerRadius(5f, 5f)
         )
 
         when (style) {
             TruckStyle.AMERICAN_LONGNOSE -> {
-                // Sleeper cab
-                drawRoundRect(cabColor, Offset(w * 0.34f, baseY - 56f), Size(w * 0.28f, 46f), CornerRadius(6f, 6f))
-                // Long nose hood
-                drawRoundRect(cabColor, Offset(w * 0.60f, baseY - 38f), Size(w * 0.22f, 28f), CornerRadius(5f, 5f))
-                // Exhaust stack
-                drawRect(Color(0xFFCBD5E1), Offset(w * 0.32f, baseY - 66f), Size(5f, 48f))
+                // Sleeper & cab with roof aero spoiler
+                drawRoundRect(cabColor, Offset(w * 0.34f, baseY - 56f), Size(w * 0.28f, 44f), CornerRadius(6f, 6f))
+                val roofPath = androidx.compose.ui.graphics.Path().apply {
+                    moveTo(w * 0.35f, baseY - 56f)
+                    lineTo(w * 0.48f, baseY - 65f)
+                    lineTo(w * 0.56f, baseY - 56f)
+                    close()
+                }
+                drawPath(roofPath, cabColor.copy(alpha = 0.88f))
+                // Sloped long nose hood
+                val hoodPath = androidx.compose.ui.graphics.Path().apply {
+                    moveTo(w * 0.60f, baseY - 38f)
+                    lineTo(w * 0.82f, baseY - 33f)
+                    lineTo(w * 0.82f, baseY - 12f)
+                    lineTo(w * 0.60f, baseY - 12f)
+                    close()
+                }
+                drawPath(hoodPath, cabColor)
+                // Tinted windshield + side glass + chrome stack + bumper
+                drawRect(Color(0xFF0F172A), Offset(w * 0.54f, baseY - 49f), Size(w * 0.06f, 15f))
+                drawRect(Color(0xFFE2E8F0), Offset(w * 0.32f, baseY - 68f), Size(5f, 52f))
+                drawRect(Color(0xFFE2E8F0), Offset(w * 0.81f, baseY - 32f), Size(6f, 20f))
             }
             TruckStyle.EURO_CABOVER -> {
-                drawRoundRect(cabColor, Offset(w * 0.48f, baseY - 60f), Size(w * 0.32f, 50f), CornerRadius(7f, 7f))
-                drawRect(Color(0xFF0F172A), Offset(w * 0.74f, baseY - 50f), Size(w * 0.05f, 20f))
+                val cabPath = androidx.compose.ui.graphics.Path().apply {
+                    moveTo(w * 0.46f, baseY - 62f)
+                    lineTo(w * 0.76f, baseY - 62f)
+                    lineTo(w * 0.82f, baseY - 32f)
+                    lineTo(w * 0.82f, baseY - 12f)
+                    lineTo(w * 0.46f, baseY - 12f)
+                    close()
+                }
+                drawPath(cabPath, cabColor)
+                // Side aero skirt
+                drawRoundRect(cabColor.copy(alpha = 0.85f), Offset(w * 0.41f, baseY - 11f), Size(w * 0.24f, 11f), CornerRadius(3f, 3f))
+                // Sloped panoramic windshield + dark grille
+                drawRect(Color(0xFF0F172A), Offset(w * 0.72f, baseY - 54f), Size(w * 0.07f, 20f))
+                drawRect(Color(0xFF1E293B), Offset(w * 0.77f, baseY - 28f), Size(w * 0.05f, 15f))
             }
             TruckStyle.HEAVY_TWIN_EXHAUST -> {
-                drawRoundRect(cabColor, Offset(w * 0.36f, baseY - 58f), Size(w * 0.28f, 48f), CornerRadius(6f, 6f))
-                drawRoundRect(cabColor, Offset(w * 0.62f, baseY - 40f), Size(w * 0.20f, 30f), CornerRadius(4f, 4f))
-                drawRect(Color(0xFFE2E8F0), Offset(w * 0.31f, baseY - 68f), Size(6f, 52f))
+                drawRoundRect(cabColor, Offset(w * 0.35f, baseY - 58f), Size(w * 0.29f, 46f), CornerRadius(6f, 6f))
+                val hoodPath = androidx.compose.ui.graphics.Path().apply {
+                    moveTo(w * 0.62f, baseY - 40f)
+                    lineTo(w * 0.82f, baseY - 35f)
+                    lineTo(w * 0.82f, baseY - 12f)
+                    lineTo(w * 0.62f, baseY - 12f)
+                    close()
+                }
+                drawPath(hoodPath, cabColor)
+                drawRect(Color(0xFF0F172A), Offset(w * 0.55f, baseY - 50f), Size(w * 0.07f, 15f))
+                drawRect(Color(0xFFF8FAFC), Offset(w * 0.31f, baseY - 70f), Size(6f, 54f))
+                drawRect(Color(0xFFE2E8F0), Offset(w * 0.81f, baseY - 34f), Size(6f, 22f))
             }
             TruckStyle.ARCTIC_EXPEDITION -> {
-                drawRoundRect(cabColor, Offset(w * 0.36f, baseY - 60f), Size(w * 0.30f, 50f), CornerRadius(6f, 6f))
-                drawRoundRect(cabColor, Offset(w * 0.64f, baseY - 40f), Size(w * 0.19f, 30f), CornerRadius(4f, 4f))
-                drawRect(Color(0xFFF59E0B), Offset(w * 0.44f, baseY - 66f), Size(w * 0.18f, 6f))
+                drawRoundRect(cabColor, Offset(w * 0.35f, baseY - 60f), Size(w * 0.31f, 48f), CornerRadius(6f, 6f))
+                drawRoundRect(cabColor, Offset(w * 0.64f, baseY - 40f), Size(w * 0.19f, 28f), CornerRadius(4f, 4f))
+                // Roof expedition rack & amber LEDs + heavy steel bullbar
+                drawRect(Color(0xFF1E293B), Offset(w * 0.40f, baseY - 66f), Size(w * 0.24f, 6f))
+                drawRect(Color(0xFFF59E0B), Offset(w * 0.58f, baseY - 67f), Size(w * 0.06f, 5f))
+                drawRect(Color(0xFF334155), Offset(w * 0.83f, baseY - 36f), Size(5f, 24f))
+                drawRect(Color(0xFF0F172A), Offset(w * 0.56f, baseY - 51f), Size(w * 0.07f, 15f))
             }
         }
 
-        // Wheels
-        val wheelXs = listOf(w * 0.24f, w * 0.35f, w * 0.74f)
+        // Front headlight glow
+        drawCircle(Color(0xFFFEF08A), radius = 3.5f, center = Offset(w * 0.82f, baseY - 17f))
+
+        // Wheels (4 axles for Arctic, 3 for others)
+        val wheelXs = if (style == TruckStyle.ARCTIC_EXPEDITION) {
+            listOf(w * 0.22f, w * 0.32f, w * 0.62f, w * 0.75f)
+        } else {
+            listOf(w * 0.22f, w * 0.33f, w * 0.75f)
+        }
         for (wx in wheelXs) {
             drawCircle(Color(0xFF0F172A), radius = 13f, center = Offset(wx, baseY + 2f))
-            drawCircle(Color(0xFF94A3B8), radius = 6.5f, center = Offset(wx, baseY + 2f))
+            drawCircle(Color(0xFFCBD5E1), radius = 7f, center = Offset(wx, baseY + 2f))
+            drawCircle(Color(0xFF334155), radius = 2.8f, center = Offset(wx, baseY + 2f))
         }
     }
 }

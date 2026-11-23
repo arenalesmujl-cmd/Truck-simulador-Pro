@@ -65,6 +65,11 @@ enum class CameraMode(val labelEs: String) {
     }
 }
 
+enum class PlayerControlMode(val labelEs: String) {
+    IN_TRUCK("En Cabina"),
+    ON_FOOT("A Pie")
+}
+
 enum class WeatherType(val labelEs: String) {
     CLEAR("Despejado"),
     CLOUDY("Nublado"),
