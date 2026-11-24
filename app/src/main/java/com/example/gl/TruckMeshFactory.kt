@@ -249,15 +249,15 @@ object TruckMeshFactory {
         chrome.addSlopedBox(0f, 3.04f, 1.98f, 2.24f, 0.32f, 2.18f, 0.24f, 0.16f, -0.05f, 0.86f, 0.88f, 0.92f)
 
         // PROUD, CRISP PANORAMIC WINDSHIELD + FLUSH DOOR/SLEEPER WINDOWS + CHROME SILL TRIM
-        chassis.addSlopedBox(0f, 2.54f, 2.00f, 2.10f, 0.14f, 2.02f, 0.12f, 0.78f, -0.10f, 0.08f, 0.10f, 0.13f)
-        glass.addSlopedBox(0f, 2.54f, 2.02f, 2.00f, 0.14f, 1.92f, 0.12f, 0.68f, -0.10f, 0.06f, 0.13f, 0.21f, 0.86f)
-        chassis.addSlopedBox(0f, 2.54f, 2.07f, 0.055f, 0.04f, 0.055f, 0.04f, 0.72f, -0.10f, 0.12f, 0.14f, 0.18f)
+        chassis.addSlopedBox(0f, 2.54f, 2.00f, 2.12f, 0.14f, 2.04f, 0.12f, 0.78f, -0.10f, 0.08f, 0.10f, 0.13f)
+        glass.addSlopedBox(0f, 2.54f, 2.03f, 2.02f, 0.14f, 1.94f, 0.12f, 0.68f, -0.10f, 0.06f, 0.13f, 0.21f, 0.86f)
+        chassis.addSlopedBox(0f, 2.54f, 2.09f, 0.055f, 0.04f, 0.055f, 0.04f, 0.72f, -0.10f, 0.12f, 0.14f, 0.18f)
         for (side in listOf(-1f, 1f)) {
-            chassis.addBox(side * 1.19f, 2.52f, 1.24f, 0.12f, 0.66f, 0.96f, 0.08f, 0.10f, 0.13f)
-            glass.addBox(side * 1.205f, 2.52f, 1.24f, 0.11f, 0.56f, 0.86f, 0.06f, 0.13f, 0.21f, 0.88f)
-            chrome.addBox(side * 1.245f, 2.19f, 1.24f, 0.045f, 0.038f, 0.98f, 0.88f, 0.91f, 0.95f)
-            chassis.addBox(side * 1.20f, 2.52f, 0.05f, 0.12f, 0.58f, 0.72f, 0.08f, 0.10f, 0.13f)
-            glass.addBox(side * 1.215f, 2.52f, 0.05f, 0.11f, 0.48f, 0.62f, 0.06f, 0.13f, 0.21f, 0.88f)
+            chassis.addBox(side * 1.22f, 2.52f, 1.24f, 0.12f, 0.66f, 0.96f, 0.08f, 0.10f, 0.13f)
+            glass.addBox(side * 1.245f, 2.52f, 1.24f, 0.11f, 0.56f, 0.86f, 0.06f, 0.13f, 0.21f, 0.88f)
+            chrome.addBox(side * 1.275f, 2.19f, 1.24f, 0.045f, 0.038f, 0.98f, 0.88f, 0.91f, 0.95f)
+            chassis.addBox(side * 1.225f, 2.52f, 0.05f, 0.12f, 0.58f, 0.72f, 0.08f, 0.10f, 0.13f)
+            glass.addBox(side * 1.25f, 2.52f, 0.05f, 0.11f, 0.48f, 0.62f, 0.06f, 0.13f, 0.21f, 0.88f)
         }
     }
 
@@ -306,12 +306,12 @@ object TruckMeshFactory {
         }
         chrome.addBox(0f, 1.96f, 3.06f, 0.46f, 0.11f, 0.05f, 0.92f, 0.94f, 0.98f)
 
-        chassis.addSlopedBox(0f, 2.68f, 2.94f, 2.20f, 0.16f, 2.08f, 0.14f, 0.96f, -0.10f, 0.08f, 0.10f, 0.13f)
-        glass.addSlopedBox(0f, 2.68f, 2.96f, 2.10f, 0.15f, 1.98f, 0.13f, 0.86f, -0.10f, 0.06f, 0.13f, 0.21f, 0.86f)
+        chassis.addSlopedBox(0f, 2.68f, 2.94f, 2.22f, 0.16f, 2.10f, 0.14f, 0.96f, -0.10f, 0.08f, 0.10f, 0.13f)
+        glass.addSlopedBox(0f, 2.68f, 2.97f, 2.12f, 0.15f, 2.00f, 0.13f, 0.86f, -0.10f, 0.06f, 0.13f, 0.21f, 0.86f)
         for (side in listOf(-1f, 1f)) {
-            chassis.addBox(side * 1.20f, 2.68f, 1.95f, 0.12f, 0.76f, 1.14f, 0.08f, 0.10f, 0.13f)
-            glass.addBox(side * 1.215f, 2.68f, 1.95f, 0.11f, 0.66f, 1.04f, 0.06f, 0.13f, 0.21f, 0.88f)
-            chrome.addBox(side * 1.255f, 2.30f, 1.95f, 0.045f, 0.038f, 1.16f, 0.88f, 0.91f, 0.95f)
+            chassis.addBox(side * 1.23f, 2.68f, 1.95f, 0.12f, 0.76f, 1.14f, 0.08f, 0.10f, 0.13f)
+            glass.addBox(side * 1.255f, 2.68f, 1.95f, 0.11f, 0.66f, 1.04f, 0.06f, 0.13f, 0.21f, 0.88f)
+            chrome.addBox(side * 1.285f, 2.30f, 1.95f, 0.045f, 0.038f, 1.16f, 0.88f, 0.91f, 0.95f)
         }
         chassis.addSlopedBox(0f, 3.24f, 2.92f, 2.34f, 0.26f, 2.28f, 0.20f, 0.18f, -0.04f, 0.12f, 0.13f, 0.16f)
     }
@@ -372,12 +372,12 @@ object TruckMeshFactory {
             chrome.addCylinderY(side * 1.32f, 1.45f, -0.45f, 0.152f, 1.68f, 16, 0.78f, 0.80f, 0.85f)
             chrome.addCylinderY(side * 1.18f, 1.85f, 1.82f, 0.15f, 0.68f, 14, 0.85f, 0.88f, 0.92f)
         }
-        chassis.addSlopedBox(0f, 2.60f, 2.10f, 2.16f, 0.14f, 2.06f, 0.12f, 0.80f, -0.10f, 0.08f, 0.10f, 0.13f)
-        glass.addSlopedBox(0f, 2.60f, 2.12f, 2.06f, 0.14f, 1.96f, 0.12f, 0.70f, -0.10f, 0.06f, 0.13f, 0.21f, 0.86f)
+        chassis.addSlopedBox(0f, 2.60f, 2.10f, 2.18f, 0.14f, 2.08f, 0.12f, 0.80f, -0.10f, 0.08f, 0.10f, 0.13f)
+        glass.addSlopedBox(0f, 2.60f, 2.13f, 2.08f, 0.14f, 1.98f, 0.12f, 0.70f, -0.10f, 0.06f, 0.13f, 0.21f, 0.86f)
         for (side in listOf(-1f, 1f)) {
-            chassis.addBox(side * 1.21f, 2.60f, 1.35f, 0.12f, 0.68f, 1.00f, 0.08f, 0.10f, 0.13f)
-            glass.addBox(side * 1.225f, 2.60f, 1.35f, 0.11f, 0.58f, 0.90f, 0.06f, 0.13f, 0.21f, 0.88f)
-            chrome.addBox(side * 1.265f, 2.26f, 1.35f, 0.045f, 0.038f, 1.02f, 0.88f, 0.91f, 0.95f)
+            chassis.addBox(side * 1.25f, 2.60f, 1.35f, 0.12f, 0.68f, 1.00f, 0.08f, 0.10f, 0.13f)
+            glass.addBox(side * 1.275f, 2.60f, 1.35f, 0.11f, 0.58f, 0.90f, 0.06f, 0.13f, 0.21f, 0.88f)
+            chrome.addBox(side * 1.305f, 2.26f, 1.35f, 0.045f, 0.038f, 1.02f, 0.88f, 0.91f, 0.95f)
         }
     }
 
@@ -430,12 +430,12 @@ object TruckMeshFactory {
         }
         chassis.addCylinderY(1.32f, 1.25f, 2.05f, 0.11f, 2.45f, 12, 0.14f, 0.16f, 0.18f)
 
-        chassis.addSlopedBox(0f, 2.66f, 2.24f, 2.20f, 0.14f, 2.10f, 0.12f, 0.78f, -0.10f, 0.08f, 0.10f, 0.13f)
-        glass.addSlopedBox(0f, 2.66f, 2.26f, 2.10f, 0.14f, 2.00f, 0.12f, 0.68f, -0.10f, 0.06f, 0.13f, 0.21f, 0.86f)
+        chassis.addSlopedBox(0f, 2.66f, 2.24f, 2.22f, 0.14f, 2.12f, 0.12f, 0.78f, -0.10f, 0.08f, 0.10f, 0.13f)
+        glass.addSlopedBox(0f, 2.66f, 2.27f, 2.12f, 0.14f, 2.02f, 0.12f, 0.68f, -0.10f, 0.06f, 0.13f, 0.21f, 0.86f)
         for (side in listOf(-1f, 1f)) {
-            chassis.addBox(side * 1.23f, 2.66f, 1.45f, 0.12f, 0.68f, 1.02f, 0.08f, 0.10f, 0.13f)
-            glass.addBox(side * 1.245f, 2.66f, 1.45f, 0.11f, 0.58f, 0.92f, 0.06f, 0.13f, 0.21f, 0.88f)
-            chrome.addBox(side * 1.285f, 2.32f, 1.45f, 0.045f, 0.038f, 1.04f, 0.88f, 0.91f, 0.95f)
+            chassis.addBox(side * 1.27f, 2.66f, 1.45f, 0.12f, 0.68f, 1.02f, 0.08f, 0.10f, 0.13f)
+            glass.addBox(side * 1.295f, 2.66f, 1.45f, 0.11f, 0.58f, 0.92f, 0.06f, 0.13f, 0.21f, 0.88f)
+            chrome.addBox(side * 1.325f, 2.32f, 1.45f, 0.045f, 0.038f, 1.04f, 0.88f, 0.91f, 0.95f)
         }
     }
 
@@ -584,9 +584,10 @@ object TruckMeshFactory {
             )
         )
         cargoCab.addBox(0f, 1.12f, 3.54f, 1.48f, 0.46f, 0.06f, 0.14f, 0.16f, 0.20f)
-        cargoCab.addSlopedBox(0f, 1.95f, 3.54f, 2.08f, 0.14f, 2.00f, 0.12f, 0.78f, -0.06f, 0.08f, 0.14f, 0.22f)
+        cargoCab.addSlopedBox(0f, 1.95f, 3.55f, 2.08f, 0.14f, 2.00f, 0.12f, 0.78f, -0.06f, 0.08f, 0.14f, 0.22f)
         for (side in listOf(-1f, 1f)) {
-            cargoCab.addBox(side * 1.18f, 1.95f, 2.42f, 0.08f, 0.58f, 0.94f, 0.08f, 0.14f, 0.22f)
+            cargoCab.addBox(side * 1.20f, 1.95f, 2.42f, 0.10f, 0.58f, 0.94f, 0.08f, 0.14f, 0.22f)
+            cargoCab.addBox(side * 1.32f, 1.92f, 3.04f, 0.08f, 0.36f, 0.12f, 0.12f, 0.14f, 0.17f)
             cargoCab.addWheelArch(side * 1.10f, 0.46f, 2.25f, 0.32f, 0.46f, 0.56f, 10, 0.14f, 0.16f, 0.19f)
             cargoCab.addBox(side * 0.90f, 0.86f, 3.54f, 0.26f, 0.14f, 0.06f, 0.95f, 0.96f, 0.98f)
         }

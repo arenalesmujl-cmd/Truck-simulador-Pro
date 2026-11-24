@@ -37,6 +37,11 @@ data class LoftRingZ(
     val roundness: Float = 0.42f // automotive rounded-corner sheet metal
 )
 
+data class WheelMeshSet(
+    val tireMesh: MeshBuffer,
+    val rimMesh: MeshBuffer
+)
+
 class MeshBuffer(
     vertices: FloatArray,
     private val drawMode: Int = GLES30.GL_TRIANGLES
@@ -761,6 +766,97 @@ object WorldMeshFactory {
             mb.addBox(sx, sy, sz, szBox, szBox, szBox, 0.92f, 0.95f, 1.0f, 0.9f)
         }
         return mb.build()
+    }
+
+    fun buildUnitWheelSet(): WheelMeshSet {
+        val tireMb = DynamicMeshBuilder()
+        val rimMb = DynamicMeshBuilder()
+        val segs = 40
+        val hw = 0.215f
+        val bulgeW = 0.228f
+        val bevelW = 0.165f
+        val rad = 0.530f
+        val grooveR = 0.517f
+        val shoulderR = 0.485f
+        val midSideR = 0.395f
+        val rimR = 0.305f
+        val midRimR = 0.215f
+        val hubR = 0.115f
+
+        for (i in 0 until segs) {
+            val a0 = (i.toFloat() / segs) * 2f * PI.toFloat()
+            val a1 = ((i + 1).toFloat() / segs) * 2f * PI.toFloat()
+            val c0 = cos(a0); val s0 = sin(a0)
+            val c1 = cos(a1); val s1 = sin(a1)
+            val midA = (a0 + a1) * 0.5f
+            val ny = cos(midA); val nz = sin(midA)
+
+            // Realistic matte vulcanized dark charcoal rubber tread with 3 crisp longitudinal rain channels
+            val treadR = 0.195f; val treadG = 0.205f; val treadB = 0.225f
+            val chR = 0.115f; val chG = 0.120f; val chB = 0.135f
+            // Center & outer tread ribs
+            tireMb.addQuad(-0.155f, c0 * rad, s0 * rad, -0.068f, c0 * rad, s0 * rad, -0.068f, c1 * rad, s1 * rad, -0.155f, c1 * rad, s1 * rad, 0f, ny, nz, treadR, treadG, treadB)
+            tireMb.addQuad(-0.044f, c0 * rad, s0 * rad, 0.044f, c0 * rad, s0 * rad, 0.044f, c1 * rad, s1 * rad, -0.044f, c1 * rad, s1 * rad, 0f, ny, nz, treadR, treadG, treadB)
+            tireMb.addQuad(0.068f, c0 * rad, s0 * rad, 0.155f, c0 * rad, s0 * rad, 0.155f, c1 * rad, s1 * rad, 0.068f, c1 * rad, s1 * rad, 0f, ny, nz, treadR, treadG, treadB)
+            // Recessed circumferential rain grooves between ribs
+            tireMb.addQuad(-0.068f, c0 * grooveR, s0 * grooveR, -0.044f, c0 * grooveR, s0 * grooveR, -0.044f, c1 * grooveR, s1 * grooveR, -0.068f, c1 * grooveR, s1 * grooveR, 0f, ny, nz, chR, chG, chB)
+            tireMb.addQuad(0.044f, c0 * grooveR, s0 * grooveR, 0.068f, c0 * grooveR, s0 * grooveR, 0.068f, c1 * grooveR, s1 * grooveR, 0.044f, c1 * grooveR, s1 * grooveR, 0f, ny, nz, chR, chG, chB)
+
+            // Sculpted shoulder blocks + curved bulging vulcanized rubber sidewall
+            val lugShade = if (i % 2 == 0) 0.21f else 0.18f
+            tireMb.addQuad(0.155f, c0 * rad, s0 * rad, bevelW, c0 * rad, s0 * rad, bevelW, c1 * rad, s1 * rad, 0.155f, c1 * rad, s1 * rad, 0f, ny, nz, lugShade, lugShade + 0.01f, lugShade + 0.02f)
+            tireMb.addQuad(-bevelW, c0 * rad, s0 * rad, -0.155f, c0 * rad, s0 * rad, -0.155f, c1 * rad, s1 * rad, -bevelW, c1 * rad, s1 * rad, 0f, ny, nz, lugShade, lugShade + 0.01f, lugShade + 0.02f)
+
+            tireMb.addQuad(bevelW, c0 * rad, s0 * rad, hw, c0 * shoulderR, s0 * shoulderR, hw, c1 * shoulderR, s1 * shoulderR, bevelW, c1 * rad, s1 * rad, 0.52f, ny * 0.84f, nz * 0.84f, 0.20f, 0.21f, 0.23f)
+            tireMb.addQuad(-hw, c0 * shoulderR, s0 * shoulderR, -bevelW, c0 * rad, s0 * rad, -bevelW, c1 * rad, s1 * rad, -hw, c1 * shoulderR, s1 * shoulderR, -0.52f, ny * 0.84f, nz * 0.84f, 0.20f, 0.21f, 0.23f)
+
+            tireMb.addQuad(hw, c0 * shoulderR, s0 * shoulderR, bulgeW, c0 * midSideR, s0 * midSideR, bulgeW, c1 * midSideR, s1 * midSideR, hw, c1 * shoulderR, s1 * shoulderR, 0.94f, ny * 0.32f, nz * 0.32f, 0.22f, 0.23f, 0.25f)
+            tireMb.addQuad(-bulgeW, c0 * midSideR, s0 * midSideR, -hw, c0 * shoulderR, s0 * shoulderR, -hw, c1 * shoulderR, s1 * shoulderR, -bulgeW, c1 * midSideR, s1 * midSideR, -0.94f, ny * 0.32f, nz * 0.32f, 0.22f, 0.23f, 0.25f)
+
+            tireMb.addQuad(bulgeW, c0 * midSideR, s0 * midSideR, hw, c0 * rimR, s0 * rimR, hw, c1 * rimR, s1 * rimR, bulgeW, c1 * midSideR, s1 * midSideR, 0.96f, -ny * 0.22f, -nz * 0.22f, 0.19f, 0.20f, 0.22f)
+            tireMb.addQuad(-hw, c0 * rimR, s0 * rimR, -bulgeW, c0 * midSideR, s0 * midSideR, -bulgeW, c1 * midSideR, s1 * midSideR, -hw, c1 * rimR, s1 * rimR, -0.96f, -ny * 0.22f, -nz * 0.22f, 0.19f, 0.20f, 0.22f)
+
+            // Separate Mirror Forged-Aluminum Rim Barrel, Hand-Hole Vents, Brake Rotor & Center Hub
+            val recessX = hw * 0.52f
+            rimMb.addQuad(recessX, c0 * rimR, s0 * rimR, hw, c0 * rimR, s0 * rimR, hw, c1 * rimR, s1 * rimR, recessX, c1 * rimR, s1 * rimR, 0f, -ny, -nz, 0.86f, 0.89f, 0.94f)
+            rimMb.addQuad(-hw, c0 * rimR, s0 * rimR, -recessX, c0 * rimR, s0 * rimR, -recessX, c1 * rimR, s1 * rimR, -hw, c1 * rimR, s1 * rimR, 0f, -ny, -nz, 0.86f, 0.89f, 0.94f)
+
+            // Outer rim bead lip ring + machined wheel dish
+            rimMb.addQuad(recessX, c0 * midRimR, s0 * midRimR, recessX, c0 * rimR, s0 * rimR, recessX, c1 * rimR, s1 * rimR, recessX, c1 * midRimR, s1 * midRimR, 1f, 0f, 0f, 0.88f, 0.91f, 0.96f)
+            rimMb.addQuad(-recessX, c0 * rimR, s0 * rimR, -recessX, c0 * midRimR, s0 * midRimR, -recessX, c1 * midRimR, s1 * midRimR, -recessX, c1 * rimR, s1 * rimR, -1f, 0f, 0f, 0.88f, 0.91f, 0.96f)
+
+            val isVentHole = (i % 5 == 1)
+            val holeFaceTone = if (isVentHole) 0.18f else 0.88f
+            rimMb.addQuad(recessX, c0 * hubR, s0 * hubR, recessX, c0 * midRimR, s0 * midRimR, recessX, c1 * midRimR, s1 * midRimR, recessX, c1 * hubR, s1 * hubR, 1f, 0f, 0f, holeFaceTone, holeFaceTone + 0.02f, holeFaceTone + 0.04f)
+            rimMb.addQuad(-recessX, c0 * midRimR, s0 * midRimR, -recessX, c0 * hubR, s0 * hubR, -recessX, c1 * hubR, s1 * hubR, -recessX, c1 * midRimR, s1 * midRimR, -1f, 0f, 0f, holeFaceTone, holeFaceTone + 0.02f, holeFaceTone + 0.04f)
+
+            // Ventilated steel brake rotor + heavy-duty red brake caliper visible inside vents
+            if (isVentHole) {
+                val calR = if (i in 6..11) 0.88f else 0.36f
+                val calG = if (i in 6..11) 0.16f else 0.38f
+                val calB = if (i in 6..11) 0.11f else 0.42f
+                rimMb.addQuad(recessX * 0.72f, c0 * (hubR * 1.15f), s0 * (hubR * 1.15f), recessX * 0.72f, c0 * (rimR * 0.86f), s0 * (rimR * 0.86f), recessX * 0.72f, c1 * (rimR * 0.86f), s1 * (rimR * 0.86f), recessX * 0.72f, c1 * (hubR * 1.15f), s1 * (hubR * 1.15f), 1f, 0f, 0f, calR, calG, calB)
+                rimMb.addQuad(-recessX * 0.72f, c0 * (rimR * 0.86f), s0 * (rimR * 0.86f), -recessX * 0.72f, c0 * (hubR * 1.15f), s0 * (hubR * 1.15f), -recessX * 0.72f, c1 * (hubR * 1.15f), s1 * (hubR * 1.15f), -recessX * 0.72f, c1 * (rimR * 0.86f), s1 * (rimR * 0.86f), -1f, 0f, 0f, calR, calG, calB)
+            }
+
+            // Protruding chrome center axle hub bell
+            val hubOut = hw + 0.04f
+            rimMb.addQuad(recessX, c0 * hubR, s0 * hubR, hubOut, c0 * (hubR * 0.70f), s0 * (hubR * 0.70f), hubOut, c1 * (hubR * 0.70f), s1 * (hubR * 0.70f), recessX, c1 * hubR, s1 * hubR, 0.45f, ny * 0.88f, nz * 0.88f, 0.88f, 0.91f, 0.96f)
+            rimMb.addQuad(hubOut, 0f, 0f, hubOut, c0 * (hubR * 0.70f), s0 * (hubR * 0.70f), hubOut, c1 * (hubR * 0.70f), s1 * (hubR * 0.70f), hubOut, 0f, 0f, 1f, 0f, 0f, 0.26f, 0.29f, 0.34f)
+
+            rimMb.addQuad(-hubOut, c0 * (hubR * 0.70f), s0 * (hubR * 0.70f), -recessX, c0 * hubR, s0 * hubR, -recessX, c1 * hubR, s1 * hubR, -hubOut, c1 * (hubR * 0.70f), s1 * (hubR * 0.70f), -0.45f, ny * 0.88f, nz * 0.88f, 0.88f, 0.91f, 0.96f)
+            rimMb.addQuad(-hubOut, 0f, 0f, -hubOut, c1 * (hubR * 0.70f), s1 * (hubR * 0.70f), -hubOut, c0 * (hubR * 0.70f), s0 * (hubR * 0.70f), -hubOut, 0f, 0f, -1f, 0f, 0f, 0.26f, 0.29f, 0.34f)
+        }
+
+        // 10 Chrome Lug Nuts around center hub
+        for (k in 0 until 10) {
+            val a = (k.toFloat() / 10f) * 2f * PI.toFloat()
+            val ly = cos(a) * (hubR + 0.048f)
+            val lz = sin(a) * (hubR + 0.048f)
+            rimMb.addBox(hw * 0.65f, ly, lz, 0.045f, 0.025f, 0.025f, 0.95f, 0.97f, 1.0f)
+            rimMb.addBox(-hw * 0.65f, ly, lz, 0.045f, 0.025f, 0.025f, 0.95f, 0.97f, 1.0f)
+        }
+        return WheelMeshSet(tireMesh = tireMb.build(), rimMesh = rimMb.build())
     }
 
     fun buildUnitWheel(): MeshBuffer {

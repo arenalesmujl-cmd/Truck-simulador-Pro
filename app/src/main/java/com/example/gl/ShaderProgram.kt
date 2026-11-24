@@ -345,12 +345,12 @@ class WorldShaderProgram {
                     sssGlow = vec3(0.30, 0.115, 0.052) * wrapBand * lightLin;
                 }
 
-                vec3 skyBounce = ambLin * 1.52;
-                vec3 groundBounce = ambLin * vec3(0.56, 0.52, 0.46);
+                vec3 skyBounce = ambLin * 1.62;
+                vec3 groundBounce = ambLin * vec3(0.60, 0.55, 0.48);
                 vec3 hemiAmbient = mix(groundBounce, skyBounce, N.y * 0.5 + 0.5);
 
                 vec3 fillDir = normalize(vec3(-L.x, 0.58, -L.z));
-                float fillDiff = max(dot(N, fillDir), 0.0) * 0.30;
+                float fillDiff = max(dot(N, fillDir), 0.0) * 0.35;
                 vec3 fillLight = mix(ambLin, fogLin, 0.5) * fillDiff;
 
                 float shininess = mix(24.0, 118.0, localWet);
@@ -367,37 +367,41 @@ class WorldShaderProgram {
                 } else if (uMaterialMode > 0.5 && uMaterialMode < 1.5) {
                     // Dual-lobe automotive clearcoat + subtle metallic base flake shimmer
                     shininess = 88.0;
-                    specStrength = 0.62;
+                    specStrength = 0.64;
                     float flake = hash21(floor(vWorldPos.xz * 260.0 + vWorldPos.y * 190.0));
                     float flakeGlint = smoothstep(0.76, 0.99, flake) * 0.24 * max(ndl, 0.0);
-                    float clearcoat = pow(max(dot(N, H), 0.0), 210.0) * 0.78 * shadowFactor;
-                    float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.2);
+                    float clearcoat = pow(max(dot(N, H), 0.0), 210.0) * 0.80 * shadowFactor;
+                    float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.1);
                     vec3 R = reflect(-V, N);
-                    vec3 skyEnv = mix(groundBounce * 0.52, fogLin * 1.48 + lightLin * 0.48, smoothstep(-0.15, 0.44, R.y));
-                    envReflect = skyEnv * (0.09 + fresnel * 0.58) + lightLin * (clearcoat + flakeGlint);
+                    vec3 skyEnv = mix(groundBounce * 0.52, fogLin * 1.50 + lightLin * 0.50, smoothstep(-0.15, 0.44, R.y));
+                    envReflect = skyEnv * (0.10 + fresnel * 0.60) + lightLin * (clearcoat + flakeGlint);
                 } else if (uMaterialMode > 1.5 && uMaterialMode < 2.5) {
                     shininess = 175.0;
-                    specStrength = 1.55;
+                    specStrength = 1.58;
                     vec3 R = reflect(-V, N);
-                    vec3 skyEnv = mix(vec3(0.06, 0.08, 0.12), fogLin * 1.44 + lightLin * 0.60, smoothstep(-0.14, 0.34, R.y));
-                    envReflect = skyEnv * 0.78;
-                    albedo *= 0.45;
+                    vec3 skyEnv = mix(vec3(0.06, 0.08, 0.12), fogLin * 1.46 + lightLin * 0.62, smoothstep(-0.14, 0.34, R.y));
+                    envReflect = skyEnv * 0.80;
+                    albedo *= 0.46;
                 } else if (uMaterialMode > 3.5 && uMaterialMode < 4.5) {
-                    shininess = 165.0;
-                    specStrength = 1.40;
-                    float fresnel = pow(1.0 - max(dot(N, V), 0.0), 2.1);
+                    shininess = 172.0;
+                    specStrength = 1.48;
+                    float fresnel = pow(1.0 - max(dot(N, V), 0.0), 2.0);
                     vec3 R = reflect(-V, N);
-                    vec3 skyEnv = mix(vec3(0.03, 0.05, 0.10), fogLin * 1.46 + lightLin * 0.36, smoothstep(-0.10, 0.42, R.y));
-                    envReflect = skyEnv * (0.38 + fresnel * 0.62);
+                    vec3 skyEnv = mix(vec3(0.04, 0.07, 0.12), fogLin * 1.52 + lightLin * 0.40, smoothstep(-0.10, 0.42, R.y));
+                    envReflect = skyEnv * (0.42 + fresnel * 0.65);
                 } else if (uMaterialMode > 4.5) {
                     shininess = 24.0;
-                    specStrength = 0.085;
-                    float rim = pow(1.0 - max(dot(N, V), 0.0), 3.0);
-                    envReflect = (lightLin * 0.52 + skyBounce) * rim * 0.16;
+                    specStrength = 0.095;
+                    float rim = pow(1.0 - max(dot(N, V), 0.0), 2.8);
+                    envReflect = (lightLin * 0.56 + skyBounce) * rim * 0.20;
                 } else if (uMaterialMode > 2.5 && uMaterialMode < 3.5 && localWet > 0.15) {
                     vec3 R = reflect(-V, N);
                     vec3 skyEnv = mix(ambLin * 0.3, fogLin * 1.28, clamp(R.y * 0.5 + 0.5, 0.0, 1.0));
                     envReflect = skyEnv * localWet * 0.42;
+                } else if (uMaterialMode < 0.5) {
+                    // Subtle grazing rim lift on dark rubber tires, chassis & terrain contours
+                    float rim = pow(1.0 - max(dot(N, V), 0.0), 3.6);
+                    envReflect = (skyBounce * 0.42 + lightLin * 0.25) * rim * 0.14;
                 }
 
                 float specPower = pow(max(dot(N, H), 0.0), shininess) * specStrength * shadowFactor;

@@ -183,97 +183,105 @@ fun AuthScreen(
                 border = androidx.compose.foundation.BorderStroke(1.dp, SimOutline),
                 shape = RoundedCornerShape(20.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.Start
-                ) {
-                    Text(
-                        text = "ACCESO DE CONDUCTOR",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = TextPrimary
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        text = stringResource(R.string.sign_in_tagline),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = TextSecondary
-                    )
-
-                    Spacer(Modifier.height(20.dp))
-
-                    if (errorMessage != null) {
-                        Surface(
-                            color = CrimsonAlert.copy(alpha = 0.18f),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 14.dp)
-                        ) {
-                            Text(
-                                text = errorMessage ?: "",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFFFCA5A5),
-                                modifier = Modifier.padding(12.dp)
-                            )
-                        }
-                    }
-
-                    Button(
-                        onClick = {
-                            errorMessage = null
-                            isLoading = true
-                            onGoogleSignInClicked(
-                                context = context,
-                                credentialManager = credentialManager,
-                                onAuthSuccess = {
-                                    isLoading = false
-                                    onAuthSuccess()
-                                },
-                                onAuthError = { msg ->
-                                    isLoading = false
-                                    errorMessage = msg
-                                },
-                                scope = scope,
-                                onAuthCancelled = {
-                                    isLoading = false
-                                }
-                            )
-                        },
-                        enabled = !isLoading && !isCheckingAuto,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = RacingOrange,
-                            contentColor = TextPrimary
-                        ),
-                        shape = RoundedCornerShape(12.dp),
+                Column {
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(54.dp)
-                            .minimumInteractiveComponentSize()
-                            .testTag("google_sign_in_button")
+                            .height(3.dp)
+                            .background(Brush.horizontalGradient(listOf(RacingOrange, SkyCyan)))
+                    )
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.Start
                     ) {
-                        if (isLoading || isCheckingAuto) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(22.dp),
-                                color = TextPrimary,
-                                strokeWidth = 2.5.dp
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            Text(
-                                text = if (isCheckingAuto) "Verificando sesión..." else "Conectando...",
-                                style = MaterialTheme.typography.labelLarge
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Login,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            Text(
-                                text = stringResource(R.string.sign_in_google),
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold
-                            )
+                        Text(
+                            text = "ACCESO DE CONDUCTOR",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = TextPrimary
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = stringResource(R.string.sign_in_tagline),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = TextSecondary
+                        )
+
+                        Spacer(Modifier.height(20.dp))
+
+                        if (errorMessage != null) {
+                            Surface(
+                                color = CrimsonAlert.copy(alpha = 0.18f),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 14.dp)
+                            ) {
+                                Text(
+                                    text = errorMessage ?: "",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color(0xFFFCA5A5),
+                                    modifier = Modifier.padding(12.dp)
+                                )
+                            }
+                        }
+
+                        Button(
+                            onClick = {
+                                errorMessage = null
+                                isLoading = true
+                                onGoogleSignInClicked(
+                                    context = context,
+                                    credentialManager = credentialManager,
+                                    onAuthSuccess = {
+                                        isLoading = false
+                                        onAuthSuccess()
+                                    },
+                                    onAuthError = { msg ->
+                                        isLoading = false
+                                        errorMessage = msg
+                                    },
+                                    scope = scope,
+                                    onAuthCancelled = {
+                                        isLoading = false
+                                    }
+                                )
+                            },
+                            enabled = !isLoading && !isCheckingAuto,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = RacingOrange,
+                                contentColor = TextPrimary
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(54.dp)
+                                .minimumInteractiveComponentSize()
+                                .testTag("google_sign_in_button")
+                        ) {
+                            if (isLoading || isCheckingAuto) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(22.dp),
+                                    color = TextPrimary,
+                                    strokeWidth = 2.5.dp
+                                )
+                                Spacer(Modifier.width(10.dp))
+                                Text(
+                                    text = if (isCheckingAuto) "Verificando sesión..." else "Conectando...",
+                                    style = MaterialTheme.typography.labelLarge
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Login,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(Modifier.width(10.dp))
+                                Text(
+                                    text = stringResource(R.string.sign_in_google),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }
@@ -285,17 +293,22 @@ fun AuthScreen(
 @Composable
 private fun FeatureRow(icon: ImageVector, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = RacingOrange,
-            modifier = Modifier.size(18.dp)
-        )
+        Surface(
+            color = RacingOrange.copy(alpha = 0.16f),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = RacingOrange,
+                modifier = Modifier.padding(6.dp).size(16.dp)
+            )
+        }
         Spacer(Modifier.width(10.dp))
         Text(
             text = text,
             style = MaterialTheme.typography.bodyLarge,
-            color = TextPrimary.copy(alpha = 0.9f)
+            color = TextPrimary.copy(alpha = 0.92f)
         )
     }
 }

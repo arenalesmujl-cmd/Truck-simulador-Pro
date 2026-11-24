@@ -55,7 +55,7 @@ class TruckGLRenderer(
     private lateinit var textures: WorldTextureSet
 
     private lateinit var unitCube: MeshBuffer
-    private lateinit var unitWheel: MeshBuffer
+    private lateinit var unitWheelSet: WheelMeshSet
     private lateinit var groundQuad: MeshBuffer
     private lateinit var billboardQuad: MeshBuffer
     private lateinit var skyDomeMesh: MeshBuffer
@@ -108,7 +108,7 @@ class TruckGLRenderer(
         textures = TextureFactory.createAll()
 
         unitCube = WorldMeshFactory.buildUnitCube()
-        unitWheel = WorldMeshFactory.buildUnitWheel()
+        unitWheelSet = WorldMeshFactory.buildUnitWheelSet()
         groundQuad = WorldMeshFactory.buildGroundQuad()
         billboardQuad = WorldMeshFactory.buildBillboardQuad()
         skyDomeMesh = WorldMeshFactory.buildSkyDomeMesh()
@@ -1231,7 +1231,7 @@ class TruckGLRenderer(
         Matrix.translateM(modelMatrix, 0, x, y, z)
         Matrix.rotateM(modelMatrix, 0, Math.toDegrees(yawRad.toDouble()).toFloat() + steerDeg, 0f, 1f, 0f)
         Matrix.rotateM(modelMatrix, 0, spinDeg, 1f, 0f, 0f)
-        drawShadowMesh(unitWheel)
+        drawShadowMesh(unitWheelSet.tireMesh)
     }
 
     private fun drawShadowArm(
@@ -1283,7 +1283,10 @@ class TruckGLRenderer(
         if (scale != 1f) {
             Matrix.scaleM(modelMatrix, 0, scale, scale, scale)
         }
-        drawMeshWithModelMatrix(unitWheel, 1f, 1f, 1f, 1f)
+        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
+        drawMeshWithModelMatrix(unitWheelSet.tireMesh, 1f, 1f, 1f, 1f)
+        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_CHROME)
+        drawMeshWithModelMatrix(unitWheelSet.rimMesh, 1f, 1f, 1f, 1f)
     }
 
     private fun drawGroundShadow(

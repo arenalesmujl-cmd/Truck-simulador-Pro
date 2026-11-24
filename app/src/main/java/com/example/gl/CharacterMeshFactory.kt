@@ -33,61 +33,100 @@ object CharacterMeshFactory {
      * - Natural curled-finger standing hands + steering-wheel gripping hands in cockpit!
      */
     fun buildDriverMeshes(): DriverMeshSet {
-        val skinR = 0.89f; val skinG = 0.68f; val skinB = 0.55f
-        val skinWarmR = 0.84f; val skinWarmG = 0.62f; val skinWarmB = 0.49f
+        val skinR = 0.91f; val skinG = 0.70f; val skinB = 0.57f
+        val skinWarmR = 0.85f; val skinWarmG = 0.64f; val skinWarmB = 0.51f
         val skinShadowR = 0.74f; val skinShadowG = 0.53f; val skinShadowB = 0.42f
 
-        val hairR = 0.11f; val hairG = 0.085f; val hairB = 0.068f
+        val hairR = 0.14f; val hairG = 0.11f; val hairB = 0.09f
 
-        val jacketR = 0.13f; val jacketG = 0.15f; val jacketB = 0.19f
-        val jacketTrimR = 0.19f; val jacketTrimG = 0.22f; val jacketTrimB = 0.27f
-        val suedeR = 0.50f; val suedeG = 0.31f; val suedeB = 0.17f
-        val henleyR = 0.76f; val henleyG = 0.79f; val henleyB = 0.83f
-        val denimR = 0.14f; val denimG = 0.21f; val denimB = 0.35f
-        val denimFadeR = 0.20f; val denimFadeG = 0.28f; val denimFadeB = 0.43f
-        val leatherR = 0.32f; val leatherG = 0.18f; val leatherB = 0.10f
+        // Calibrated lifted sRGB values so pow(c, 2.1) retains rich cloth folds & weave instead of crushing to black
+        val jacketR = 0.22f; val jacketG = 0.26f; val jacketB = 0.32f
+        val jacketTrimR = 0.29f; val jacketTrimG = 0.34f; val jacketTrimB = 0.41f
+        val suedeR = 0.62f; val suedeG = 0.39f; val suedeB = 0.22f
+        val henleyR = 0.80f; val henleyG = 0.83f; val henleyB = 0.87f
+        val denimR = 0.21f; val denimG = 0.31f; val denimB = 0.48f
+        val denimFadeR = 0.29f; val denimFadeG = 0.40f; val denimFadeB = 0.58f
+        val leatherR = 0.42f; val leatherG = 0.25f; val leatherB = 0.14f
 
         // =========================================================================
-        // 1A. CONTINUOUS SCULPTED UV-MAPPED HEAD & NECK (rendered with driverFaceTex)
+        // 1A. CONTINUOUS 56x24 SCULPTED UV-MAPPED HEAD & NECK (rendered with driverFaceTex)
         // =========================================================================
         val headFace = buildSculptedUvHeadMesh()
 
         // =========================================================================
-        // 1B. ANATOMICAL ANGLED EARS, CLEAN BACK HAIR & SLEEK 5-PANEL TRUCKER CAP
+        // 1B. ANATOMICAL LOFTED EARS, TAPERED HAIR & SLEEK 6-PANEL TRUCKER CAP
         // =========================================================================
         val headAcc = DynamicMeshBuilder()
         for (side in listOf(-1f, 1f)) {
-            // Outer helix + ear lobe + recessed concha shadow tucked neatly behind cheek
-            headAcc.addEllipsoid(side * 0.082f, 0.149f, -0.011f, 0.010f, 0.024f, 0.015f, 8, 12, skinWarmR, skinWarmG, skinWarmB)
-            headAcc.addEllipsoid(side * 0.080f, 0.126f, -0.008f, 0.0085f, 0.010f, 0.010f, 6, 10, skinR, skinG, skinB)
-            headAcc.addEllipsoid(side * 0.084f, 0.148f, -0.007f, 0.0055f, 0.013f, 0.0085f, 6, 10, skinShadowR, skinShadowG, skinShadowB)
-            // Tapered sideburn + temple hair + nape hair behind ears
-            headAcc.addEllipsoid(side * 0.076f, 0.156f, -0.022f, 0.012f, 0.036f, 0.025f, 6, 10, hairR, hairG, hairB)
-            headAcc.addEllipsoid(side * 0.068f, 0.118f, -0.042f, 0.016f, 0.030f, 0.024f, 6, 10, hairR, hairG, hairB)
+            // Curved anatomical outer helix & earlobe + recessed concha shadow
+            headAcc.addLoftedProfileY(
+                cx = side * 0.081f,
+                sectors = 14,
+                cappedBottom = true,
+                cappedTop = true,
+                rings = listOf(
+                    LoftRingY(0.120f, -0.008f, 0.0070f, 0.009f, skinR, skinG, skinB),
+                    LoftRingY(0.136f, -0.010f, 0.0095f, 0.014f, skinWarmR, skinWarmG, skinWarmB),
+                    LoftRingY(0.156f, -0.012f, 0.0105f, 0.016f, skinWarmR, skinWarmG, skinWarmB),
+                    LoftRingY(0.172f, -0.011f, 0.0080f, 0.012f, skinShadowR, skinShadowG, skinShadowB)
+                )
+            )
+            headAcc.addEllipsoid(side * 0.0845f, 0.149f, -0.008f, 0.0048f, 0.012f, 0.008f, 8, 10, skinShadowR, skinShadowG, skinShadowB)
+            // Tapered sideburn & temple hair flush with jawline
+            headAcc.addLoftedProfileY(
+                cx = side * 0.072f,
+                sectors = 14,
+                cappedBottom = true,
+                cappedTop = true,
+                rings = listOf(
+                    LoftRingY(0.105f, -0.020f, 0.006f, 0.011f, hairR, hairG, hairB),
+                    LoftRingY(0.140f, -0.024f, 0.011f, 0.022f, hairR, hairG, hairB),
+                    LoftRingY(0.178f, -0.025f, 0.014f, 0.028f, hairR, hairG, hairB)
+                )
+            )
         }
-        // Full back & nape hair cleanly wider than rear skull (zero pale skin peeking behind ears)
-        headAcc.addEllipsoid(0f, 0.154f, -0.033f, 0.086f, 0.074f, 0.071f, 14, 20, hairR, hairG, hairB)
-        headAcc.addEllipsoid(0f, 0.096f, -0.056f, 0.058f, 0.030f, 0.024f, 8, 14, hairR, hairG, hairB)
-
-        // Snug tailored 6-Panel Charcoal-Slate & Burnt-Amber Pro Trucker Cap (natural cranium fit)
+        // Sculpted smooth occipital & tapered nape hair (replaces blocky rear hair balls)
         headAcc.addLoftedProfileY(
             cx = 0f,
-            sectors = 32,
+            sectors = 28,
             cappedBottom = true,
             cappedTop = true,
             rings = listOf(
-                LoftRingY(0.188f, 0.000f, 0.088f, 0.092f, 0.10f, 0.12f, 0.16f, roundness = 0.92f),
-                LoftRingY(0.214f, -0.003f, 0.089f, 0.093f, 0.13f, 0.16f, 0.21f, roundness = 0.94f),
-                LoftRingY(0.242f, -0.006f, 0.076f, 0.080f, 0.13f, 0.16f, 0.21f, roundness = 0.96f),
-                LoftRingY(0.258f, -0.008f, 0.042f, 0.046f, 0.11f, 0.14f, 0.18f, roundness = 1.0f)
+                LoftRingY(0.068f, -0.056f, 0.044f, 0.018f, hairR, hairG, hairB, roundness = 0.90f),
+                LoftRingY(0.100f, -0.046f, 0.062f, 0.042f, hairR, hairG, hairB, roundness = 0.92f),
+                LoftRingY(0.138f, -0.036f, 0.078f, 0.062f, hairR, hairG, hairB, roundness = 0.94f),
+                LoftRingY(0.184f, -0.028f, 0.084f, 0.070f, hairR, hairG, hairB, roundness = 0.96f)
             )
         )
-        // Top cap squatcho button, rear snapback strap & front embroidered emblem
-        headAcc.addEllipsoid(0f, 0.261f, -0.008f, 0.009f, 0.004f, 0.009f, 6, 10, 0.95f, 0.44f, 0.08f)
-        headAcc.addBox(0f, 0.194f, -0.092f, 0.048f, 0.013f, 0.008f, 0.18f, 0.20f, 0.24f)
-        headAcc.addBox(0f, 0.194f, -0.094f, 0.020f, 0.009f, 0.006f, 0.94f, 0.43f, 0.07f)
-        headAcc.addEllipsoid(0f, 0.222f, 0.091f, 0.021f, 0.012f, 0.0045f, 6, 12, 0.95f, 0.44f, 0.08f)
-        headAcc.addEllipsoid(0f, 0.222f, 0.094f, 0.012f, 0.007f, 0.0035f, 6, 10, 0.92f, 0.94f, 0.96f)
+
+        // Tailored 6-Panel Charcoal-Slate & Burnt-Amber Pro Trucker Cap (natural cranium fit)
+        headAcc.addLoftedProfileY(
+            cx = 0f,
+            sectors = 36,
+            cappedBottom = true,
+            cappedTop = true,
+            rings = listOf(
+                LoftRingY(0.188f, 0.000f, 0.088f, 0.092f, 0.17f, 0.20f, 0.25f, roundness = 0.92f),
+                LoftRingY(0.214f, -0.003f, 0.089f, 0.093f, 0.21f, 0.25f, 0.31f, roundness = 0.94f),
+                LoftRingY(0.242f, -0.006f, 0.076f, 0.080f, 0.21f, 0.25f, 0.31f, roundness = 0.96f),
+                LoftRingY(0.258f, -0.008f, 0.042f, 0.046f, 0.18f, 0.22f, 0.28f, roundness = 1.0f)
+            )
+        )
+        // Curved rear snapback strap & buckle arch + top squatcho button & front embroidered patch
+        headAcc.addEllipsoid(0f, 0.261f, -0.008f, 0.009f, 0.004f, 0.009f, 8, 12, 0.95f, 0.44f, 0.08f)
+        headAcc.addLoftedProfileY(
+            cx = 0f,
+            sectors = 20,
+            cappedBottom = true,
+            cappedTop = true,
+            rings = listOf(
+                LoftRingY(0.188f, -0.084f, 0.036f, 0.012f, 0.24f, 0.27f, 0.32f, roundness = 0.85f),
+                LoftRingY(0.200f, -0.084f, 0.036f, 0.012f, 0.24f, 0.27f, 0.32f, roundness = 0.85f)
+            )
+        )
+        headAcc.addEllipsoid(0f, 0.194f, -0.095f, 0.012f, 0.0055f, 0.004f, 6, 10, 0.94f, 0.43f, 0.07f)
+        headAcc.addEllipsoid(0f, 0.222f, 0.091f, 0.021f, 0.012f, 0.0045f, 8, 12, 0.95f, 0.44f, 0.08f)
+        headAcc.addEllipsoid(0f, 0.222f, 0.094f, 0.012f, 0.007f, 0.0035f, 8, 10, 0.92f, 0.94f, 0.96f)
         // Sleek curved matte visor with subtle amber under-brim sandwich trim
         headAcc.addCurvedVisor(
             cy = 0.195f,
@@ -96,8 +135,8 @@ object CharacterMeshFactory {
             length = 0.078f,
             thickness = 0.0055f,
             archHeight = 0.018f,
-            segs = 20,
-            r = 0.11f, g = 0.13f, b = 0.17f
+            segs = 24,
+            r = 0.18f, g = 0.21f, b = 0.26f
         )
         headAcc.addCurvedVisor(
             cy = 0.1925f,
@@ -106,7 +145,7 @@ object CharacterMeshFactory {
             length = 0.080f,
             thickness = 0.0025f,
             archHeight = 0.018f,
-            segs = 20,
+            segs = 24,
             r = 0.94f, g = 0.43f, b = 0.07f
         )
 
@@ -187,43 +226,44 @@ object CharacterMeshFactory {
         // =========================================================================
         // 3. UPPER ARM WITH SEAMLESS SHOULDER & ELBOW SPHERICAL CAPS
         // =========================================================================
+        // Muscular biceps-deltoid taper
         val upperArm = DynamicMeshBuilder()
         upperArm.addEllipsoid(0f, 0f, 0f, 0.062f, 0.062f, 0.062f, 10, 14, jacketTrimR, jacketTrimG, jacketTrimB)
         upperArm.addLoftedProfileY(
             cx = 0f,
-            sectors = 20,
+            sectors = 24,
             cappedBottom = true,
             cappedTop = true,
             rings = listOf(
-                LoftRingY(-0.295f, 0f, 0.048f, 0.048f, jacketR, jacketG, jacketB),
-                LoftRingY(-0.245f, 0f, 0.051f, 0.050f, jacketR, jacketG, jacketB),
-                LoftRingY(-0.150f, 0.004f, 0.057f, 0.056f, jacketR, jacketG, jacketB),
-                LoftRingY(-0.075f, 0.005f, 0.062f, 0.060f, jacketTrimR, jacketTrimG, jacketTrimB),
+                LoftRingY(-0.295f, 0f, 0.046f, 0.046f, jacketR, jacketG, jacketB),
+                LoftRingY(-0.245f, 0f, 0.050f, 0.049f, jacketR, jacketG, jacketB),
+                LoftRingY(-0.155f, 0.005f, 0.058f, 0.057f, jacketTrimR, jacketTrimG, jacketTrimB),
+                LoftRingY(-0.080f, 0.006f, 0.063f, 0.061f, jacketTrimR, jacketTrimG, jacketTrimB),
                 LoftRingY(-0.010f, 0f, 0.064f, 0.064f, jacketTrimR, jacketTrimG, jacketTrimB),
                 LoftRingY(0.025f, 0f, 0.054f, 0.054f, jacketTrimR, jacketTrimG, jacketTrimB)
             )
         )
-        upperArm.addEllipsoid(0f, -0.290f, 0f, 0.047f, 0.047f, 0.047f, 10, 14, jacketR, jacketG, jacketB)
+        upperArm.addEllipsoid(0f, -0.290f, 0f, 0.046f, 0.046f, 0.046f, 10, 14, jacketR, jacketG, jacketB)
 
         // =========================================================================
         // 4. LEFT & RIGHT FOREARMS + RELAXED CURLED HANDS vs STEERING WHEEL GRIP HANDS
         // =========================================================================
         fun buildForearmHand(isLeft: Boolean, grippingWheel: Boolean): MeshBuffer {
             val f = DynamicMeshBuilder()
-            f.addEllipsoid(0f, 0f, 0f, 0.046f, 0.046f, 0.046f, 10, 14, jacketR, jacketG, jacketB)
+            f.addEllipsoid(0f, 0f, 0f, 0.045f, 0.045f, 0.045f, 10, 14, jacketR, jacketG, jacketB)
             f.addLoftedProfileY(
                 cx = 0f,
-                sectors = 20,
+                sectors = 24,
                 cappedBottom = true,
                 cappedTop = true,
                 rings = listOf(
-                    LoftRingY(-0.258f, 0f, 0.031f, 0.024f, skinR, skinG, skinB),
-                    LoftRingY(-0.215f, 0f, 0.038f, 0.033f, skinR, skinG, skinB),
-                    LoftRingY(-0.192f, 0f, 0.043f, 0.041f, jacketTrimR, jacketTrimG, jacketTrimB),
+                    LoftRingY(-0.258f, 0f, 0.030f, 0.023f, skinR, skinG, skinB),
+                    LoftRingY(-0.220f, 0.002f, 0.036f, 0.032f, skinR, skinG, skinB),
+                    LoftRingY(-0.194f, 0.001f, 0.043f, 0.041f, jacketTrimR, jacketTrimG, jacketTrimB),
                     LoftRingY(-0.172f, 0f, 0.045f, 0.044f, jacketTrimR, jacketTrimG, jacketTrimB),
-                    LoftRingY(-0.168f, 0f, 0.046f, 0.045f, jacketR, jacketG, jacketB),
-                    LoftRingY(-0.075f, 0f, 0.050f, 0.049f, jacketR, jacketG, jacketB),
-                    LoftRingY(0.000f, 0f, 0.047f, 0.047f, jacketR, jacketG, jacketB)
+                    LoftRingY(-0.168f, 0f, 0.047f, 0.046f, jacketR, jacketG, jacketB),
+                    LoftRingY(-0.080f, 0.002f, 0.051f, 0.049f, jacketR, jacketG, jacketB),
+                    LoftRingY(0.000f, 0f, 0.046f, 0.046f, jacketR, jacketG, jacketB)
                 )
             )
             if (isLeft) {
@@ -338,10 +378,10 @@ object CharacterMeshFactory {
             cappedFront = true,
             cappedBack = true,
             rings = listOf(
-                LoftRingZ(-0.066f, -0.460f, 0.054f, 0.015f, 0.09f, 0.09f, 0.11f, roundness = 0.65f),
-                LoftRingZ(0.005f, -0.460f, 0.055f, 0.014f, 0.10f, 0.10f, 0.12f, roundness = 0.65f),
-                LoftRingZ(0.130f, -0.459f, 0.054f, 0.013f, 0.10f, 0.10f, 0.12f, roundness = 0.72f),
-                LoftRingZ(0.172f, -0.457f, 0.041f, 0.010f, 0.10f, 0.10f, 0.12f, roundness = 0.85f)
+                LoftRingZ(-0.066f, -0.460f, 0.054f, 0.015f, 0.16f, 0.16f, 0.19f, roundness = 0.65f),
+                LoftRingZ(0.005f, -0.460f, 0.055f, 0.014f, 0.17f, 0.17f, 0.20f, roundness = 0.65f),
+                LoftRingZ(0.130f, -0.459f, 0.054f, 0.013f, 0.17f, 0.17f, 0.20f, roundness = 0.72f),
+                LoftRingZ(0.172f, -0.457f, 0.041f, 0.010f, 0.17f, 0.17f, 0.20f, roundness = 0.85f)
             )
         )
         for (ly in listOf(-0.368f, -0.386f, -0.402f)) {
@@ -366,32 +406,43 @@ object CharacterMeshFactory {
     }
 
     /**
-     * Generates a single seamless 36x16 anatomical head mesh with sculpted cheekbones,
+     * Generates a single seamless 56x24 anatomical head mesh with sculpted cheekbones,
      * nose bridge/tip/alar wings, brow ridge, orbital eye-socket hollows, and chin contour,
-     * mapped 1:1 to TextureFactory.buildDriverFaceTexture().
+     * UV-anchored 1:1 to TextureFactory.buildDriverFaceTexture().
      */
     private fun buildSculptedUvHeadMesh(): MeshBuffer {
         val mb = DynamicMeshBuilder()
-        val rings = listOf(
-            LoftRingY(-0.028f, -0.004f, 0.064f, 0.058f, 1f, 1f, 1f, roundness = 0.95f),
-            LoftRingY(-0.004f, -0.004f, 0.060f, 0.055f, 1f, 1f, 1f, roundness = 0.96f),
-            LoftRingY(0.020f, -0.003f, 0.057f, 0.054f, 1f, 1f, 1f, roundness = 0.96f),
-            LoftRingY(0.045f, 0.006f, 0.058f, 0.062f, 1f, 1f, 1f, roundness = 0.92f),
-            LoftRingY(0.064f, 0.012f, 0.061f, 0.070f, 1f, 1f, 1f, roundness = 0.85f),
-            LoftRingY(0.084f, 0.014f, 0.068f, 0.076f, 1f, 1f, 1f, roundness = 0.82f),
-            LoftRingY(0.104f, 0.014f, 0.075f, 0.081f, 1f, 1f, 1f, roundness = 0.81f),
-            LoftRingY(0.122f, 0.012f, 0.079f, 0.084f, 1f, 1f, 1f, roundness = 0.83f),
-            LoftRingY(0.138f, 0.011f, 0.082f, 0.086f, 1f, 1f, 1f, roundness = 0.85f),
-            LoftRingY(0.156f, 0.010f, 0.083f, 0.087f, 1f, 1f, 1f, roundness = 0.87f),
-            LoftRingY(0.174f, 0.008f, 0.084f, 0.087f, 1f, 1f, 1f, roundness = 0.89f),
-            LoftRingY(0.194f, 0.003f, 0.082f, 0.085f, 1f, 1f, 1f, roundness = 0.92f),
-            LoftRingY(0.214f, -0.002f, 0.079f, 0.082f, 1f, 1f, 1f, roundness = 0.94f),
-            LoftRingY(0.234f, -0.006f, 0.070f, 0.074f, 1f, 1f, 1f, roundness = 0.96f),
-            LoftRingY(0.246f, -0.008f, 0.056f, 0.060f, 1f, 1f, 1f, roundness = 0.98f),
-            LoftRingY(0.254f, -0.010f, 0.036f, 0.040f, 1f, 1f, 1f, roundness = 1.00f)
+        // Pair each ring with exact UV-v matching TextureFactory.buildDriverFaceTexture() anchors
+        val ringSpecs = listOf(
+            Pair(LoftRingY(-0.028f, -0.004f, 0.063f, 0.057f, 1f, 1f, 1f, roundness = 0.95f), 0.000f),
+            Pair(LoftRingY(-0.004f, -0.004f, 0.059f, 0.054f, 1f, 1f, 1f, roundness = 0.96f), 0.067f),
+            Pair(LoftRingY(0.020f, -0.003f, 0.056f, 0.053f, 1f, 1f, 1f, roundness = 0.96f), 0.133f),
+            Pair(LoftRingY(0.045f, 0.006f, 0.057f, 0.061f, 1f, 1f, 1f, roundness = 0.92f), 0.200f),
+            Pair(LoftRingY(0.064f, 0.012f, 0.060f, 0.070f, 1f, 1f, 1f, roundness = 0.85f), 0.267f), // chin bottom
+            Pair(LoftRingY(0.075f, 0.013f, 0.064f, 0.073f, 1f, 1f, 1f, roundness = 0.83f), 0.302f), // chin cleft
+            Pair(LoftRingY(0.084f, 0.014f, 0.068f, 0.076f, 1f, 1f, 1f, roundness = 0.82f), 0.333f),
+            Pair(LoftRingY(0.096f, 0.014f, 0.072f, 0.079f, 1f, 1f, 1f, roundness = 0.81f), 0.372f),
+            Pair(LoftRingY(0.105f, 0.014f, 0.075f, 0.081f, 1f, 1f, 1f, roundness = 0.81f), 0.405f), // lower lip
+            Pair(LoftRingY(0.114f, 0.013f, 0.077f, 0.083f, 1f, 1f, 1f, roundness = 0.82f), 0.436f), // upper lip
+            Pair(LoftRingY(0.123f, 0.012f, 0.079f, 0.084f, 1f, 1f, 1f, roundness = 0.83f), 0.469f), // philtrum
+            Pair(LoftRingY(0.132f, 0.011f, 0.081f, 0.085f, 1f, 1f, 1f, roundness = 0.84f), 0.506f), // nose bulb
+            Pair(LoftRingY(0.141f, 0.011f, 0.082f, 0.086f, 1f, 1f, 1f, roundness = 0.85f), 0.542f), // nose bridge
+            Pair(LoftRingY(0.149f, 0.010f, 0.0825f, 0.0865f, 1f, 1f, 1f, roundness = 0.86f), 0.573f),
+            Pair(LoftRingY(0.156f, 0.010f, 0.083f, 0.087f, 1f, 1f, 1f, roundness = 0.87f), 0.600f), // eyes
+            Pair(LoftRingY(0.165f, 0.009f, 0.0835f, 0.087f, 1f, 1f, 1f, roundness = 0.88f), 0.633f), // upper lid
+            Pair(LoftRingY(0.174f, 0.008f, 0.084f, 0.087f, 1f, 1f, 1f, roundness = 0.89f), 0.667f), // brow
+            Pair(LoftRingY(0.184f, 0.005f, 0.083f, 0.086f, 1f, 1f, 1f, roundness = 0.90f), 0.700f),
+            Pair(LoftRingY(0.194f, 0.003f, 0.082f, 0.085f, 1f, 1f, 1f, roundness = 0.92f), 0.733f), // cap rim
+            Pair(LoftRingY(0.204f, 0.000f, 0.080f, 0.083f, 1f, 1f, 1f, roundness = 0.93f), 0.766f),
+            Pair(LoftRingY(0.214f, -0.002f, 0.078f, 0.081f, 1f, 1f, 1f, roundness = 0.94f), 0.800f),
+            Pair(LoftRingY(0.234f, -0.006f, 0.070f, 0.074f, 1f, 1f, 1f, roundness = 0.96f), 0.867f),
+            Pair(LoftRingY(0.246f, -0.008f, 0.056f, 0.060f, 1f, 1f, 1f, roundness = 0.98f), 0.933f),
+            Pair(LoftRingY(0.254f, -0.010f, 0.036f, 0.040f, 1f, 1f, 1f, roundness = 1.00f), 1.000f)
         )
+        val rings = ringSpecs.map { it.first }
+        val ringVs = ringSpecs.map { it.second }
         val nRings = rings.size
-        val sectors = 36
+        val sectors = 56
         val posX = Array(nRings) { FloatArray(sectors) }
         val posY = Array(nRings) { FloatArray(sectors) }
         val posZ = Array(nRings) { FloatArray(sectors) }
@@ -414,59 +465,59 @@ object CharacterMeshFactory {
                 // Sculpted facial reliefs on the front hemisphere (sin(a) > 0)
                 if (sa > 0.22f) {
                     val frontMask = ((sa - 0.22f) / 0.78f).coerceIn(0f, 1f)
-                    // Anatomical nose ridge, tip & lateral alar flare centered at x = 0, y = 0.128..0.172
-                    val noseX = exp(-(x * x) / (2f * 0.011f * 0.011f))
-                    val noseY = exp(-((y - 0.132f) * (y - 0.132f)) / (2f * 0.016f * 0.016f))
-                    val bridgeY = exp(-((y - 0.156f) * (y - 0.156f)) / (2f * 0.016f * 0.016f)) * 0.56f
-                    z += (noseY * 0.023f + bridgeY * 0.013f) * noseX * frontMask
+                    // Anatomical nose ridge, bulb & lateral alar flare centered at x = 0, y = 0.128..0.172
+                    val noseX = exp(-(x * x) / (2f * 0.0105f * 0.0105f))
+                    val noseY = exp(-((y - 0.132f) * (y - 0.132f)) / (2f * 0.0155f * 0.0155f))
+                    val bridgeY = exp(-((y - 0.156f) * (y - 0.156f)) / (2f * 0.016f * 0.016f)) * 0.58f
+                    z += (noseY * 0.0235f + bridgeY * 0.0135f) * noseX * frontMask
 
-                    val alarY = exp(-((y - 0.130f) * (y - 0.130f)) / (2f * 0.007f * 0.007f))
+                    val alarY = exp(-((y - 0.130f) * (y - 0.130f)) / (2f * 0.0065f * 0.0065f))
                     for (side in listOf(-1f, 1f)) {
-                        val dxAlar = x - side * 0.012f
-                        val alarX = exp(-(dxAlar * dxAlar) / (2f * 0.005f * 0.005f))
-                        z += alarX * alarY * 0.006f * frontMask
+                        val dxAlar = x - side * 0.0118f
+                        val alarX = exp(-(dxAlar * dxAlar) / (2f * 0.0048f * 0.0048f))
+                        z += alarX * alarY * 0.0062f * frontMask
                     }
 
-                    // Sculpted upper & lower eyelid crease pads, orbital hollows & zygomatic cheekbones
+                    // Deeper orbital sockets, defined upper/lower eyelid creases & zygomatic cheekbones
                     for (side in listOf(-1f, 1f)) {
                         val dxEye = x - side * 0.0285f
                         val dyEye = y - 0.156f
                         val eyeSocket = exp(-(dxEye * dxEye) / (2f * 0.012f * 0.012f) - (dyEye * dyEye) / (2f * 0.0085f * 0.0085f))
-                        z -= eyeSocket * 0.0052f * frontMask
+                        z -= eyeSocket * 0.0058f * frontMask
 
-                        val upperLid = exp(-(dxEye * dxEye) / (2f * 0.008f * 0.008f) - ((y - 0.163f) * (y - 0.163f)) / (2f * 0.0035f * 0.0035f))
-                        z += upperLid * 0.0032f * frontMask
+                        val upperLid = exp(-(dxEye * dxEye) / (2f * 0.008f * 0.008f) - ((y - 0.163f) * (y - 0.163f)) / (2f * 0.0032f * 0.0032f))
+                        z += upperLid * 0.0035f * frontMask
 
                         val dxCheek = x - side * 0.042f
                         val dyCheek = y - 0.128f
                         val cheek = exp(-(dxCheek * dxCheek) / (2f * 0.016f * 0.016f) - (dyCheek * dyCheek) / (2f * 0.012f * 0.012f))
-                        z += cheek * 0.0052f * frontMask
+                        z += cheek * 0.0058f * frontMask
 
-                        // Angular masculine mandibular jaw corner
+                        // Strong masculine mandibular jaw angle
                         val dxJaw = x - side * 0.056f
                         val dyJaw = y - 0.072f
                         val jaw = exp(-(dxJaw * dxJaw) / (2f * 0.011f * 0.011f) - (dyJaw * dyJaw) / (2f * 0.012f * 0.012f))
-                        z += jaw * 0.0044f * frontMask
+                        z += jaw * 0.0050f * frontMask
                     }
 
-                    // Upper & lower lip protrusion + shallow philtrum indentation
+                    // Upper & lower lip protrusion + clean philtrum recess
                     val lipX = exp(-(x * x) / (2f * 0.014f * 0.014f))
-                    val upperLipY = exp(-((y - 0.114f) * (y - 0.114f)) / (2f * 0.0045f * 0.0045f))
-                    val lowerLipY = exp(-((y - 0.104f) * (y - 0.104f)) / (2f * 0.0048f * 0.0048f))
-                    z += (upperLipY * 0.0045f + lowerLipY * 0.0040f) * lipX * frontMask
+                    val upperLipY = exp(-((y - 0.114f) * (y - 0.114f)) / (2f * 0.0042f * 0.0042f))
+                    val lowerLipY = exp(-((y - 0.104f) * (y - 0.104f)) / (2f * 0.0045f * 0.0045f))
+                    z += (upperLipY * 0.0048f + lowerLipY * 0.0042f) * lipX * frontMask
 
-                    val philtrumX = exp(-(x * x) / (2f * 0.004f * 0.004f))
-                    val philtrumY = exp(-((y - 0.123f) * (y - 0.123f)) / (2f * 0.0045f * 0.0045f))
-                    z -= philtrumX * philtrumY * 0.0022f * frontMask
+                    val philtrumX = exp(-(x * x) / (2f * 0.0038f * 0.0038f))
+                    val philtrumY = exp(-((y - 0.123f) * (y - 0.123f)) / (2f * 0.0042f * 0.0042f))
+                    z -= philtrumX * philtrumY * 0.0024f * frontMask
 
-                    // Gentle supraorbital brow ridge & strong masculine chin prominence
+                    // Gentle supraorbital brow ridge & masculine chin prominence
                     val browX = exp(-(x * x) / (2f * 0.039f * 0.039f))
-                    val browY = exp(-((y - 0.174f) * (y - 0.174f)) / (2f * 0.008f * 0.008f))
-                    z += browX * browY * 0.0056f * frontMask
+                    val browY = exp(-((y - 0.174f) * (y - 0.174f)) / (2f * 0.0075f * 0.0075f))
+                    z += browX * browY * 0.0060f * frontMask
 
                     val chinX = exp(-(x * x) / (2f * 0.024f * 0.024f))
                     val chinY = exp(-((y - 0.075f) * (y - 0.075f)) / (2f * 0.012f * 0.012f))
-                    z += chinX * chinY * 0.0070f * frontMask
+                    z += chinX * chinY * 0.0076f * frontMask
                 }
 
                 posX[ri][s] = x
@@ -497,8 +548,8 @@ object CharacterMeshFactory {
         }
 
         for (ri in 0 until nRings - 1) {
-            val v0 = ri.toFloat() / (nRings - 1)
-            val v1 = (ri + 1).toFloat() / (nRings - 1)
+            val v0 = ringVs[ri]
+            val v1 = ringVs[ri + 1]
             for (s in 0 until sectors) {
                 val sNext = (s + 1) % sectors
                 val u0 = s.toFloat() / sectors

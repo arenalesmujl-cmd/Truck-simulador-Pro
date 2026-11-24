@@ -28,7 +28,7 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
     private lateinit var worldShader: WorldShaderProgram
     private lateinit var textures: WorldTextureSet
     private lateinit var unitCube: MeshBuffer
-    private lateinit var unitWheel: MeshBuffer
+    private lateinit var unitWheelSet: WheelMeshSet
     private lateinit var groundQuad: MeshBuffer
     private lateinit var pedestalMesh: MeshBuffer
     private lateinit var pedestalTrimMesh: MeshBuffer
@@ -62,7 +62,7 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
         worldShader = WorldShaderProgram()
         textures = TextureFactory.createAll()
         unitCube = WorldMeshFactory.buildUnitCube()
-        unitWheel = WorldMeshFactory.buildUnitWheel()
+        unitWheelSet = WorldMeshFactory.buildUnitWheelSet()
         groundQuad = WorldMeshFactory.buildGroundQuad()
 
         val ped = DynamicMeshBuilder()
@@ -151,9 +151,9 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
 
         val style = truckStyle
         val meshSet = truckMeshes[style] ?: return
-        val driverX = 1.92f
-        val driverZ = 2.68f
-        val driverYaw = 24f
+        val driverX = 1.88f
+        val driverZ = 2.62f
+        val driverYaw = 20f
         val breathBob = sin(idleTime * 2.0f) * 0.0055f
         val pelvisY = 0.89f + breathBob
         val axles = when (style) {
@@ -250,15 +250,17 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_GLASS)
         drawMesh(meshSet.glassMesh, 1f, 1f, 1f, 1f)
 
-        // Steered hero forged-aluminum wheels
-        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_CHROME)
+        // Steered hero wheels: matte vulcanized rubber tires + mirror forged-aluminum Alcoa rims
         axles.forEachIndexed { idx, fz ->
             val st = if (idx == 0 || (style == TruckStyle.ARCTIC_EXPEDITION && idx == 1)) -14f else 0f
             for (sx in listOf(-1.18f, 1.18f)) {
                 Matrix.setIdentityM(modelMatrix, 0)
                 Matrix.translateM(modelMatrix, 0, sx, 0.53f, fz)
                 Matrix.rotateM(modelMatrix, 0, st, 0f, 1f, 0f)
-                drawMesh(unitWheel, 1f, 1f, 1f, 1f)
+                GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
+                drawMesh(unitWheelSet.tireMesh, 1f, 1f, 1f, 1f)
+                GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_CHROME)
+                drawMesh(unitWheelSet.rimMesh, 1f, 1f, 1f, 1f)
             }
         }
 
@@ -370,7 +372,7 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
                 Matrix.setIdentityM(modelMatrix, 0)
                 Matrix.translateM(modelMatrix, 0, sx, 0.53f, fz)
                 Matrix.rotateM(modelMatrix, 0, st, 0f, 1f, 0f)
-                drawShadowMesh(unitWheel)
+                drawShadowMesh(unitWheelSet.tireMesh)
             }
         }
 

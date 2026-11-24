@@ -322,13 +322,36 @@ fun OnFootAnalogJoystick(
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val c = Offset(size.width / 2f, size.height / 2f)
-            val outerR = size.minDimension * 0.40f
-            drawCircle(color = Color(0xFF334155), radius = outerR, center = c, style = Stroke(width = 2.5f))
-            drawLine(Color(0xFF1E293B), Offset(c.x - outerR * 0.6f, c.y), Offset(c.x + outerR * 0.6f, c.y), strokeWidth = 1.5f)
-            drawLine(Color(0xFF1E293B), Offset(c.x, c.y - outerR * 0.6f), Offset(c.x, c.y + outerR * 0.6f), strokeWidth = 1.5f)
-            drawCircle(color = SkyCyan.copy(alpha = 0.22f), radius = 30f, center = c + knobOffset)
-            drawCircle(color = SkyCyan, radius = 22f, center = c + knobOffset)
-            drawCircle(color = TextPrimary, radius = 8f, center = c + knobOffset)
+            val outerR = size.minDimension * 0.42f
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(0xFF0F172A).copy(alpha = 0.85f), Color(0xFF020617).copy(alpha = 0.38f)),
+                    center = c,
+                    radius = outerR
+                ),
+                radius = outerR,
+                center = c
+            )
+            drawCircle(color = Color(0xFF475569).copy(alpha = 0.72f), radius = outerR, center = c, style = Stroke(width = 2.5f))
+            drawCircle(color = SkyCyan.copy(alpha = 0.18f), radius = outerR * 0.62f, center = c, style = Stroke(width = 1.5f))
+            // Cardinal N/E/S/W reticle markers
+            drawLine(SkyCyan.copy(alpha = 0.45f), Offset(c.x, c.y - outerR + 3f), Offset(c.x, c.y - outerR + 12f), strokeWidth = 2.5f, cap = StrokeCap.Round)
+            drawLine(Color(0xFF334155), Offset(c.x, c.y + outerR - 12f), Offset(c.x, c.y + outerR - 3f), strokeWidth = 2f, cap = StrokeCap.Round)
+            drawLine(Color(0xFF334155), Offset(c.x - outerR + 3f, c.y), Offset(c.x - outerR + 12f, c.y), strokeWidth = 2f, cap = StrokeCap.Round)
+            drawLine(Color(0xFF334155), Offset(c.x + outerR - 12f, c.y), Offset(c.x + outerR - 3f, c.y), strokeWidth = 2f, cap = StrokeCap.Round)
+            // Tactile illuminated thumb pad
+            val knobPos = c + knobOffset
+            drawCircle(color = SkyCyan.copy(alpha = 0.26f), radius = 32f, center = knobPos)
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(0xFF7DD3FC), SkyCyan, Color(0xFF0284C7)),
+                    center = knobPos - Offset(5f, 5f),
+                    radius = 24f
+                ),
+                radius = 22f,
+                center = knobPos
+            )
+            drawCircle(color = TextPrimary.copy(alpha = 0.9f), radius = 7.5f, center = knobPos)
         }
     }
 }
@@ -462,14 +485,16 @@ fun TactileSteeringWheel(
         Canvas(modifier = Modifier.fillMaxSize().padding(14.dp)) {
             val r = size.minDimension / 2f
             val c = Offset(size.width / 2f, size.height / 2f)
+            // Outer stationary steering angle gauge ring
+            drawCircle(color = Color(0xFF334155).copy(alpha = 0.5f), radius = r + 10f, center = c, style = Stroke(width = 1.5f))
             rotate(degrees = steerValue * 110f, pivot = c) {
-                // Dark stitched leather rim & subtle metallic outer highlight
-                drawCircle(color = Color(0xFF0F172A), radius = r, center = c, style = Stroke(width = 22f))
+                // Dark stitched leather rim & brushed metallic outer highlight
+                drawCircle(color = Color(0xFF0F172A), radius = r, center = c, style = Stroke(width = 23f))
                 drawCircle(color = Color(0xFF1E293B), radius = r, center = c, style = Stroke(width = 16f))
-                drawCircle(color = Color(0xFF64748B), radius = r + 5f, center = c, style = Stroke(width = 2.5f))
+                drawCircle(color = Color(0xFF64748B), radius = r + 5.5f, center = c, style = Stroke(width = 2.5f))
                 // Thumb grip bolsters at 9 & 3 o'clock
-                drawCircle(color = Color(0xFF334155), radius = 11f, center = Offset(c.x - r + 2f, c.y))
-                drawCircle(color = Color(0xFF334155), radius = 11f, center = Offset(c.x + r - 2f, c.y))
+                drawCircle(color = Color(0xFF334155), radius = 11.5f, center = Offset(c.x - r + 2f, c.y))
+                drawCircle(color = Color(0xFF334155), radius = 11.5f, center = Offset(c.x + r - 2f, c.y))
                 // Brushed aluminum spokes
                 drawLine(Color(0xFF94A3B8), Offset(c.x - r + 8f, c.y), Offset(c.x + r - 8f, c.y), strokeWidth = 12f, cap = StrokeCap.Round)
                 drawLine(Color(0xFFE2E8F0), Offset(c.x - r + 10f, c.y - 1.5f), Offset(c.x + r - 10f, c.y - 1.5f), strokeWidth = 3f, cap = StrokeCap.Round)

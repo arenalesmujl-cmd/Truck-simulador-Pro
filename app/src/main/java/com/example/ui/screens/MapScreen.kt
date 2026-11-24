@@ -5,6 +5,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -182,42 +183,50 @@ fun MapScreen(
                 border = BorderStroke(1.dp, SimOutline),
                 shape = RoundedCornerShape(18.dp)
             ) {
-                Column(modifier = Modifier.fillMaxSize().padding(12.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.Map, contentDescription = null, tint = SkyCyan, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("SATÉLITE EN VIVO", style = MaterialTheme.typography.labelSmall, color = SkyCyan)
-                        }
-                        Text(
-                            text = "Pos: (${telemetry.truckX.toInt()}m, ${telemetry.truckZ.toInt()}m)",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextSecondary
-                        )
-                    }
-
-                    WorldMapCanvas(
-                        telemetry = telemetry,
-                        unlockedRoutes = profile.unlockedRouteIds,
-                        textMeasurer = textMeasurer,
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f)
+                            .height(3.dp)
+                            .background(Brush.horizontalGradient(listOf(SkyCyan, RacingOrange)))
                     )
-                    Spacer(Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        LegendDot(EmeraldGo, "Carga")
-                        LegendDot(AmberSignal, "Gasolinera")
-                        LegendDot(SkyCyan, "Taller")
-                        LegendDot(Color(0xFF94A3B8), "Parking")
-                        LegendDot(RacingOrange, "Tu Camión")
+                    Column(modifier = Modifier.fillMaxSize().padding(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Filled.Map, contentDescription = null, tint = SkyCyan, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("SATÉLITE EN VIVO", style = MaterialTheme.typography.labelSmall, color = SkyCyan)
+                            }
+                            Text(
+                                text = "Pos: (${telemetry.truckX.toInt()}m, ${telemetry.truckZ.toInt()}m)",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextSecondary
+                            )
+                        }
+
+                        WorldMapCanvas(
+                            telemetry = telemetry,
+                            unlockedRoutes = profile.unlockedRouteIds,
+                            textMeasurer = textMeasurer,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            LegendDot(EmeraldGo, "Carga")
+                            LegendDot(AmberSignal, "Gasolinera")
+                            LegendDot(SkyCyan, "Taller")
+                            LegendDot(Color(0xFF94A3B8), "Parking")
+                            LegendDot(RacingOrange, "Tu Camión")
+                        }
                     }
                 }
             }
@@ -240,53 +249,67 @@ fun MapScreen(
                         ),
                         shape = RoundedCornerShape(14.dp)
                     ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(route.name, style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
-                                if (unlocked) {
-                                    Surface(
-                                        color = EmeraldGo.copy(alpha = 0.16f),
-                                        shape = RoundedCornerShape(6.dp)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                            verticalAlignment = Alignment.CenterVertically
+                        Column {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(2.5.dp)
+                                    .background(
+                                        if (unlocked) {
+                                            Brush.horizontalGradient(listOf(EmeraldGo, SkyCyan))
+                                        } else {
+                                            Brush.horizontalGradient(listOf(RacingOrange, AmberSignal))
+                                        }
+                                    )
+                            )
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(route.name, style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+                                    if (unlocked) {
+                                        Surface(
+                                            color = EmeraldGo.copy(alpha = 0.16f),
+                                            shape = RoundedCornerShape(6.dp)
                                         ) {
-                                            Icon(Icons.Filled.CheckCircle, contentDescription = "Desbloqueada", tint = EmeraldGo, modifier = Modifier.size(14.dp))
-                                            Spacer(Modifier.width(4.dp))
-                                            Text("ACTIVA", style = MaterialTheme.typography.labelSmall, color = EmeraldGo)
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(Icons.Filled.CheckCircle, contentDescription = "Desbloqueada", tint = EmeraldGo, modifier = Modifier.size(14.dp))
+                                                Spacer(Modifier.width(4.dp))
+                                                Text("ACTIVA", style = MaterialTheme.typography.labelSmall, color = EmeraldGo)
+                                            }
                                         }
                                     }
                                 }
-                            }
-                            Spacer(Modifier.height(5.dp))
-                            Text(route.description, style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
-                            if (!unlocked) {
-                                Spacer(Modifier.height(10.dp))
-                                Button(
-                                    onClick = { onUnlockRoute(route) },
-                                    enabled = canUnlock,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = RacingOrange,
-                                        disabledContainerColor = SimSurfaceElevated
-                                    ),
-                                    shape = RoundedCornerShape(10.dp),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(48.dp)
-                                        .minimumInteractiveComponentSize()
-                                        .testTag("unlock_route_${route.id}")
-                                ) {
-                                    Icon(Icons.Filled.LockOpen, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(Modifier.width(6.dp))
-                                    Text(
-                                        text = "DESBLOQUEAR $${route.unlockCost} (Nv.${route.requiredLevel})",
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
+                                Spacer(Modifier.height(5.dp))
+                                Text(route.description, style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                                if (!unlocked) {
+                                    Spacer(Modifier.height(10.dp))
+                                    Button(
+                                        onClick = { onUnlockRoute(route) },
+                                        enabled = canUnlock,
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = RacingOrange,
+                                            disabledContainerColor = SimSurfaceElevated
+                                        ),
+                                        shape = RoundedCornerShape(10.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(48.dp)
+                                            .minimumInteractiveComponentSize()
+                                            .testTag("unlock_route_${route.id}")
+                                    ) {
+                                        Icon(Icons.Filled.LockOpen, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(Modifier.width(6.dp))
+                                        Text(
+                                            text = "DESBLOQUEAR $${route.unlockCost} (Nv.${route.requiredLevel})",
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -313,18 +336,31 @@ private fun WorldMapCanvas(
             y = h * 0.5f + wz * scale
         )
 
-        // Coastal Bay & Alpine Sierra geographic regions
+        // Coastal Bay & Alpine Sierra geographic regions with glowing contour boundaries
         val oceanTopLeft = toMap(840f, -1080f)
+        val oceanBot = toMap(840f, -150f).y
         drawRect(
-            color = Color(0xFF0B2742),
+            color = Color(0xFF0A2A48),
             topLeft = oceanTopLeft,
-            size = Size((w - oceanTopLeft.x).coerceAtLeast(0f), toMap(840f, -150f).y - oceanTopLeft.y)
+            size = Size((w - oceanTopLeft.x).coerceAtLeast(0f), (oceanBot - oceanTopLeft.y).coerceAtLeast(0f))
+        )
+        drawLine(
+            color = SkyCyan.copy(alpha = 0.28f),
+            start = Offset(oceanTopLeft.x, 0f),
+            end = Offset(oceanTopLeft.x, oceanBot),
+            strokeWidth = 2f
         )
         val sierraTop = toMap(-1050f, 480f)
         drawRect(
-            color = Color(0xFF13222A),
+            color = Color(0xFF112329),
             topLeft = Offset(0f, sierraTop.y),
             size = Size(w, (h - sierraTop.y).coerceAtLeast(0f))
+        )
+        drawLine(
+            color = EmeraldGo.copy(alpha = 0.22f),
+            start = Offset(0f, sierraTop.y),
+            end = Offset(w, sierraTop.y),
+            strokeWidth = 1.5f
         )
 
         // Subtle tactical grid lines
@@ -335,7 +371,7 @@ private fun WorldMapCanvas(
             drawLine(Color(0xFF162436), Offset(0f, gy), Offset(w, gy), strokeWidth = 1f)
         }
 
-        // Roads with outer casing + inner surface
+        // Roads with outer glow casing + inner surface
         for (road in TruckWorld.roads) {
             val isUnlocked = unlockedRoutes.contains(road.routeId)
             val p1 = toMap(road.x1, road.z1)
@@ -344,12 +380,12 @@ private fun WorldMapCanvas(
                 color = if (isUnlocked) Color(0xFF0F172A) else Color(0xFF151E2E),
                 start = p1,
                 end = p2,
-                strokeWidth = if (road.isHighway) 11f else 7f,
+                strokeWidth = if (road.isHighway) 12f else 7.5f,
                 cap = StrokeCap.Round
             )
             drawLine(
                 color = if (isUnlocked) {
-                    if (road.isHighway) Color(0xFF5B6B82) else Color(0xFF3E4C63)
+                    if (road.isHighway) Color(0xFF64748B) else Color(0xFF475569)
                 } else {
                     Color(0xFF1E293B)
                 },
