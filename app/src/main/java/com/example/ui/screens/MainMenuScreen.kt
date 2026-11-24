@@ -374,44 +374,69 @@ private fun MenuTileCard(
             .minimumInteractiveComponentSize()
             .testTag(testTag)
             .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = SimSurfaceGlass),
-        border = BorderStroke(1.dp, SimOutline),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.38f)),
         shape = RoundedCornerShape(16.dp)
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(14.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            accent.copy(alpha = 0.14f),
+                            SimSurfaceGlass,
+                            SimBackground.copy(alpha = 0.90f)
+                        )
+                    )
+                )
         ) {
-            Surface(
-                color = accent.copy(alpha = 0.16f),
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.size(38.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(accent, accent.copy(alpha = 0.15f))
+                        )
+                    )
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = title,
-                        tint = accent,
-                        modifier = Modifier.size(22.dp)
+                Surface(
+                    color = accent.copy(alpha = 0.18f),
+                    border = BorderStroke(1.dp, accent.copy(alpha = 0.45f)),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = title,
+                            tint = accent,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+                Column {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = TextPrimary,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
+                    )
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary,
+                        maxLines = 1
                     )
                 }
-            }
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = TextPrimary,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextSecondary,
-                    maxLines = 1
-                )
             }
         }
     }

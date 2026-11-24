@@ -51,6 +51,7 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
         groundQuad = WorldMeshFactory.buildGroundQuad()
 
         val ped = DynamicMeshBuilder()
+        ped.addTaperedCylinderY(0f, -0.34f, 0f, 18.0f, 18.0f, 0.06f, 48, 0.045f, 0.058f, 0.082f)
         ped.addTaperedCylinderY(0f, -0.28f, 0f, 5.45f, 5.15f, 0.28f, 48, 0.08f, 0.10f, 0.14f)
         ped.addTaperedCylinderY(0f, -0.02f, 0f, 4.92f, 4.92f, 0.02f, 48, 0.13f, 0.16f, 0.21f)
         pedestalMesh = ped.build()
@@ -58,6 +59,8 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
         val trim = DynamicMeshBuilder()
         trim.addTaperedCylinderY(0f, -0.025f, 0f, 5.18f, 5.18f, 0.03f, 48, 0.98f, 0.46f, 0.08f, capped = false)
         trim.addTaperedCylinderY(0f, -0.01f, 0f, 4.58f, 4.58f, 0.015f, 48, 0.16f, 0.78f, 0.96f, capped = false)
+        trim.addTaperedCylinderY(0f, -0.275f, 0f, 8.20f, 8.20f, 0.015f, 48, 0.10f, 0.36f, 0.56f, capped = false)
+        trim.addTaperedCylinderY(0f, 5.15f, 0f, 4.45f, 4.45f, 0.055f, 48, 0.85f, 0.91f, 1.0f, capped = false)
         pedestalTrimMesh = trim.build()
 
         truckMeshes = TruckStyle.entries.associateWith { TruckMeshFactory.buildTruckMesh(it) }
@@ -76,7 +79,7 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
         val dt = ((nowNs - lastFrameNs) / 1_000_000_000.0).toFloat().coerceIn(0.001f, 0.05f)
         lastFrameNs = nowNs
         idleTime += dt
-        autoSpinRad += dt * 0.20f
+        autoSpinRad += dt * 0.18f
 
         GLES30.glClearColor(0.035f, 0.052f, 0.088f, 1f)
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT or GLES30.GL_DEPTH_BUFFER_BIT)
@@ -87,16 +90,17 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
         val camAngle = autoSpinRad + userOrbitOffsetRad
         val camDist = 10.4f
         val camX = sin(camAngle) * camDist
-        val camY = 2.60f
+        val camY = 2.55f
         val camZ = cos(camAngle) * camDist
-        Matrix.setLookAtM(viewMatrix, 0, camX, camY, camZ, 0.28f, 1.46f, 0.35f, 0f, 1f, 0f)
+        Matrix.setLookAtM(viewMatrix, 0, camX, camY, camZ, 0.32f, 1.44f, 0.42f, 0f, 1f, 0f)
         Matrix.multiplyMM(vpMatrix, 0, projMatrix, 0, viewMatrix, 0)
 
         worldShader.use()
-        bindWhite()
+        bindTexture(textures.whiteTex)
+        GLES30.glUniform1f(worldShader.uTimeLoc, idleTime)
         GLES30.glUniform3f(worldShader.uLightDirLoc, 0.60f, 0.85f, 0.58f)
         GLES30.glUniform3f(worldShader.uLightColorLoc, 1.02f, 0.97f, 0.91f)
-        GLES30.glUniform3f(worldShader.uAmbientColorLoc, 0.42f, 0.46f, 0.54f)
+        GLES30.glUniform3f(worldShader.uAmbientColorLoc, 0.44f, 0.48f, 0.56f)
         GLES30.glUniform3f(worldShader.uCameraPosLoc, camX, camY, camZ)
         GLES30.glUniform3f(worldShader.uFogColorLoc, 0.04f, 0.06f, 0.10f)
         GLES30.glUniform1f(worldShader.uFogDensityLoc, 0.011f)
@@ -114,6 +118,8 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
         drawMesh(pedestalTrimMesh, 1f, 1f, 1f, 1f)
 
         // Soft studio ambient ground shadows
+        val driverX = 2.04f
+        val driverZ = 2.52f
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, textures.softShadowTex)
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 3f)
         GLES30.glDepthMask(false)
@@ -123,14 +129,14 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
         drawMesh(groundQuad, 1f, 1f, 1f, 0.92f)
         if (showDriver) {
             Matrix.setIdentityM(modelMatrix, 0)
-            Matrix.translateM(modelMatrix, 0, 2.16f, 0.025f, 1.92f)
+            Matrix.translateM(modelMatrix, 0, driverX, 0.025f, driverZ)
             Matrix.scaleM(modelMatrix, 0, 1.05f, 1f, 1.05f)
             drawMesh(groundQuad, 1f, 1f, 1f, 0.88f)
         }
         GLES30.glDepthMask(true)
 
         // Selected 3D Truck
-        bindWhite()
+        bindTexture(textures.whiteTex)
         val style = truckStyle
         val meshSet = truckMeshes[style] ?: return
         val (pr, pg, pb) = parseHexRgb(paintHex)
@@ -166,54 +172,66 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
             }
         }
 
-        // Studio DRL Headlights & Amber Roof Marker LEDs
+        // Studio DRL Headlights, Fog Lamps & Amber Roof Marker LEDs
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 1f)
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
-        val noseZ = if (style == TruckStyle.EURO_CABOVER) 3.06f else 3.58f
-        drawBox(-0.88f, 0.98f, noseZ, 0.20f, 0.16f, 0.08f, 1f, 0.96f, 0.88f)
-        drawBox(0.88f, 0.98f, noseZ, 0.20f, 0.16f, 0.08f, 1f, 0.96f, 0.88f)
+        val noseZ = when (style) {
+            TruckStyle.EURO_CABOVER -> 3.05f
+            TruckStyle.AMERICAN_LONGNOSE -> 3.55f
+            TruckStyle.HEAVY_TWIN_EXHAUST -> 3.50f
+            TruckStyle.ARCTIC_EXPEDITION -> 3.58f
+        }
+        drawBox(-0.88f, 0.98f, noseZ + 0.03f, 0.18f, 0.16f, 0.05f, 1f, 0.96f, 0.88f)
+        drawBox(0.88f, 0.98f, noseZ + 0.03f, 0.18f, 0.16f, 0.05f, 1f, 0.96f, 0.88f)
+        drawBox(-0.94f, 0.66f, noseZ + 0.22f, 0.19f, 0.075f, 0.03f, 0.95f, 0.92f, 0.82f)
+        drawBox(0.94f, 0.66f, noseZ + 0.22f, 0.19f, 0.075f, 0.03f, 0.95f, 0.92f, 0.82f)
         val roofZ = if (style == TruckStyle.EURO_CABOVER) 2.58f else 1.65f
         val roofY = if (style == TruckStyle.EURO_CABOVER) 3.44f else 3.30f
         for (lx in listOf(-0.75f, -0.35f, 0f, 0.35f, 0.75f)) {
             drawBox(lx, roofY, roofZ, 0.12f, 0.07f, 0.08f, 1.0f, 0.62f, 0.06f)
         }
 
-        // Articulated 3D Realistic Human Driver standing in natural relaxed hero stance!
+        // Articulated UV-Textured 3D Realistic Human Driver standing in hero stance
         if (showDriver) {
             GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
             GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_SKIN_FABRIC)
-            val dx = 2.16f
-            val dz = 1.92f
-            val driverYaw = 28f
-            val breathBob = sin(idleTime * 2.0f) * 0.007f
+            val driverYaw = 30f
+            val breathBob = sin(idleTime * 2.0f) * 0.006f
             val pelvisY = 0.89f + breathBob
 
+            bindTexture(textures.driverClothTex)
             Matrix.setIdentityM(modelMatrix, 0)
-            Matrix.translateM(modelMatrix, 0, dx, pelvisY, dz)
+            Matrix.translateM(modelMatrix, 0, driverX, pelvisY, driverZ)
             Matrix.rotateM(modelMatrix, 0, driverYaw, 0f, 1f, 0f)
             drawMesh(driverMeshes.torsoMesh, 1f, 1f, 1f, 1f)
 
+            // UV-textured sculpted head + ears/hair/cap accessories
             Matrix.translateM(modelMatrix, 0, 0f, 0.58f, 0f)
-            Matrix.rotateM(modelMatrix, 0, sin(idleTime * 1.1f) * 7f, 0f, 1f, 0f)
-            drawMesh(driverMeshes.headMesh, 1f, 1f, 1f, 1f)
+            Matrix.rotateM(modelMatrix, 0, sin(idleTime * 1.1f) * 6f, 0f, 1f, 0f)
+            bindTexture(textures.driverFaceTex)
+            drawMesh(driverMeshes.headFaceMesh, 1f, 1f, 1f, 1f)
+            bindTexture(textures.whiteTex)
+            drawMesh(driverMeshes.headAccMesh, 1f, 1f, 1f, 1f)
 
+            bindTexture(textures.driverClothTex)
             for (side in listOf(-1f, 1f)) {
                 Matrix.setIdentityM(modelMatrix, 0)
-                Matrix.translateM(modelMatrix, 0, dx, pelvisY, dz)
+                Matrix.translateM(modelMatrix, 0, driverX, pelvisY, driverZ)
                 Matrix.rotateM(modelMatrix, 0, driverYaw, 0f, 1f, 0f)
-                Matrix.translateM(modelMatrix, 0, side * 0.24f, 0.49f, 0f)
-                Matrix.rotateM(modelMatrix, 0, side * 8f, 0f, 0f, 1f)
+                Matrix.translateM(modelMatrix, 0, side * 0.235f, 0.49f, 0f)
+                Matrix.rotateM(modelMatrix, 0, side * 7f, 0f, 0f, 1f)
                 Matrix.rotateM(modelMatrix, 0, if (side > 0) -6f else 4f, 1f, 0f, 0f)
                 drawMesh(driverMeshes.upperArmMesh, 1f, 1f, 1f, 1f)
 
                 Matrix.translateM(modelMatrix, 0, 0f, -0.29f, 0f)
                 Matrix.rotateM(modelMatrix, 0, if (side > 0) -22f else -14f, 1f, 0f, 0f)
-                drawMesh(driverMeshes.forearmHandMesh, 1f, 1f, 1f, 1f)
+                val forearmMesh = if (side > 0) driverMeshes.leftForearmHandMesh else driverMeshes.rightForearmHandMesh
+                drawMesh(forearmMesh, 1f, 1f, 1f, 1f)
             }
 
             for (side in listOf(-1f, 1f)) {
                 Matrix.setIdentityM(modelMatrix, 0)
-                Matrix.translateM(modelMatrix, 0, dx, pelvisY, dz)
+                Matrix.translateM(modelMatrix, 0, driverX, pelvisY, driverZ)
                 Matrix.rotateM(modelMatrix, 0, driverYaw, 0f, 1f, 0f)
                 Matrix.translateM(modelMatrix, 0, side * 0.105f, 0.02f, 0f)
                 Matrix.rotateM(modelMatrix, 0, side * 3.0f, 0f, 0f, 1f)
@@ -227,9 +245,9 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
         }
     }
 
-    private fun bindWhite() {
+    private fun bindTexture(texId: Int) {
         GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
-        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, textures.whiteTex)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, texId)
         GLES30.glUniform1i(worldShader.uTextureLoc, 0)
     }
 

@@ -218,6 +218,7 @@ private fun AuthenticatedGameHost(
                             currentWeather = viewModel.physicsEngine.weather,
                             dynamicWeather = viewModel.physicsEngine.dynamicWeatherEnabled,
                             dynamicTime = viewModel.physicsEngine.dynamicTimeEnabled,
+                            currentTimeHours = viewModel.physicsEngine.timeOfDayHours,
                             onSetWeather = { w, dyn -> viewModel.setWeather(w, dyn) },
                             onSetTimeOfDay = { h, dyn -> viewModel.setTimeOfDay(h, dyn) },
                             onSaveSettings = { name, gfx, gear, steer, snd ->

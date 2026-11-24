@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -21,6 +22,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -32,6 +36,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
@@ -42,7 +47,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.model.CareerProfile
 import com.example.model.GearboxMode
@@ -55,6 +63,8 @@ import com.example.ui.theme.RacingOrange
 import com.example.ui.theme.SimBackground
 import com.example.ui.theme.SimOutline
 import com.example.ui.theme.SimSurface
+import com.example.ui.theme.SimSurfaceGlass
+import com.example.ui.theme.SkyCyan
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 
@@ -64,6 +74,7 @@ fun SettingsScreen(
     currentWeather: WeatherType,
     dynamicWeather: Boolean,
     dynamicTime: Boolean,
+    currentTimeHours: Float = 12.5f,
     onSetWeather: (WeatherType, Boolean) -> Unit,
     onSetTimeOfDay: (Float, Boolean) -> Unit,
     onSaveSettings: (String, GraphicsQuality, GearboxMode, SteeringMode, Boolean) -> Unit,
@@ -77,11 +88,17 @@ fun SettingsScreen(
     var gearbox by remember(profile.gearboxMode) { mutableStateOf(GearboxMode.fromRaw(profile.gearboxMode)) }
     var steering by remember(profile.steeringMode) { mutableStateOf(SteeringMode.fromRaw(profile.steeringMode)) }
     var sound by remember(profile.soundEnabled) { mutableStateOf(profile.soundEnabled) }
+    var selectedDynamicTime by remember(dynamicTime) { mutableStateOf(dynamicTime) }
+    var selectedTimePreset by remember(currentTimeHours) { mutableStateOf(currentTimeHours) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(SimBackground)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFF070B12), SimBackground, Color(0xFF0E1625))
+                )
+            )
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
@@ -91,32 +108,52 @@ fun SettingsScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(
-                    onClick = onBack,
-                    modifier = Modifier
-                        .minimumInteractiveComponentSize()
-                        .testTag("settings_back_button")
+                Surface(
+                    color = SimSurfaceGlass,
+                    border = BorderStroke(1.dp, SimOutline),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = TextPrimary)
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .minimumInteractiveComponentSize()
+                            .testTag("settings_back_button")
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = TextPrimary)
+                    }
                 }
-                Spacer(Modifier.width(8.dp))
-                Text("CONFIGURACIÓN", style = MaterialTheme.typography.headlineMedium, color = TextPrimary)
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = "CONFIGURACIÓN",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = TextPrimary,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                    Text(
+                        text = "Gráficos 3D, transmisión, controles y clima",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = SkyCyan
+                    )
+                }
             }
 
             Button(
                 onClick = { onSaveSettings(driverName, graphics, gearbox, steering, sound) },
                 colors = ButtonDefaults.buttonColors(containerColor = EmeraldGo),
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .height(48.dp)
                     .minimumInteractiveComponentSize()
                     .testTag("save_settings_button")
             ) {
-                Text("GUARDAR CAMBIOS", style = MaterialTheme.typography.labelLarge, color = SimBackground)
+                Icon(Icons.Filled.Check, contentDescription = null, tint = SimBackground, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("GUARDAR CAMBIOS", style = MaterialTheme.typography.labelLarge, color = SimBackground, fontWeight = FontWeight.Bold)
             }
         }
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(12.dp))
 
         Row(
             modifier = Modifier.fillMaxSize(),
@@ -129,15 +166,21 @@ fun SettingsScreen(
                     .fillMaxHeight(),
                 colors = CardDefaults.cardColors(containerColor = SimSurface),
                 border = BorderStroke(1.dp, SimOutline),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(18.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(14.dp),
+                        .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Tune, contentDescription = null, tint = RacingOrange, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("PERFIL Y CONTROLES", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+                    }
+
                     OutlinedTextField(
                         value = driverName,
                         onValueChange = { if (it.length <= 40) driverName = it },
@@ -148,7 +191,7 @@ fun SettingsScreen(
                             .testTag("driver_name_input")
                     )
 
-                    Text("CALIDAD GRÁFICA 3D (OPTIMIZACIÓN)", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                    Text("CALIDAD GRÁFICA 3D (OPTIMIZACIÓN)", style = MaterialTheme.typography.labelSmall, color = SkyCyan)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         GraphicsQuality.entries.forEach { q ->
                             FilterChip(
@@ -161,7 +204,7 @@ fun SettingsScreen(
                         }
                     }
 
-                    Text("CAJA DE CAMBIOS", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                    Text("CAJA DE CAMBIOS", style = MaterialTheme.typography.labelSmall, color = SkyCyan)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         GearboxMode.entries.forEach { g ->
                             FilterChip(
@@ -174,7 +217,7 @@ fun SettingsScreen(
                         }
                     }
 
-                    Text("TIPO DE DIRECCIÓN", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                    Text("TIPO DE DIRECCIÓN", style = MaterialTheme.typography.labelSmall, color = SkyCyan)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         SteeringMode.entries.forEach { s ->
                             FilterChip(
@@ -196,15 +239,21 @@ fun SettingsScreen(
                     .fillMaxHeight(),
                 colors = CardDefaults.cardColors(containerColor = SimSurface),
                 border = BorderStroke(1.dp, SimOutline),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(18.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(14.dp),
+                        .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.WbSunny, contentDescription = null, tint = SkyCyan, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("ENTORNO Y SONIDO", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+                    }
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -221,12 +270,13 @@ fun SettingsScreen(
                         )
                     }
 
-                    Text("CLIMA Y CICLO DÍA/NOCHE", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                    Text("CLIMA Y CICLO DÍA/NOCHE", style = MaterialTheme.typography.labelSmall, color = SkyCyan)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         FilterChip(
-                            selected = dynamicWeather && currentWeather == WeatherType.CLEAR,
+                            selected = dynamicWeather,
                             onClick = { onSetWeather(WeatherType.CLEAR, true) },
                             label = { Text("Dinámico") },
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = RacingOrange.copy(alpha = 0.25f)),
                             modifier = Modifier.testTag("weather_dynamic")
                         )
                         WeatherType.entries.forEach { w ->
@@ -234,6 +284,7 @@ fun SettingsScreen(
                                 selected = !dynamicWeather && currentWeather == w,
                                 onClick = { onSetWeather(w, false) },
                                 label = { Text(w.labelEs) },
+                                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = RacingOrange.copy(alpha = 0.25f)),
                                 modifier = Modifier.testTag("weather_${w.name}")
                             )
                         }
@@ -241,24 +292,43 @@ fun SettingsScreen(
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         FilterChip(
-                            selected = dynamicTime,
-                            onClick = { onSetTimeOfDay(15.5f, true) },
-                            label = { Text("Ciclo Auto") }
+                            selected = selectedDynamicTime,
+                            onClick = {
+                                selectedDynamicTime = true
+                                onSetTimeOfDay(15.5f, true)
+                            },
+                            label = { Text("Ciclo Auto") },
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = SkyCyan.copy(alpha = 0.25f))
                         )
                         FilterChip(
-                            selected = !dynamicTime,
-                            onClick = { onSetTimeOfDay(12.5f, false) },
-                            label = { Text("Mediodía") }
+                            selected = !selectedDynamicTime && selectedTimePreset < 16f,
+                            onClick = {
+                                selectedDynamicTime = false
+                                selectedTimePreset = 12.5f
+                                onSetTimeOfDay(12.5f, false)
+                            },
+                            label = { Text("Mediodía") },
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = SkyCyan.copy(alpha = 0.25f))
                         )
                         FilterChip(
-                            selected = false,
-                            onClick = { onSetTimeOfDay(18.0f, false) },
-                            label = { Text("Atardecer") }
+                            selected = !selectedDynamicTime && selectedTimePreset in 16f..19.5f,
+                            onClick = {
+                                selectedDynamicTime = false
+                                selectedTimePreset = 18.0f
+                                onSetTimeOfDay(18.0f, false)
+                            },
+                            label = { Text("Atardecer") },
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = SkyCyan.copy(alpha = 0.25f))
                         )
                         FilterChip(
-                            selected = false,
-                            onClick = { onSetTimeOfDay(22.5f, false) },
-                            label = { Text("Noche") }
+                            selected = !selectedDynamicTime && selectedTimePreset > 19.5f,
+                            onClick = {
+                                selectedDynamicTime = false
+                                selectedTimePreset = 22.5f
+                                onSetTimeOfDay(22.5f, false)
+                            },
+                            label = { Text("Noche") },
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = SkyCyan.copy(alpha = 0.25f))
                         )
                     }
 

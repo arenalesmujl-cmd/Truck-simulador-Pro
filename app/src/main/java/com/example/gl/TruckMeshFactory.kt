@@ -221,9 +221,11 @@ object TruckMeshFactory {
                 LoftRingZ(3.62f, 1.50f, 0.69f, 0.47f, 0.90f, 0.93f, 0.97f, roundness = 0.36f)
             )
         )
+        chassis.addBox(0f, 1.50f, 3.625f, 1.24f, 0.78f, 0.02f, 0.08f, 0.09f, 0.12f)
         for (bx in listOf(-0.46f, -0.23f, 0f, 0.23f, 0.46f)) {
-            chassis.addBox(bx, 1.50f, 3.64f, 0.05f, 0.80f, 0.03f, 0.14f, 0.16f, 0.20f)
+            chrome.addBox(bx, 1.50f, 3.645f, 0.045f, 0.78f, 0.025f, 0.88f, 0.91f, 0.96f)
         }
+        chrome.addBox(0f, 1.94f, 3.65f, 0.36f, 0.11f, 0.04f, 0.95f, 0.45f, 0.07f)
 
         // Twin vertical chrome exhaust stacks, air cleaners & roof horns
         for (side in listOf(-1f, 1f)) {
@@ -346,9 +348,11 @@ object TruckMeshFactory {
                 LoftRingZ(3.56f, 1.54f, 0.78f, 0.49f, 0.90f, 0.93f, 0.97f, roundness = 0.34f)
             )
         )
+        chassis.addBox(0f, 1.54f, 3.565f, 1.38f, 0.82f, 0.02f, 0.08f, 0.09f, 0.12f)
         for (bx in listOf(-0.56f, -0.28f, 0f, 0.28f, 0.56f)) {
-            chassis.addBox(bx, 1.54f, 3.58f, 0.06f, 0.84f, 0.03f, 0.18f, 0.20f, 0.24f)
+            chrome.addBox(bx, 1.54f, 3.585f, 0.055f, 0.82f, 0.025f, 0.88f, 0.91f, 0.96f)
         }
+        chrome.addBox(0f, 1.98f, 3.59f, 0.40f, 0.11f, 0.04f, 0.95f, 0.45f, 0.07f)
         for (side in listOf(-1f, 1f)) {
             chrome.addCylinderY(side * 1.32f, 0.95f, -0.45f, 0.115f, 3.22f, 16, 0.90f, 0.92f, 0.96f)
             chrome.addCylinderY(side * 1.32f, 1.45f, -0.45f, 0.152f, 1.68f, 16, 0.78f, 0.80f, 0.85f)

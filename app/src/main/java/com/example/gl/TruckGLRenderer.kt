@@ -292,6 +292,7 @@ class TruckGLRenderer(
 
         worldShader.use()
         bindTexture(textures.whiteTex)
+        GLES30.glUniform1f(worldShader.uTimeLoc, physics.simTimeSeconds)
         GLES30.glUniform3f(worldShader.uLightDirLoc, env.lightDirX, env.lightDirY, env.lightDirZ)
         GLES30.glUniform3f(worldShader.uLightColorLoc, env.lightR, env.lightG, env.lightB)
         GLES30.glUniform3f(worldShader.uAmbientColorLoc, env.ambR, env.ambG, env.ambB)
@@ -416,21 +417,36 @@ class TruckGLRenderer(
     private fun renderTrafficLights() {
         val phase = TruckWorld.lightPhaseAt(physics.simTimeSeconds)
         bindTexture(textures.whiteTex)
+        val nsRed = phase == LightPhase.EW_GREEN || phase == LightPhase.EW_AMBER
+        val nsAmb = phase == LightPhase.NS_AMBER
+        val nsGrn = phase == LightPhase.NS_GREEN
+        val ewRed = phase == LightPhase.NS_GREEN || phase == LightPhase.NS_AMBER
+        val ewAmb = phase == LightPhase.EW_AMBER
+        val ewGrn = phase == LightPhase.EW_GREEN
+
         for (tl in TruckWorld.trafficLights) {
             val ty = TruckWorld.terrainHeightAt(tl.x, tl.z)
             GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
             GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
-            drawBox(tl.x + 11f, ty + 3.2f, tl.z + 11f, 0f, 0.35f, 6.4f, 0.35f, 0.25f, 0.27f, 0.30f)
-            drawBox(tl.x + 8.5f, ty + 6.0f, tl.z + 11f, 0f, 5.0f, 0.3f, 0.3f, 0.25f, 0.27f, 0.30f)
-            drawBox(tl.x + 7.2f, ty + 5.6f, tl.z + 11f, 0f, 0.7f, 1.5f, 0.6f, 0.14f, 0.14f, 0.16f)
+            // Primary corner gantry pole + overhead mast
+            drawBox(tl.x + 11.4f, ty + 3.4f, tl.z + 11.4f, 0f, 0.36f, 6.8f, 0.36f, 0.24f, 0.26f, 0.30f)
+            drawBox(tl.x + 8.6f, ty + 6.4f, tl.z + 11.4f, 0f, 5.4f, 0.28f, 0.28f, 0.24f, 0.26f, 0.30f)
+            drawBox(tl.x + 7.2f, ty + 5.6f, tl.z + 11.4f, 0f, 0.68f, 1.55f, 0.56f, 0.12f, 0.13f, 0.16f)
+            // Opposite corner EW signal gantry pole
+            drawBox(tl.x - 11.4f, ty + 3.4f, tl.z - 11.4f, 0f, 0.36f, 6.8f, 0.36f, 0.24f, 0.26f, 0.30f)
+            drawBox(tl.x - 11.4f, ty + 6.4f, tl.z - 8.6f, 0f, 0.28f, 0.28f, 5.4f, 0.24f, 0.26f, 0.30f)
+            drawBox(tl.x - 11.4f, ty + 5.6f, tl.z - 7.2f, 0f, 0.56f, 1.55f, 0.68f, 0.12f, 0.13f, 0.16f)
 
             GLES30.glUniform1f(worldShader.uEmissiveLoc, 1f)
-            val nsColor = when (phase) {
-                LightPhase.NS_GREEN -> Triple(0.1f, 0.95f, 0.35f)
-                LightPhase.NS_AMBER -> Triple(1.0f, 0.75f, 0.05f)
-                else -> Triple(0.95f, 0.12f, 0.12f)
-            }
-            drawBox(tl.x + 7.2f, ty + 5.6f, tl.z + 11f, 0f, 0.4f, 0.4f, 0.7f, nsColor.first, nsColor.second, nsColor.third)
+            // 3 stacked lenses for N-S traffic
+            drawBox(tl.x + 7.2f, ty + 6.08f, tl.z + 11.4f, 0f, 0.36f, 0.34f, 0.64f, if (nsRed) 1.0f else 0.18f, 0.06f, 0.06f)
+            drawBox(tl.x + 7.2f, ty + 5.60f, tl.z + 11.4f, 0f, 0.36f, 0.34f, 0.64f, if (nsAmb) 1.0f else 0.22f, if (nsAmb) 0.72f else 0.15f, 0.04f)
+            drawBox(tl.x + 7.2f, ty + 5.12f, tl.z + 11.4f, 0f, 0.36f, 0.34f, 0.64f, 0.06f, if (nsGrn) 0.96f else 0.18f, if (nsGrn) 0.35f else 0.08f)
+
+            // 3 stacked lenses for E-W cross traffic
+            drawBox(tl.x - 11.4f, ty + 6.08f, tl.z - 7.2f, 0f, 0.64f, 0.34f, 0.36f, if (ewRed) 1.0f else 0.18f, 0.06f, 0.06f)
+            drawBox(tl.x - 11.4f, ty + 5.60f, tl.z - 7.2f, 0f, 0.64f, 0.34f, 0.36f, if (ewAmb) 1.0f else 0.22f, if (ewAmb) 0.72f else 0.15f, 0.04f)
+            drawBox(tl.x - 11.4f, ty + 5.12f, tl.z - 7.2f, 0f, 0.64f, 0.34f, 0.36f, 0.06f, if (ewGrn) 0.96f else 0.18f, if (ewGrn) 0.35f else 0.08f)
         }
     }
 
@@ -742,31 +758,36 @@ class TruckGLRenderer(
         drawGroundShadow(dx, dy + 0.04f, dz, physics.driverYawRad, 0.92f, 0.92f, 1f, 1f, 1f, 0.85f)
         GLES30.glDepthMask(true)
 
-        bindTexture(textures.whiteTex)
+        bindTexture(textures.driverClothTex)
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_SKIN_FABRIC)
 
         val pelvisY = dy + 0.89f + hipBob
+        val shoulderYaw = yawDeg - hipTwist * 0.45f
 
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, dx, pelvisY, dz)
-        Matrix.rotateM(modelMatrix, 0, yawDeg + hipTwist, 0f, 1f, 0f)
+        Matrix.rotateM(modelMatrix, 0, shoulderYaw, 0f, 1f, 0f)
         Matrix.rotateM(modelMatrix, 0, forwardLean, 1f, 0f, 0f)
         drawMeshWithModelMatrix(driverMeshes.torsoMesh, 1f, 1f, 1f, 1f)
 
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, dx, pelvisY, dz)
         Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
-        Matrix.rotateM(modelMatrix, 0, forwardLean, 1f, 0f, 0f)
+        Matrix.rotateM(modelMatrix, 0, forwardLean * 0.6f, 1f, 0f, 0f)
         Matrix.translateM(modelMatrix, 0, 0f, 0.58f, 0f)
         Matrix.rotateM(modelMatrix, 0, sin(physics.simTimeSeconds * 1.4f) * 4f, 0f, 1f, 0f)
-        drawMeshWithModelMatrix(driverMeshes.headMesh, 1f, 1f, 1f, 1f)
+        bindTexture(textures.driverFaceTex)
+        drawMeshWithModelMatrix(driverMeshes.headFaceMesh, 1f, 1f, 1f, 1f)
+        bindTexture(textures.whiteTex)
+        drawMeshWithModelMatrix(driverMeshes.headAccMesh, 1f, 1f, 1f, 1f)
 
-        drawArticulatedArm(dx, pelvisY, dz, yawDeg + hipTwist, forwardLean, side = 1f, upperRotX = -armSwing, elbowFlex = leftElbowFlex)
-        drawArticulatedArm(dx, pelvisY, dz, yawDeg + hipTwist, forwardLean, side = -1f, upperRotX = armSwing, elbowFlex = rightElbowFlex)
+        bindTexture(textures.driverClothTex)
+        drawArticulatedArm(dx, pelvisY, dz, shoulderYaw, forwardLean, side = 1f, upperRotX = -armSwing, elbowFlex = leftElbowFlex)
+        drawArticulatedArm(dx, pelvisY, dz, shoulderYaw, forwardLean, side = -1f, upperRotX = armSwing, elbowFlex = rightElbowFlex)
 
-        drawArticulatedLeg(dx, pelvisY, dz, yawDeg, side = 1f, hipRotX = strideSwing, kneeFlex = leftKneeFlex)
-        drawArticulatedLeg(dx, pelvisY, dz, yawDeg, side = -1f, hipRotX = -strideSwing, kneeFlex = rightKneeFlex)
+        drawArticulatedLeg(dx, pelvisY, dz, yawDeg + hipTwist * 0.35f, side = 1f, hipRotX = strideSwing, kneeFlex = leftKneeFlex)
+        drawArticulatedLeg(dx, pelvisY, dz, yawDeg + hipTwist * 0.35f, side = -1f, hipRotX = -strideSwing, kneeFlex = rightKneeFlex)
     }
 
     private fun drawArticulatedArm(
@@ -778,14 +799,15 @@ class TruckGLRenderer(
         Matrix.translateM(modelMatrix, 0, px, pelvisY, pz)
         Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
         Matrix.rotateM(modelMatrix, 0, forwardLean, 1f, 0f, 0f)
-        Matrix.translateM(modelMatrix, 0, side * 0.24f, 0.49f, 0f)
-        Matrix.rotateM(modelMatrix, 0, side * 8f, 0f, 0f, 1f)
+        Matrix.translateM(modelMatrix, 0, side * 0.235f, 0.49f, 0f)
+        Matrix.rotateM(modelMatrix, 0, side * 7f, 0f, 0f, 1f)
         Matrix.rotateM(modelMatrix, 0, upperRotX, 1f, 0f, 0f)
         drawMeshWithModelMatrix(driverMeshes.upperArmMesh, 1f, 1f, 1f, 1f)
 
         Matrix.translateM(modelMatrix, 0, 0f, -0.29f, 0f)
         Matrix.rotateM(modelMatrix, 0, -elbowFlex, 1f, 0f, 0f)
-        drawMeshWithModelMatrix(driverMeshes.forearmHandMesh, 1f, 1f, 1f, 1f)
+        val forearmMesh = if (side > 0f) driverMeshes.leftForearmHandMesh else driverMeshes.rightForearmHandMesh
+        drawMeshWithModelMatrix(forearmMesh, 1f, 1f, 1f, 1f)
     }
 
     private fun drawArticulatedLeg(
@@ -816,7 +838,7 @@ class TruckGLRenderer(
         val seatZ = physics.z + fwdZ * seatFwd - rightZ * 0.56f
         val yawDeg = Math.toDegrees(physics.yawRad.toDouble()).toFloat()
 
-        bindTexture(textures.whiteTex)
+        bindTexture(textures.driverClothTex)
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_SKIN_FABRIC)
 
@@ -827,14 +849,19 @@ class TruckGLRenderer(
 
         Matrix.translateM(modelMatrix, 0, 0f, 0.58f, 0f)
         Matrix.rotateM(modelMatrix, 0, -currentInputs.steering * 12f, 0f, 1f, 0f)
-        drawMeshWithModelMatrix(driverMeshes.headMesh, 1f, 1f, 1f, 1f)
+        bindTexture(textures.driverFaceTex)
+        drawMeshWithModelMatrix(driverMeshes.headFaceMesh, 1f, 1f, 1f, 1f)
+        bindTexture(textures.whiteTex)
+        drawMeshWithModelMatrix(driverMeshes.headAccMesh, 1f, 1f, 1f, 1f)
 
-        // Seated forward arms reaching toward steering wheel
+        bindTexture(textures.driverClothTex)
         drawArticulatedArm(seatX, seatY, seatZ, yawDeg, 0f, side = 1f, upperRotX = -42f, elbowFlex = 46f)
         drawArticulatedArm(seatX, seatY, seatZ, yawDeg, 0f, side = -1f, upperRotX = -42f, elbowFlex = 46f)
     }
 
     private fun renderInteriorCockpit(camPos: FloatArray, inputs: DrivingInputs) {
+        val model = TruckCatalog.byId(currentProfile.selectedTruckId)
+        val (paintR, paintG, paintB) = parseHexRgb(currentProfile.truckPaintHex)
         val fwdX = sin(physics.yawRad)
         val fwdZ = cos(physics.yawRad)
         val rightX = -fwdZ
@@ -849,13 +876,25 @@ class TruckGLRenderer(
         worldShader.use()
         bindTexture(textures.whiteTex)
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
-        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
+
+        // Visible sculpted exterior painted engine hood + chrome hood spear through lower windshield for Long-Nose models
+        if (model.style != TruckStyle.EURO_CABOVER) {
+            GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_METALLIC_PAINT)
+            drawTiltedBox(cx + fwdX * 1.65f + rightX * 0.56f, cy - 0.68f, cz + fwdZ * 1.65f + rightZ * 0.56f, yaw, 6f, 0f, 1.82f, 0.24f, 1.52f, paintR, paintG, paintB)
+            GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_CHROME)
+            drawTiltedBox(cx + fwdX * 1.68f + rightX * 0.56f, cy - 0.55f, cz + fwdZ * 1.68f + rightZ * 0.56f, yaw, 6f, 0f, 0.07f, 0.05f, 1.38f, 0.90f, 0.93f, 0.97f)
+        }
 
         // Sculpted Dashboard, Gauge Binnacle Rings, Shifter & A-Pillars
+        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, cx, cy, cz)
         Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
         drawMeshWithModelMatrix(cockpitMeshes.dashboardMesh, 1f, 1f, 1f, 1f)
+
+        // Sleek exterior side-mirror mounting brackets extending out from A-pillars
+        drawBox(cx + fwdX * 0.86f - rightX * 0.88f, cy + 0.14f, cz + fwdZ * 0.86f - rightZ * 0.88f, yaw, 0.42f, 0.032f, 0.032f, 0.18f, 0.20f, 0.24f)
+        drawBox(cx + fwdX * 0.86f + rightX * 0.98f, cy + 0.14f, cz + fwdZ * 0.86f + rightZ * 0.98f, yaw, 0.42f, 0.032f, 0.032f, 0.18f, 0.20f, 0.24f)
 
         // Compact Digital Trip Computer Strip between Round Chrome Analog Gauges
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 1f)
@@ -872,11 +911,13 @@ class TruckGLRenderer(
         drawTiltedBox(cx + fwdX * 0.648f + rightX * 0.12f, cy - 0.28f, cz + fwdZ * 0.648f + rightZ * 0.12f, yaw, 0f, rpmNeedleRoll, 0.009f, 0.056f, 0.010f, 0.18f, 0.86f, 1.0f)
         drawBox(cx + fwdX * 0.644f + rightX * 0.12f, cy - 0.28f, cz + fwdZ * 0.644f + rightZ * 0.12f, yaw, 0.022f, 0.022f, 0.012f, 0.85f, 0.88f, 0.94f)
 
-        // Center GPS Nav Screen glow (on center console to driver's right)
-        drawBox(cx + fwdX * 0.69f + rightX * 0.46f, cy - 0.34f, cz + fwdZ * 0.69f + rightZ * 0.46f, yaw, 0.24f, 0.14f, 0.02f, 0.07f, 0.24f, 0.22f)
-        drawBox(cx + fwdX * 0.68f + rightX * 0.46f, cy - 0.34f, cz + fwdZ * 0.68f + rightZ * 0.46f, yaw, 0.02f, 0.10f, 0.02f, 0.20f, 0.90f, 0.55f)
+        // Multi-layer Center Console GPS Navigation Screen
+        drawBox(cx + fwdX * 0.695f + rightX * 0.46f, cy - 0.34f, cz + fwdZ * 0.695f + rightZ * 0.46f, yaw, 0.24f, 0.14f, 0.02f, 0.05f, 0.10f, 0.16f)
+        drawBox(cx + fwdX * 0.686f + rightX * 0.46f, cy - 0.34f, cz + fwdZ * 0.686f + rightZ * 0.46f, yaw, 0.205f, 0.112f, 0.018f, 0.08f, 0.22f, 0.34f)
+        drawBox(cx + fwdX * 0.682f + rightX * 0.46f, cy - 0.34f, cz + fwdZ * 0.682f + rightZ * 0.46f, yaw, 0.022f, 0.095f, 0.016f, 0.14f, 0.84f, 0.98f)
+        drawBox(cx + fwdX * 0.680f + rightX * 0.46f, cy - 0.36f, cz + fwdZ * 0.680f + rightZ * 0.46f, yaw, 0.036f, 0.026f, 0.016f, 0.98f, 0.46f, 0.08f)
 
-        // Real 3D Torus Steering Wheel + Driver Forearms/Hands gripping rim at 9-and-3!
+        // Real 3D Torus Steering Wheel + Anatomically Correct Left/Right Gloved Hands at 9-and-3
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
         val steerRollDeg = -inputs.steering * 155f
         val wheelX = cx + fwdX * 0.50f
@@ -891,6 +932,7 @@ class TruckGLRenderer(
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_CHROME)
         drawMeshWithModelMatrix(cockpitMeshes.steeringWheelMesh, 1f, 1f, 1f, 1f)
 
+        bindTexture(textures.driverClothTex)
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_SKIN_FABRIC)
         for (side in listOf(-1f, 1f)) {
             Matrix.setIdentityM(modelMatrix, 0)
@@ -898,14 +940,17 @@ class TruckGLRenderer(
             Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
             Matrix.rotateM(modelMatrix, 0, -28f, 1f, 0f, 0f)
             Matrix.rotateM(modelMatrix, 0, steerRollDeg, 0f, 0f, 1f)
-            Matrix.translateM(modelMatrix, 0, side * 0.20f, 0.02f, -0.02f)
-            Matrix.rotateM(modelMatrix, 0, -72f, 1f, 0f, 0f)
-            Matrix.rotateM(modelMatrix, 0, side * -12f, 0f, 0f, 1f)
-            Matrix.translateM(modelMatrix, 0, 0f, 0.28f, 0f)
-            drawMeshWithModelMatrix(driverMeshes.forearmHandMesh, 1f, 1f, 1f, 1f)
+            Matrix.translateM(modelMatrix, 0, side * 0.205f, 0.015f, -0.012f)
+            // Elbow sits back/down toward driver chest (-Z/-Y) while palm grips inward toward hub & thumb rests atop rim
+            Matrix.rotateM(modelMatrix, 0, -108f, 1f, 0f, 0f)
+            Matrix.rotateM(modelMatrix, 0, side * 14f, 0f, 0f, 1f)
+            Matrix.translateM(modelMatrix, 0, 0f, 0.285f, 0f)
+            val handMesh = if (side > 0f) driverMeshes.leftForearmHandMesh else driverMeshes.rightForearmHandMesh
+            drawMeshWithModelMatrix(handMesh, 1f, 1f, 1f, 1f)
         }
 
         // Animated Windshield Wipers
+        bindTexture(textures.whiteTex)
         if (physics.wipersOn) {
             val wiperAngle = sin(physics.wiperPhase) * 42f
             drawTiltedBox(cx + fwdX * 0.96f - rightX * 0.15f, cy - 0.18f, cz + fwdZ * 0.96f - rightZ * 0.15f, yaw, 0f, wiperAngle, 0.035f, 0.65f, 0.03f, 0.08f, 0.08f, 0.10f)

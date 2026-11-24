@@ -44,6 +44,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -81,7 +82,11 @@ fun GarageScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(SimBackground)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFF0A111D), SimBackground, Color(0xFF070B12))
+                )
+            )
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
@@ -139,7 +144,7 @@ fun GarageScreen(
                     .weight(0.95f)
                     .fillMaxHeight(),
                 colors = CardDefaults.cardColors(containerColor = SimSurface),
-                border = BorderStroke(1.dp, SimOutline),
+                border = BorderStroke(1.dp, RacingOrange.copy(alpha = 0.35f)),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(
