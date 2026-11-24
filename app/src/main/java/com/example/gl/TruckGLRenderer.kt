@@ -590,19 +590,22 @@ class TruckGLRenderer(
         // 5. Realistic AI Traffic Vehicles
         renderTrafficVehicles(env.isNight)
 
-        // 6. Realistic Player Truck & Articulated Semi-Trailer
-        if (includePlayerExterior) {
-            renderPlayerTruck(camPos, env.isNight)
+        // 6. Realistic Player Truck (opaque body), Articulated Driver, Translucent Cab Glass & Semi-Trailer
+        if (physics.controlMode == PlayerControlMode.ON_FOOT) {
+            if (includePlayerExterior) {
+                renderPlayerTruck(camPos, env.isNight)
+                renderPlayerTruckGlass()
+            }
+            renderHumanDriverOnFoot()
+        } else {
+            if (includePlayerExterior) {
+                renderPlayerTruck(camPos, env.isNight)
+                renderSeatedDriverInCab()
+                renderPlayerTruckGlass()
+            }
         }
         if (physics.hasTrailer) {
             renderPlayerTrailer(env.isNight)
-        }
-
-        // 7. Realistic Articulated Human Driver (walking/standing on foot, OR seated in cab!)
-        if (physics.controlMode == PlayerControlMode.ON_FOOT) {
-            renderHumanDriverOnFoot()
-        } else if (includePlayerExterior) {
-            renderSeatedDriverInCab()
         }
 
         // 8. Batched Diagonal Volumetric Rain Streaks
@@ -628,19 +631,26 @@ class TruckGLRenderer(
             drawBox(tl.x + 11.4f, ty + 3.4f, tl.z + 11.4f, 0f, 0.36f, 6.8f, 0.36f, 0.24f, 0.26f, 0.30f)
             drawBox(tl.x + 8.6f, ty + 6.4f, tl.z + 11.4f, 0f, 5.4f, 0.28f, 0.28f, 0.24f, 0.26f, 0.30f)
             drawBox(tl.x + 7.2f, ty + 5.6f, tl.z + 11.4f, 0f, 0.68f, 1.55f, 0.56f, 0.12f, 0.13f, 0.16f)
+            // Signal lens visor hoods
+            for (vy in listOf(6.27f, 5.79f, 5.31f)) {
+                drawBox(tl.x + 7.2f, ty + vy, tl.z + 11.4f, 0f, 0.44f, 0.08f, 0.86f, 0.08f, 0.09f, 0.12f)
+            }
 
             drawBox(tl.x - 11.4f, ty + 3.4f, tl.z - 11.4f, 0f, 0.36f, 6.8f, 0.36f, 0.24f, 0.26f, 0.30f)
             drawBox(tl.x - 11.4f, ty + 6.4f, tl.z - 8.6f, 0f, 0.28f, 0.28f, 5.4f, 0.24f, 0.26f, 0.30f)
             drawBox(tl.x - 11.4f, ty + 5.6f, tl.z - 7.2f, 0f, 0.56f, 1.55f, 0.68f, 0.12f, 0.13f, 0.16f)
+            for (vy in listOf(6.27f, 5.79f, 5.31f)) {
+                drawBox(tl.x - 11.4f, ty + vy, tl.z - 7.2f, 0f, 0.86f, 0.08f, 0.44f, 0.08f, 0.09f, 0.12f)
+            }
 
             GLES30.glUniform1f(worldShader.uEmissiveLoc, 1f)
-            drawBox(tl.x + 7.2f, ty + 6.08f, tl.z + 11.4f, 0f, 0.36f, 0.34f, 0.64f, if (nsRed) 1.0f else 0.18f, 0.06f, 0.06f)
-            drawBox(tl.x + 7.2f, ty + 5.60f, tl.z + 11.4f, 0f, 0.36f, 0.34f, 0.64f, if (nsAmb) 1.0f else 0.22f, if (nsAmb) 0.72f else 0.15f, 0.04f)
-            drawBox(tl.x + 7.2f, ty + 5.12f, tl.z + 11.4f, 0f, 0.36f, 0.34f, 0.64f, 0.06f, if (nsGrn) 0.96f else 0.18f, if (nsGrn) 0.35f else 0.08f)
+            drawBox(tl.x + 7.2f, ty + 6.08f, tl.z + 11.4f, 0f, 0.36f, 0.32f, 0.62f, if (nsRed) 1.0f else 0.18f, 0.06f, 0.06f)
+            drawBox(tl.x + 7.2f, ty + 5.60f, tl.z + 11.4f, 0f, 0.36f, 0.32f, 0.62f, if (nsAmb) 1.0f else 0.22f, if (nsAmb) 0.72f else 0.15f, 0.04f)
+            drawBox(tl.x + 7.2f, ty + 5.12f, tl.z + 11.4f, 0f, 0.36f, 0.32f, 0.62f, 0.06f, if (nsGrn) 0.96f else 0.18f, if (nsGrn) 0.35f else 0.08f)
 
-            drawBox(tl.x - 11.4f, ty + 6.08f, tl.z - 7.2f, 0f, 0.64f, 0.34f, 0.36f, if (ewRed) 1.0f else 0.18f, 0.06f, 0.06f)
-            drawBox(tl.x - 11.4f, ty + 5.60f, tl.z - 7.2f, 0f, 0.64f, 0.34f, 0.36f, if (ewAmb) 1.0f else 0.22f, if (ewAmb) 0.72f else 0.15f, 0.04f)
-            drawBox(tl.x - 11.4f, ty + 5.12f, tl.z - 7.2f, 0f, 0.64f, 0.34f, 0.36f, 0.06f, if (ewGrn) 0.96f else 0.18f, if (ewGrn) 0.35f else 0.08f)
+            drawBox(tl.x - 11.4f, ty + 6.08f, tl.z - 7.2f, 0f, 0.62f, 0.32f, 0.36f, if (ewRed) 1.0f else 0.18f, 0.06f, 0.06f)
+            drawBox(tl.x - 11.4f, ty + 5.60f, tl.z - 7.2f, 0f, 0.62f, 0.32f, 0.36f, if (ewAmb) 1.0f else 0.22f, if (ewAmb) 0.72f else 0.15f, 0.04f)
+            drawBox(tl.x - 11.4f, ty + 5.12f, tl.z - 7.2f, 0f, 0.62f, 0.32f, 0.36f, 0.06f, if (ewGrn) 0.96f else 0.18f, if (ewGrn) 0.35f else 0.08f)
         }
     }
 
@@ -689,7 +699,9 @@ class TruckGLRenderer(
                     GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_METALLIC_PAINT)
                     drawMeshWithModelMatrix(trafficMeshes.sedanBodyMesh, v.colorR, v.colorG, v.colorB, 1f)
                     GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_GLASS)
-                    drawMeshWithModelMatrix(trafficMeshes.sedanGlassMesh, 1f, 1f, 1f, 0.85f)
+                    GLES30.glDepthMask(false)
+                    drawMeshWithModelMatrix(trafficMeshes.sedanGlassMesh, 1f, 1f, 1f, 0.66f)
+                    GLES30.glDepthMask(true)
                     GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_CHROME)
                     for (ax in listOf(1.32f, -1.28f)) {
                         drawWheel(v.x + fwdX * ax + rightX * 0.86f, v.y + 0.36f, v.z + fwdZ * ax + rightZ * 0.86f, v.yawRad, 0f, wheelSpin, scale = 0.68f)
@@ -700,7 +712,9 @@ class TruckGLRenderer(
                     GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_METALLIC_PAINT)
                     drawMeshWithModelMatrix(trafficMeshes.busBodyMesh, v.colorR, v.colorG, v.colorB, 1f)
                     GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_GLASS)
-                    drawMeshWithModelMatrix(trafficMeshes.busGlassMesh, 1f, 1f, 1f, 0.88f)
+                    GLES30.glDepthMask(false)
+                    drawMeshWithModelMatrix(trafficMeshes.busGlassMesh, 1f, 1f, 1f, 0.92f)
+                    GLES30.glDepthMask(true)
                     GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_CHROME)
                     for (ax in listOf(3.15f, -3.10f)) {
                         drawWheel(v.x + fwdX * ax + rightX * 1.14f, v.y + 0.48f, v.z + fwdZ * ax + rightZ * 1.14f, v.yawRad, 0f, wheelSpin * 0.8f, scale = 0.90f)
@@ -782,10 +796,6 @@ class TruckGLRenderer(
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_CHROME)
         drawMeshWithModelMatrix(meshSet.chromeMesh, 1f, 1f, 1f, 1f)
 
-        // Tinted Automotive Glass
-        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_GLASS)
-        drawMeshWithModelMatrix(meshSet.glassMesh, 1f, 1f, 1f, 1f)
-
         // Steerable Front & Tandem/Triple Rear Forged-Aluminum Wheels
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_CHROME)
         val spinDeg = Math.toDegrees(physics.wheelSpinAngle.toDouble()).toFloat()
@@ -864,6 +874,29 @@ class TruckGLRenderer(
                 drawBox(px - fwdX * 3.75f + rightX * 1.15f, py + 0.76f, pz - fwdZ * 3.75f + rightZ * 1.15f, yaw, 0.22f, 0.18f, 0.14f, 1.0f, 0.62f, 0.05f)
             }
         }
+    }
+
+    private fun renderPlayerTruckGlass() {
+        val model = TruckCatalog.byId(currentProfile.selectedTruckId)
+        val meshSet = truckMeshes[model.style] ?: return
+        val px = physics.x
+        val pz = physics.z
+        val py = physics.y + physics.bounceOffset
+        val yawDeg = Math.toDegrees(physics.yawRad.toDouble()).toFloat()
+        val pitchDeg = Math.toDegrees(physics.cabPitchRad.toDouble()).toFloat()
+        val rollDeg = Math.toDegrees(physics.cabRollRad.toDouble()).toFloat()
+
+        bindTexture(textures.whiteTex)
+        GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
+        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_GLASS)
+        Matrix.setIdentityM(modelMatrix, 0)
+        Matrix.translateM(modelMatrix, 0, px, py, pz)
+        Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
+        Matrix.rotateM(modelMatrix, 0, pitchDeg, 1f, 0f, 0f)
+        Matrix.rotateM(modelMatrix, 0, rollDeg, 0f, 0f, 1f)
+        GLES30.glDepthMask(false)
+        drawMeshWithModelMatrix(meshSet.glassMesh, 1f, 1f, 1f, 1f)
+        GLES30.glDepthMask(true)
     }
 
     private fun renderPlayerTrailer(isNight: Boolean) {

@@ -100,7 +100,7 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
             bay.addBox(px, 4.4f, pz, 0.58f, 9.6f, 0.58f, 0.11f, 0.14f, 0.19f)
             bay.addBox(px, 0.25f, pz, 0.92f, 1.15f, 0.92f, 0.16f, 0.19f, 0.25f)
         }
-        // Overhead octagonal steel gantry truss ring supporting softboxes
+        // Overhead octagonal steel gantry truss ring + aluminum softbox light housings
         for (k in 0 until 12) {
             val a0 = (k.toFloat() / 12f) * 2f * Math.PI.toFloat()
             val a1 = ((k + 1).toFloat() / 12f) * 2f * Math.PI.toFloat()
@@ -108,12 +108,17 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
             val mz = sin((a0 + a1) * 0.5f) * 11.2f
             bay.addBox(mx, 7.65f, mz, 0.42f, 0.36f, 6.1f, 0.12f, 0.15f, 0.20f)
         }
+        for (lx in listOf(-4.2f, 0f, 4.2f)) {
+            bay.addBox(lx, 7.52f, 0f, 1.32f, 0.14f, 7.42f, 0.09f, 0.11f, 0.15f)
+            bay.addCylinderY(lx, 7.58f, -2.6f, 0.06f, 1.2f, 6, 0.14f, 0.16f, 0.20f)
+            bay.addCylinderY(lx, 7.58f, 2.6f, 0.06f, 1.2f, 6, 0.14f, 0.16f, 0.20f)
+        }
         studioBayMesh = bay.build()
 
         // Overhead studio softbox LED light panels + crisp wall accent light strips
         val lights = DynamicMeshBuilder()
         for (lx in listOf(-4.2f, 0f, 4.2f)) {
-            lights.addBox(lx, 7.45f, 0f, 1.15f, 0.08f, 7.2f, 0.94f, 0.97f, 1.0f)
+            lights.addBox(lx, 7.42f, 0f, 1.12f, 0.05f, 7.16f, 0.94f, 0.97f, 1.0f)
         }
         for (k in 0 until 8) {
             val a = (k.toFloat() / 8f) * 2f * Math.PI.toFloat() + 0.35f
@@ -175,9 +180,9 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
         Matrix.perspectiveM(projMatrix, 0, 36f, aspect, 0.3f, 75f)
 
         val camAngle = autoSpinRad + userOrbitOffsetRad
-        val camDist = 9.2f
+        val camDist = 8.9f
         val camX = sin(camAngle) * camDist
-        val camY = 2.24f
+        val camY = 2.16f
         val camZ = cos(camAngle) * camDist
         Matrix.setLookAtM(viewMatrix, 0, camX, camY, camZ, 0.28f, 1.38f, 0.45f, 0f, 1f, 0f)
         Matrix.multiplyMM(vpMatrix, 0, projMatrix, 0, viewMatrix, 0)
@@ -248,7 +253,9 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
         drawMesh(meshSet.chromeMesh, 1f, 1f, 1f, 1f)
 
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_GLASS)
+        GLES30.glDepthMask(false)
         drawMesh(meshSet.glassMesh, 1f, 1f, 1f, 1f)
+        GLES30.glDepthMask(true)
 
         // Steered hero wheels: matte vulcanized rubber tires + mirror forged-aluminum Alcoa rims
         axles.forEachIndexed { idx, fz ->

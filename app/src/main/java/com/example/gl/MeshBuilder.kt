@@ -816,6 +816,11 @@ object WorldMeshFactory {
             tireMb.addQuad(bulgeW, c0 * midSideR, s0 * midSideR, hw, c0 * rimR, s0 * rimR, hw, c1 * rimR, s1 * rimR, bulgeW, c1 * midSideR, s1 * midSideR, 0.96f, -ny * 0.22f, -nz * 0.22f, 0.19f, 0.20f, 0.22f)
             tireMb.addQuad(-hw, c0 * rimR, s0 * rimR, -bulgeW, c0 * midSideR, s0 * midSideR, -bulgeW, c1 * midSideR, s1 * midSideR, -hw, c1 * rimR, s1 * rimR, -0.96f, -ny * 0.22f, -nz * 0.22f, 0.19f, 0.20f, 0.22f)
 
+            // Crisp molded sidewall lettering-band rib ring
+            val ribR0 = 0.365f; val ribR1 = 0.382f; val ribOut = bulgeW + 0.006f
+            tireMb.addQuad(ribOut, c0 * ribR0, s0 * ribR0, ribOut, c0 * ribR1, s0 * ribR1, ribOut, c1 * ribR1, s1 * ribR1, ribOut, c1 * ribR0, s1 * ribR0, 1f, 0f, 0f, 0.15f, 0.16f, 0.18f)
+            tireMb.addQuad(-ribOut, c0 * ribR1, s0 * ribR1, -ribOut, c0 * ribR0, s0 * ribR0, -ribOut, c1 * ribR0, s1 * ribR0, -ribOut, c1 * ribR1, s1 * ribR1, -1f, 0f, 0f, 0.15f, 0.16f, 0.18f)
+
             // Separate Mirror Forged-Aluminum Rim Barrel, Hand-Hole Vents, Brake Rotor & Center Hub
             val recessX = hw * 0.52f
             rimMb.addQuad(recessX, c0 * rimR, s0 * rimR, hw, c0 * rimR, s0 * rimR, hw, c1 * rimR, s1 * rimR, recessX, c1 * rimR, s1 * rimR, 0f, -ny, -nz, 0.86f, 0.89f, 0.94f)
@@ -848,13 +853,13 @@ object WorldMeshFactory {
             rimMb.addQuad(-hubOut, 0f, 0f, -hubOut, c1 * (hubR * 0.70f), s1 * (hubR * 0.70f), -hubOut, c0 * (hubR * 0.70f), s0 * (hubR * 0.70f), -hubOut, 0f, 0f, -1f, 0f, 0f, 0.26f, 0.29f, 0.34f)
         }
 
-        // 10 Chrome Lug Nuts around center hub
+        // 10 Chrome Lug Nuts + inner dust-shield hub collar
         for (k in 0 until 10) {
             val a = (k.toFloat() / 10f) * 2f * PI.toFloat()
             val ly = cos(a) * (hubR + 0.048f)
             val lz = sin(a) * (hubR + 0.048f)
-            rimMb.addBox(hw * 0.65f, ly, lz, 0.045f, 0.025f, 0.025f, 0.95f, 0.97f, 1.0f)
-            rimMb.addBox(-hw * 0.65f, ly, lz, 0.045f, 0.025f, 0.025f, 0.95f, 0.97f, 1.0f)
+            rimMb.addBox(hw * 0.65f, ly, lz, 0.048f, 0.026f, 0.026f, 0.96f, 0.98f, 1.0f)
+            rimMb.addBox(-hw * 0.65f, ly, lz, 0.048f, 0.026f, 0.026f, 0.96f, 0.98f, 1.0f)
         }
         return WheelMeshSet(tireMesh = tireMb.build(), rimMesh = rimMb.build())
     }

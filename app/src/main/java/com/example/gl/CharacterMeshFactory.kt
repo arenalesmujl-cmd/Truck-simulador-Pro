@@ -60,42 +60,52 @@ object CharacterMeshFactory {
         for (side in listOf(-1f, 1f)) {
             // Curved anatomical outer helix & earlobe + recessed concha shadow
             headAcc.addLoftedProfileY(
-                cx = side * 0.081f,
-                sectors = 14,
+                cx = side * 0.080f,
+                sectors = 16,
                 cappedBottom = true,
                 cappedTop = true,
                 rings = listOf(
-                    LoftRingY(0.120f, -0.008f, 0.0070f, 0.009f, skinR, skinG, skinB),
-                    LoftRingY(0.136f, -0.010f, 0.0095f, 0.014f, skinWarmR, skinWarmG, skinWarmB),
-                    LoftRingY(0.156f, -0.012f, 0.0105f, 0.016f, skinWarmR, skinWarmG, skinWarmB),
-                    LoftRingY(0.172f, -0.011f, 0.0080f, 0.012f, skinShadowR, skinShadowG, skinShadowB)
+                    LoftRingY(0.119f, -0.008f, 0.0068f, 0.0088f, skinR, skinG, skinB),
+                    LoftRingY(0.135f, -0.011f, 0.0095f, 0.0138f, skinWarmR, skinWarmG, skinWarmB),
+                    LoftRingY(0.155f, -0.013f, 0.0108f, 0.0158f, skinWarmR, skinWarmG, skinWarmB),
+                    LoftRingY(0.172f, -0.012f, 0.0078f, 0.0118f, skinShadowR, skinShadowG, skinShadowB)
                 )
             )
-            headAcc.addEllipsoid(side * 0.0845f, 0.149f, -0.008f, 0.0048f, 0.012f, 0.008f, 8, 10, skinShadowR, skinShadowG, skinShadowB)
-            // Tapered sideburn & temple hair flush with jawline
             headAcc.addLoftedProfileY(
-                cx = side * 0.072f,
+                cx = side * 0.0835f,
+                sectors = 12,
+                cappedBottom = true,
+                cappedTop = true,
+                rings = listOf(
+                    LoftRingY(0.132f, -0.009f, 0.0040f, 0.0075f, skinShadowR, skinShadowG, skinShadowB),
+                    LoftRingY(0.150f, -0.009f, 0.0052f, 0.0092f, skinShadowR, skinShadowG, skinShadowB),
+                    LoftRingY(0.164f, -0.009f, 0.0038f, 0.0070f, skinShadowR, skinShadowG, skinShadowB)
+                )
+            )
+            // Tapered sideburn & temple hair flush with ear & cheekbone
+            headAcc.addLoftedProfileY(
+                cx = side * 0.073f,
                 sectors = 14,
                 cappedBottom = true,
                 cappedTop = true,
                 rings = listOf(
-                    LoftRingY(0.105f, -0.020f, 0.006f, 0.011f, hairR, hairG, hairB),
-                    LoftRingY(0.140f, -0.024f, 0.011f, 0.022f, hairR, hairG, hairB),
-                    LoftRingY(0.178f, -0.025f, 0.014f, 0.028f, hairR, hairG, hairB)
+                    LoftRingY(0.114f, -0.018f, 0.0052f, 0.0095f, hairR, hairG, hairB),
+                    LoftRingY(0.146f, -0.023f, 0.0095f, 0.020f, hairR, hairG, hairB),
+                    LoftRingY(0.180f, -0.025f, 0.0130f, 0.026f, hairR, hairG, hairB)
                 )
             )
         }
-        // Sculpted smooth occipital & tapered nape hair (replaces blocky rear hair balls)
+        // Sculpted smooth occipital & tapered nape hair cleanly contoured to skull
         headAcc.addLoftedProfileY(
             cx = 0f,
             sectors = 28,
             cappedBottom = true,
             cappedTop = true,
             rings = listOf(
-                LoftRingY(0.068f, -0.056f, 0.044f, 0.018f, hairR, hairG, hairB, roundness = 0.90f),
-                LoftRingY(0.100f, -0.046f, 0.062f, 0.042f, hairR, hairG, hairB, roundness = 0.92f),
-                LoftRingY(0.138f, -0.036f, 0.078f, 0.062f, hairR, hairG, hairB, roundness = 0.94f),
-                LoftRingY(0.184f, -0.028f, 0.084f, 0.070f, hairR, hairG, hairB, roundness = 0.96f)
+                LoftRingY(0.082f, -0.052f, 0.048f, 0.024f, hairR, hairG, hairB, roundness = 0.92f),
+                LoftRingY(0.110f, -0.045f, 0.066f, 0.044f, hairR, hairG, hairB, roundness = 0.94f),
+                LoftRingY(0.144f, -0.036f, 0.078f, 0.060f, hairR, hairG, hairB, roundness = 0.95f),
+                LoftRingY(0.186f, -0.028f, 0.083f, 0.068f, hairR, hairG, hairB, roundness = 0.97f)
             )
         )
 
@@ -112,8 +122,8 @@ object CharacterMeshFactory {
                 LoftRingY(0.258f, -0.008f, 0.042f, 0.046f, 0.18f, 0.22f, 0.28f, roundness = 1.0f)
             )
         )
-        // Curved rear snapback strap & buckle arch + top squatcho button & front embroidered patch
-        headAcc.addEllipsoid(0f, 0.261f, -0.008f, 0.009f, 0.004f, 0.009f, 8, 12, 0.95f, 0.44f, 0.08f)
+        // Curved rear snapback strap & buckle arch + top squatcho button & stitched crest badge
+        headAcc.addEllipsoid(0f, 0.261f, -0.008f, 0.0085f, 0.004f, 0.0085f, 8, 12, 0.95f, 0.44f, 0.08f)
         headAcc.addLoftedProfileY(
             cx = 0f,
             sectors = 20,
@@ -124,9 +134,9 @@ object CharacterMeshFactory {
                 LoftRingY(0.200f, -0.084f, 0.036f, 0.012f, 0.24f, 0.27f, 0.32f, roundness = 0.85f)
             )
         )
-        headAcc.addEllipsoid(0f, 0.194f, -0.095f, 0.012f, 0.0055f, 0.004f, 6, 10, 0.94f, 0.43f, 0.07f)
-        headAcc.addEllipsoid(0f, 0.222f, 0.091f, 0.021f, 0.012f, 0.0045f, 8, 12, 0.95f, 0.44f, 0.08f)
-        headAcc.addEllipsoid(0f, 0.222f, 0.094f, 0.012f, 0.007f, 0.0035f, 8, 10, 0.92f, 0.94f, 0.96f)
+        headAcc.addBeveledBox(0f, 0.194f, -0.095f, 0.024f, 0.011f, 0.007f, 0.002f, 0.94f, 0.43f, 0.07f)
+        headAcc.addBeveledBox(0f, 0.222f, 0.091f, 0.038f, 0.022f, 0.008f, 0.004f, 0.95f, 0.44f, 0.08f)
+        headAcc.addBeveledBox(0f, 0.222f, 0.094f, 0.022f, 0.011f, 0.005f, 0.002f, 0.92f, 0.94f, 0.96f)
         // Sleek curved matte visor with subtle amber under-brim sandwich trim
         headAcc.addCurvedVisor(
             cy = 0.195f,
@@ -197,12 +207,14 @@ object CharacterMeshFactory {
                 LoftRingY(0.546f, 0.015f, 0.068f, 0.064f, henleyR, henleyG, henleyB, roundness = 0.90f)
             )
         )
-        // Front Henley placket buttons + brushed steel belt buckle & leather keeper loop
-        torso.addEllipsoid(0f, 0.112f, 0.124f, 0.032f, 0.021f, 0.009f, 8, 14, 0.84f, 0.86f, 0.90f)
-        torso.addEllipsoid(0f, 0.112f, 0.129f, 0.016f, 0.010f, 0.006f, 6, 10, leatherR, leatherG, leatherB)
-        torso.addBox(-0.048f, 0.112f, 0.120f, 0.012f, 0.044f, 0.012f, leatherR * 0.85f, leatherG * 0.85f, leatherB * 0.85f)
+        // Front Henley placket buttons + chamfered brushed steel belt buckle & keeper loops
+        torso.addBeveledBox(0f, 0.112f, 0.123f, 0.056f, 0.042f, 0.014f, 0.005f, 0.84f, 0.86f, 0.90f)
+        torso.addBeveledBox(0f, 0.112f, 0.126f, 0.032f, 0.022f, 0.012f, 0.003f, leatherR, leatherG, leatherB)
+        for (lx in listOf(-0.048f, 0.048f, -0.145f, 0.145f)) {
+            torso.addBox(lx, 0.112f, 0.116f, 0.013f, 0.044f, 0.016f, leatherR * 0.82f, leatherG * 0.82f, leatherB * 0.82f)
+        }
         for (by in listOf(0.43f, 0.478f, 0.522f)) {
-            torso.addEllipsoid(0f, by, 0.126f, 0.0055f, 0.0055f, 0.004f, 6, 8, 0.26f, 0.28f, 0.32f)
+            torso.addCylinderZ(0f, by, 0.123f, 0.128f, 0.0052f, 10, 0.26f, 0.28f, 0.32f)
         }
 
         // Full 360-degree Tailored Canvas Trucker Jacket Shell wrapping back, ribs, shoulders & rolled collar
@@ -212,15 +224,16 @@ object CharacterMeshFactory {
             trimR = jacketTrimR, trimG = jacketTrimG, trimB = jacketTrimB,
             suedeR = suedeR, suedeG = suedeG, suedeB = suedeB
         )
-        // Back saddle-suede shoulder yoke panel + raised twin front chest flap pockets, brass snap studs & shoulder deltoid caps
-        torso.addEllipsoid(0f, 0.492f, -0.066f, 0.185f, 0.056f, 0.068f, 8, 16, suedeR * 0.88f, suedeG * 0.88f, suedeB * 0.88f)
+        // Sculpted folded suede collar band framing neck + saddle-suede back yoke + tailored chest pockets
+        torso.addFoldedJacketCollar(suedeR = suedeR, suedeG = suedeG, suedeB = suedeB)
+        torso.addBeveledBox(0f, 0.494f, -0.095f, 0.34f, 0.092f, 0.068f, 0.018f, suedeR * 0.88f, suedeG * 0.88f, suedeB * 0.88f)
         for (side in listOf(-1f, 1f)) {
-            torso.addEllipsoid(side * 0.120f, 0.398f, 0.125f, 0.032f, 0.035f, 0.011f, 6, 12, jacketTrimR, jacketTrimG, jacketTrimB)
-            torso.addEllipsoid(side * 0.120f, 0.422f, 0.129f, 0.033f, 0.012f, 0.011f, 6, 10, jacketTrimR * 1.12f, jacketTrimG * 1.12f, jacketTrimB * 1.12f)
-            torso.addEllipsoid(side * 0.120f, 0.420f, 0.136f, 0.0055f, 0.0055f, 0.005f, 4, 8, 0.86f, 0.72f, 0.38f)
-            torso.addEllipsoid(side * 0.205f, 0.494f, -0.004f, 0.063f, 0.063f, 0.088f, 10, 14, jacketR, jacketG, jacketB)
-            // Subtle warm suede epaulet shoulder accent
-            torso.addEllipsoid(side * 0.152f, 0.526f, 0.002f, 0.044f, 0.018f, 0.042f, 6, 10, suedeR, suedeG, suedeB)
+            torso.addBeveledBox(side * 0.118f, 0.388f, 0.123f, 0.064f, 0.068f, 0.016f, 0.006f, jacketTrimR, jacketTrimG, jacketTrimB)
+            torso.addBeveledBox(side * 0.118f, 0.418f, 0.126f, 0.068f, 0.022f, 0.018f, 0.005f, jacketTrimR * 1.10f, jacketTrimG * 1.10f, jacketTrimB * 1.10f)
+            torso.addCylinderZ(side * 0.118f, 0.417f, 0.132f, 0.137f, 0.0052f, 10, 0.88f, 0.74f, 0.38f)
+            torso.addEllipsoid(side * 0.205f, 0.494f, -0.004f, 0.062f, 0.062f, 0.086f, 10, 14, jacketR, jacketG, jacketB)
+            // Tailored suede shoulder yoke strap
+            torso.addBeveledBox(side * 0.148f, 0.526f, 0.002f, 0.082f, 0.026f, 0.072f, 0.008f, suedeR, suedeG, suedeB)
         }
 
         // =========================================================================
@@ -274,42 +287,81 @@ object CharacterMeshFactory {
             }
 
             val inwardSign = if (isLeft) -1f else 1f
-            // Palm, wrist tendon & fingerless saddle-leather driving glove with knuckle pad
-            f.addEllipsoid(0f, -0.278f, 0.002f, 0.019f, 0.035f, 0.031f, 10, 14, leatherR, leatherG, leatherB)
-            f.addEllipsoid(0f, -0.294f, 0.003f, 0.016f, 0.013f, 0.031f, 6, 12, leatherR * 1.15f, leatherG * 1.15f, leatherB * 1.15f)
-            f.addEllipsoid(-inwardSign * 0.016f, -0.281f, 0.002f, 0.006f, 0.021f, 0.026f, 6, 10, 0.22f, 0.14f, 0.09f)
+            // Sculpted anatomical palm & fingerless saddle-leather driving glove with knuckle bolster
+            f.addLoftedProfileY(
+                cx = 0f,
+                sectors = 18,
+                cappedBottom = true,
+                cappedTop = true,
+                rings = listOf(
+                    LoftRingY(-0.300f, 0.002f, 0.014f, 0.029f, leatherR * 1.08f, leatherG * 1.08f, leatherB * 1.08f, roundness = 0.72f),
+                    LoftRingY(-0.278f, 0.002f, 0.018f, 0.032f, leatherR, leatherG, leatherB, roundness = 0.76f),
+                    LoftRingY(-0.256f, 0.000f, 0.018f, 0.026f, skinR, skinG, skinB, roundness = 0.86f)
+                )
+            )
+            // Padded dorsal leather glove protector & brass wrist strap snap
+            f.addBeveledBox(-inwardSign * 0.013f, -0.281f, 0.002f, 0.010f, 0.032f, 0.048f, 0.004f, 0.24f, 0.15f, 0.10f)
+            f.addCylinderX(-inwardSign * 0.020f, -inwardSign * 0.014f, -0.264f, 0.002f, 0.0042f, 8, 0.86f, 0.72f, 0.36f)
 
             if (grippingWheel) {
-                // Thumb rests cleanly atop front (+Z) rim bolster pointing slightly inward
-                f.addEllipsoid(inwardSign * 0.016f, -0.278f, 0.031f, 0.009f, 0.019f, 0.010f, 8, 10, skinR, skinG, skinB)
-                // Four fingers wrap tightly inward around steering wheel rim!
+                // Continuous articulated thumb resting cleanly atop front rim bolster
+                f.addCurvedFingerChain(
+                    nodes = listOf(
+                        FingerNode(inwardSign * 0.011f, -0.268f, 0.024f, 0.0092f, skinWarmR, skinWarmG, skinWarmB),
+                        FingerNode(inwardSign * 0.017f, -0.279f, 0.034f, 0.0080f, skinR, skinG, skinB),
+                        FingerNode(inwardSign * 0.016f, -0.292f, 0.037f, 0.0066f, skinR, skinG, skinB)
+                    ),
+                    sectors = 10
+                )
+                // Four smooth continuous articulated fingers wrapping around steering wheel rim!
                 for (fi in 0 until 4) {
                     val fz = 0.021f - fi * 0.0135f
                     val fLen = when (fi) {
-                        1 -> 0.032f
-                        2 -> 0.030f
-                        0 -> 0.027f
-                        else -> 0.024f
+                        1 -> 0.034f
+                        2 -> 0.032f
+                        0 -> 0.029f
+                        else -> 0.025f
                     }
-                    // Knuckle joint + inward wrapped distal phalanx hugging rim
-                    f.addEllipsoid(inwardSign * 0.003f, -0.302f, fz, 0.0068f, 0.008f, 0.0068f, 6, 8, skinR, skinG, skinB)
-                    f.addEllipsoid(inwardSign * (fLen * 0.42f), -0.312f, fz, 0.012f, 0.007f, 0.0062f, 6, 8, skinWarmR, skinWarmG, skinWarmB)
-                    f.addEllipsoid(inwardSign * (fLen * 0.72f), -0.302f, fz, 0.006f, 0.008f, 0.0058f, 6, 8, skinR, skinG, skinB)
+                    val baseR = if (fi == 3) 0.0056f else 0.0068f
+                    f.addCurvedFingerChain(
+                        nodes = listOf(
+                            FingerNode(inwardSign * 0.001f, -0.296f, fz, baseR, skinWarmR, skinWarmG, skinWarmB),
+                            FingerNode(inwardSign * (fLen * 0.36f), -0.312f, fz, baseR * 0.92f, skinR, skinG, skinB),
+                            FingerNode(inwardSign * (fLen * 0.74f), -0.310f, fz, baseR * 0.84f, skinWarmR, skinWarmG, skinWarmB),
+                            FingerNode(inwardSign * (fLen * 0.82f), -0.296f, fz, baseR * 0.74f, skinR, skinG, skinB)
+                        ),
+                        sectors = 10
+                    )
                 }
             } else {
-                // Relaxed natural standing/walking hand with softly curved two-segment fingers
-                f.addEllipsoid(inwardSign * 0.015f, -0.280f, 0.031f, 0.0085f, 0.019f, 0.009f, 8, 10, skinR, skinG, skinB)
+                // Relaxed natural standing/walking hand with smooth 3-joint curved fingers & thumb
+                f.addCurvedFingerChain(
+                    nodes = listOf(
+                        FingerNode(inwardSign * 0.010f, -0.266f, 0.024f, 0.0090f, skinWarmR, skinWarmG, skinWarmB),
+                        FingerNode(inwardSign * 0.015f, -0.281f, 0.034f, 0.0076f, skinR, skinG, skinB),
+                        FingerNode(inwardSign * 0.013f, -0.295f, 0.035f, 0.0062f, skinR, skinG, skinB)
+                    ),
+                    sectors = 10
+                )
                 for (fi in 0 until 4) {
                     val fz = 0.021f - fi * 0.0135f
                     val fLen = when (fi) {
-                        1 -> 0.033f
-                        2 -> 0.031f
-                        0 -> 0.027f
-                        else -> 0.024f
+                        1 -> 0.036f
+                        2 -> 0.034f
+                        0 -> 0.030f
+                        else -> 0.025f
                     }
-                    val curl = 0.0065f + fi * 0.0012f
-                    f.addTaperedCylinderY(0f, -0.296f - fLen * 0.45f, fz, 0.0060f, 0.0072f, fLen * 0.45f, 8, skinWarmR, skinWarmG, skinWarmB)
-                    f.addEllipsoid(inwardSign * curl, -0.296f - fLen * 0.68f, fz, 0.0060f, 0.0095f, 0.0058f, 6, 8, skinR, skinG, skinB)
+                    val baseR = if (fi == 3) 0.0054f else 0.0066f
+                    val curlScale = 0.0095f + fi * 0.0018f
+                    f.addCurvedFingerChain(
+                        nodes = listOf(
+                            FingerNode(0.000f, -0.296f, fz, baseR, skinWarmR, skinWarmG, skinWarmB),
+                            FingerNode(inwardSign * (curlScale * 0.28f), -0.296f - fLen * 0.42f, fz, baseR * 0.90f, skinR, skinG, skinB),
+                            FingerNode(inwardSign * (curlScale * 0.85f), -0.296f - fLen * 0.78f, fz, baseR * 0.82f, skinWarmR, skinWarmG, skinWarmB),
+                            FingerNode(inwardSign * (curlScale * 1.25f), -0.296f - fLen * 0.96f, fz, baseR * 0.70f, skinR, skinG, skinB)
+                        ),
+                        sectors = 10
+                    )
                 }
             }
             return f.build()
@@ -678,7 +730,7 @@ object CharacterMeshFactory {
             }
         }
 
-        // Solid tailored front placket edges + folded suede lapel piping along s=0 and s=segs
+        // Solid tailored front placket edges + continuous brass zipper trim along s=0 and s=segs
         val edgeDepth = 0.016f
         for (ri in 0 until nR - 1) {
             val r0 = rings[ri]
@@ -693,8 +745,14 @@ object CharacterMeshFactory {
                 lx1, ly1, lz1,
                 1f, 0f, 0.25f, r0.r * 0.92f, r0.g * 0.92f, r0.b * 0.92f
             )
-            // Brass zipper teeth strip along left & right front openings
-            addEllipsoid((lx0 + lx1) * 0.5f + 0.003f, (ly0 + ly1) * 0.5f, (lz0 + lz1) * 0.5f - 0.002f, 0.0045f, 0.032f, 0.006f, 5, 8, 0.78f, 0.64f, 0.36f)
+            // Continuous brushed-brass zipper teeth strip along left front opening
+            addQuad(
+                lx0 + 0.003f, ly0, lz0 + 0.002f,
+                lx0 - 0.003f, ly0, lz0 + 0.002f,
+                lx1 - 0.003f, ly1, lz1 + 0.002f,
+                lx1 + 0.003f, ly1, lz1 + 0.002f,
+                0f, 0f, 1f, 0.80f, 0.66f, 0.36f
+            )
 
             // Right lapel front thickness edge (s = segs, facing inward -X)
             val rx0 = px[ri][segs]; val ry0 = py[ri][segs]; val rz0 = pz[ri][segs]
@@ -706,7 +764,144 @@ object CharacterMeshFactory {
                 rx1, ry1, rz1 - edgeDepth,
                 -1f, 0f, 0.25f, r0.r * 0.92f, r0.g * 0.92f, r0.b * 0.92f
             )
-            addEllipsoid((rx0 + rx1) * 0.5f - 0.003f, (ry0 + ry1) * 0.5f, (rz0 + rz1) * 0.5f - 0.002f, 0.0045f, 0.032f, 0.006f, 5, 8, 0.78f, 0.64f, 0.36f)
+            // Continuous brushed-brass zipper teeth strip along right front opening
+            addQuad(
+                rx0 + 0.003f, ry0, rz0 + 0.002f,
+                rx0 - 0.003f, ry0, rz0 + 0.002f,
+                rx1 - 0.003f, ry1, rz1 + 0.002f,
+                rx1 + 0.003f, ry1, rz1 + 0.002f,
+                0f, 0f, 1f, 0.80f, 0.66f, 0.36f
+            )
+        }
+    }
+
+    private fun DynamicMeshBuilder.addFoldedJacketCollar(
+        suedeR: Float, suedeG: Float, suedeB: Float
+    ) {
+        val segs = 20
+        val startA = (PI * 0.5).toFloat() + 0.56f
+        val endA = (PI * 2.5).toFloat() - 0.56f
+        val inRx = 0.094f; val inRz = 0.078f
+        val outRx = 0.146f; val outRz = 0.114f
+        val yIn = 0.560f; val yOut = 0.522f
+        for (s in 0 until segs) {
+            val a0 = startA + (endA - startA) * (s.toFloat() / segs)
+            val a1 = startA + (endA - startA) * ((s + 1).toFloat() / segs)
+            val ix0 = cos(a0) * inRx; val iz0 = sin(a0) * inRz
+            val ix1 = cos(a1) * inRx; val iz1 = sin(a1) * inRz
+            val ox0 = cos(a0) * outRx; val oz0 = sin(a0) * outRz
+            val ox1 = cos(a1) * outRx; val oz1 = sin(a1) * outRz
+            addQuad(
+                ix0, yIn, iz0,
+                ix1, yIn, iz1,
+                ox1, yOut, oz1,
+                ox0, yOut, oz0,
+                cos((a0 + a1) * 0.5f) * 0.5f, 0.78f, sin((a0 + a1) * 0.5f) * 0.5f,
+                suedeR, suedeG, suedeB
+            )
+            addQuad(
+                ox0, yOut - 0.012f, oz0,
+                ox1, yOut - 0.012f, oz1,
+                ox1, yOut, oz1,
+                ox0, yOut, oz0,
+                cos((a0 + a1) * 0.5f), -0.15f, sin((a0 + a1) * 0.5f),
+                suedeR * 0.86f, suedeG * 0.86f, suedeB * 0.86f
+            )
+        }
+    }
+
+    private data class FingerNode(
+        val x: Float,
+        val y: Float,
+        val z: Float,
+        val radius: Float,
+        val r: Float,
+        val g: Float,
+        val b: Float
+    )
+
+    private fun DynamicMeshBuilder.addCurvedFingerChain(
+        nodes: List<FingerNode>,
+        sectors: Int = 10
+    ) {
+        if (nodes.size < 2) return
+        val n = nodes.size
+        val ringX = Array(n) { FloatArray(sectors) }
+        val ringY = Array(n) { FloatArray(sectors) }
+        val ringZ = Array(n) { FloatArray(sectors) }
+        val ringNx = Array(n) { FloatArray(sectors) }
+        val ringNy = Array(n) { FloatArray(sectors) }
+        val ringNz = Array(n) { FloatArray(sectors) }
+
+        for (i in 0 until n) {
+            val prev = nodes[(i - 1).coerceAtLeast(0)]
+            val next = nodes[(i + 1).coerceAtMost(n - 1)]
+            var tx = next.x - prev.x
+            var ty = next.y - prev.y
+            var tz = next.z - prev.z
+            val tLen = sqrt(tx * tx + ty * ty + tz * tz).coerceAtLeast(0.0001f)
+            tx /= tLen; ty /= tLen; tz /= tLen
+
+            // Stable orthonormal basis around local finger tangent (prefer Z as lateral axis unless parallel)
+            val upX = 0f; val upY = 0f; val upZ = if (abs(tz) > 0.9f) 0f else 1f
+            val altY = if (abs(tz) > 0.9f) 1f else 0f
+            var bx = ty * upZ - tz * altY
+            var by = tz * upX - tx * upZ
+            var bz = tx * altY - ty * upX
+            val bLen = sqrt(bx * bx + by * by + bz * bz).coerceAtLeast(0.0001f)
+            bx /= bLen; by /= bLen; bz /= bLen
+
+            val nxAxis = ty * bz - tz * by
+            val nyAxis = tz * bx - tx * bz
+            val nzAxis = tx * by - ty * bx
+
+            val node = nodes[i]
+            for (s in 0 until sectors) {
+                val a = (s.toFloat() / sectors) * 2f * PI.toFloat()
+                val ca = cos(a); val sa = sin(a)
+                val dx = bx * ca + nxAxis * sa
+                val dy = by * ca + nyAxis * sa
+                val dz = bz * ca + nzAxis * sa
+                ringX[i][s] = node.x + dx * node.radius
+                ringY[i][s] = node.y + dy * node.radius
+                ringZ[i][s] = node.z + dz * node.radius
+                ringNx[i][s] = dx; ringNy[i][s] = dy; ringNz[i][s] = dz
+            }
+        }
+
+        for (i in 0 until n - 1) {
+            val n0 = nodes[i]
+            val n1 = nodes[i + 1]
+            val v0 = i.toFloat() / (n - 1)
+            val v1 = (i + 1).toFloat() / (n - 1)
+            for (s in 0 until sectors) {
+                val sNext = (s + 1) % sectors
+                val u0 = s.toFloat() / sectors
+                val u1 = (s + 1).toFloat() / sectors
+                addVertex(ringX[i][s], ringY[i][s], ringZ[i][s], ringNx[i][s], ringNy[i][s], ringNz[i][s], u0, v0, n0.r, n0.g, n0.b)
+                addVertex(ringX[i][sNext], ringY[i][sNext], ringZ[i][sNext], ringNx[i][sNext], ringNy[i][sNext], ringNz[i][sNext], u1, v0, n0.r, n0.g, n0.b)
+                addVertex(ringX[i + 1][sNext], ringY[i + 1][sNext], ringZ[i + 1][sNext], ringNx[i + 1][sNext], ringNy[i + 1][sNext], ringNz[i + 1][sNext], u1, v1, n1.r, n1.g, n1.b)
+
+                addVertex(ringX[i][s], ringY[i][s], ringZ[i][s], ringNx[i][s], ringNy[i][s], ringNz[i][s], u0, v0, n0.r, n0.g, n0.b)
+                addVertex(ringX[i + 1][sNext], ringY[i + 1][sNext], ringZ[i + 1][sNext], ringNx[i + 1][sNext], ringNy[i + 1][sNext], ringNz[i + 1][sNext], u1, v1, n1.r, n1.g, n1.b)
+                addVertex(ringX[i + 1][s], ringY[i + 1][s], ringZ[i + 1][s], ringNx[i + 1][s], ringNy[i + 1][s], ringNz[i + 1][s], u0, v1, n1.r, n1.g, n1.b)
+            }
+        }
+        // Smooth rounded fingertip dome cap
+        val prevLast = nodes[n - 2]
+        val tip = nodes.last()
+        var fx = tip.x - prevLast.x; var fy = tip.y - prevLast.y; var fz = tip.z - prevLast.z
+        val fLen = sqrt(fx * fx + fy * fy + fz * fz).coerceAtLeast(0.0001f)
+        fx /= fLen; fy /= fLen; fz /= fLen
+        val tipApexX = tip.x + fx * tip.radius * 0.72f
+        val tipApexY = tip.y + fy * tip.radius * 0.72f
+        val tipApexZ = tip.z + fz * tip.radius * 0.72f
+        val lastIdx = n - 1
+        for (s in 0 until sectors) {
+            val sNext = (s + 1) % sectors
+            addVertex(tipApexX, tipApexY, tipApexZ, fx, fy, fz, 0.5f, 1f, tip.r, tip.g, tip.b)
+            addVertex(ringX[lastIdx][s], ringY[lastIdx][s], ringZ[lastIdx][s], ringNx[lastIdx][s], ringNy[lastIdx][s], ringNz[lastIdx][s], 0.5f, 1f, tip.r, tip.g, tip.b)
+            addVertex(ringX[lastIdx][sNext], ringY[lastIdx][sNext], ringZ[lastIdx][sNext], ringNx[lastIdx][sNext], ringNy[lastIdx][sNext], ringNz[lastIdx][sNext], 0.5f, 1f, tip.r, tip.g, tip.b)
         }
     }
 }

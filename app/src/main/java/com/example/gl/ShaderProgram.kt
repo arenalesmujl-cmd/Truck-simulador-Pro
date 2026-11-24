@@ -318,16 +318,21 @@ class WorldShaderProgram {
 
                 float localWet = uWetness;
                 if (uMaterialMode > 2.5 && uMaterialMode < 3.5) {
-                    float grain = sin(vWorldPos.x * 2.4) * cos(vWorldPos.z * 2.3) * 0.05;
-                    float rippleX = cos(vWorldPos.x * 5.2 + vWorldPos.z * 2.7) * 0.045;
-                    float rippleZ = sin(vWorldPos.z * 5.1 - vWorldPos.x * 2.3) * 0.045;
-                    albedo *= (1.0 + grain);
+                    float grain = sin(vWorldPos.x * 2.4) * cos(vWorldPos.z * 2.3) * 0.048;
+                    float rippleX = cos(vWorldPos.x * 5.2 + vWorldPos.z * 2.7) * 0.042;
+                    float rippleZ = sin(vWorldPos.z * 5.1 - vWorldPos.x * 2.3) * 0.042;
+                    // Subtle rubber-polished wheel tracks in left & right highway lanes
+                    float laneL = exp(-pow((vUv.x - 0.29) * 9.5, 2.0));
+                    float laneR = exp(-pow((vUv.x - 0.71) * 9.5, 2.0));
+                    float tirePolish = clamp(laneL + laneR, 0.0, 1.0);
+                    albedo *= (1.0 + grain) * mix(1.0, 0.87, tirePolish);
+                    localWet = max(localWet, tirePolish * 0.22);
                     if (uWetness > 0.1) {
                         float puddle = smoothstep(0.38, 0.86, sin(vWorldPos.x * 0.17) * cos(vWorldPos.z * 0.15) * 0.5 + 0.5);
                         localWet = mix(0.45, 1.0, puddle) * uWetness;
                         N = normalize(N + vec3(rippleX, 0.0, rippleZ) * (1.0 - puddle * 0.7));
                     } else {
-                        N = normalize(N + vec3(rippleX, 0.0, rippleZ) * 0.65);
+                        N = normalize(N + vec3(rippleX, 0.0, rippleZ) * 0.62);
                     }
                 }
 
@@ -337,20 +342,22 @@ class WorldShaderProgram {
                 float ndl = dot(N, L);
                 float diff = max(ndl, 0.0);
 
-                // Warm Subsurface Scattering (SSS) wrap fill on human skin & fabric
+                // Warm Subsurface Scattering (SSS) wrap fill + soft crevice lift on human skin & fabric
                 vec3 sssGlow = vec3(0.0);
+                float skinCrevice = 1.0;
                 if (uMaterialMode > 4.5) {
-                    diff = max((ndl + 0.50) / 1.50, 0.0);
-                    float wrapBand = smoothstep(-0.44, 0.34, ndl) * (1.0 - smoothstep(0.10, 0.78, ndl));
-                    sssGlow = vec3(0.30, 0.115, 0.052) * wrapBand * lightLin;
+                    diff = max((ndl + 0.52) / 1.52, 0.0);
+                    float wrapBand = smoothstep(-0.46, 0.34, ndl) * (1.0 - smoothstep(0.12, 0.78, ndl));
+                    sssGlow = vec3(0.28, 0.11, 0.05) * wrapBand * lightLin;
+                    skinCrevice = mix(0.84, 1.04, clamp(N.y * 0.5 + 0.5, 0.0, 1.0));
                 }
 
-                vec3 skyBounce = ambLin * 1.62;
+                vec3 skyBounce = ambLin * 1.64;
                 vec3 groundBounce = ambLin * vec3(0.60, 0.55, 0.48);
-                vec3 hemiAmbient = mix(groundBounce, skyBounce, N.y * 0.5 + 0.5);
+                vec3 hemiAmbient = mix(groundBounce, skyBounce, N.y * 0.5 + 0.5) * skinCrevice;
 
                 vec3 fillDir = normalize(vec3(-L.x, 0.58, -L.z));
-                float fillDiff = max(dot(N, fillDir), 0.0) * 0.35;
+                float fillDiff = max(dot(N, fillDir), 0.0) * 0.36;
                 vec3 fillLight = mix(ambLin, fogLin, 0.5) * fillDiff;
 
                 float shininess = mix(24.0, 118.0, localWet);
@@ -358,42 +365,42 @@ class WorldShaderProgram {
                 vec3 envReflect = vec3(0.0);
 
                 if (isOceanWater) {
-                    shininess = 148.0;
-                    specStrength = 1.30;
+                    shininess = 152.0;
+                    specStrength = 1.32;
                     float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.0);
                     vec3 R = reflect(-V, N);
                     vec3 skyEnv = mix(ambLin * 0.45, fogLin * 1.48 + lightLin * 0.48, smoothstep(-0.08, 0.45, R.y));
                     envReflect = skyEnv * (0.22 + fresnel * 0.70);
                 } else if (uMaterialMode > 0.5 && uMaterialMode < 1.5) {
                     // Dual-lobe automotive clearcoat + subtle metallic base flake shimmer
-                    shininess = 88.0;
-                    specStrength = 0.64;
+                    shininess = 96.0;
+                    specStrength = 0.68;
                     float flake = hash21(floor(vWorldPos.xz * 260.0 + vWorldPos.y * 190.0));
                     float flakeGlint = smoothstep(0.76, 0.99, flake) * 0.24 * max(ndl, 0.0);
-                    float clearcoat = pow(max(dot(N, H), 0.0), 210.0) * 0.80 * shadowFactor;
-                    float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.1);
+                    float clearcoat = pow(max(dot(N, H), 0.0), 240.0) * 0.88 * shadowFactor;
+                    float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.0);
                     vec3 R = reflect(-V, N);
-                    vec3 skyEnv = mix(groundBounce * 0.52, fogLin * 1.50 + lightLin * 0.50, smoothstep(-0.15, 0.44, R.y));
-                    envReflect = skyEnv * (0.10 + fresnel * 0.60) + lightLin * (clearcoat + flakeGlint);
+                    vec3 skyEnv = mix(groundBounce * 0.50, fogLin * 1.54 + lightLin * 0.52, smoothstep(-0.14, 0.44, R.y));
+                    envReflect = skyEnv * (0.11 + fresnel * 0.64) + lightLin * (clearcoat + flakeGlint);
                 } else if (uMaterialMode > 1.5 && uMaterialMode < 2.5) {
-                    shininess = 175.0;
-                    specStrength = 1.58;
+                    shininess = 185.0;
+                    specStrength = 1.64;
                     vec3 R = reflect(-V, N);
-                    vec3 skyEnv = mix(vec3(0.06, 0.08, 0.12), fogLin * 1.46 + lightLin * 0.62, smoothstep(-0.14, 0.34, R.y));
-                    envReflect = skyEnv * 0.80;
-                    albedo *= 0.46;
+                    vec3 skyEnv = mix(vec3(0.06, 0.08, 0.12), fogLin * 1.50 + lightLin * 0.64, smoothstep(-0.14, 0.34, R.y));
+                    envReflect = skyEnv * 0.82;
+                    albedo *= 0.45;
                 } else if (uMaterialMode > 3.5 && uMaterialMode < 4.5) {
-                    shininess = 172.0;
-                    specStrength = 1.48;
-                    float fresnel = pow(1.0 - max(dot(N, V), 0.0), 2.0);
+                    shininess = 195.0;
+                    specStrength = 1.58;
+                    float fresnel = pow(1.0 - max(dot(N, V), 0.0), 1.85);
                     vec3 R = reflect(-V, N);
-                    vec3 skyEnv = mix(vec3(0.04, 0.07, 0.12), fogLin * 1.52 + lightLin * 0.40, smoothstep(-0.10, 0.42, R.y));
-                    envReflect = skyEnv * (0.42 + fresnel * 0.65);
+                    vec3 skyEnv = mix(vec3(0.05, 0.09, 0.14), fogLin * 1.58 + lightLin * 0.48, smoothstep(-0.08, 0.42, R.y));
+                    envReflect = skyEnv * (0.48 + fresnel * 0.72);
                 } else if (uMaterialMode > 4.5) {
-                    shininess = 24.0;
-                    specStrength = 0.095;
-                    float rim = pow(1.0 - max(dot(N, V), 0.0), 2.8);
-                    envReflect = (lightLin * 0.56 + skyBounce) * rim * 0.20;
+                    shininess = 22.0;
+                    specStrength = 0.085;
+                    float rim = pow(1.0 - max(dot(N, V), 0.0), 3.0);
+                    envReflect = (lightLin * 0.54 + skyBounce) * rim * 0.18;
                 } else if (uMaterialMode > 2.5 && uMaterialMode < 3.5 && localWet > 0.15) {
                     vec3 R = reflect(-V, N);
                     vec3 skyEnv = mix(ambLin * 0.3, fogLin * 1.28, clamp(R.y * 0.5 + 0.5, 0.0, 1.0));

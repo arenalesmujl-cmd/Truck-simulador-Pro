@@ -2,6 +2,8 @@ package com.example.ui.components
 
 import android.opengl.GLSurfaceView
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,6 +21,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -49,6 +54,7 @@ fun ShowroomViewport(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
+            .border(1.dp, SkyCyan.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
             .pointerInput(Unit) {
                 detectHorizontalDragGestures { change, dragAmount ->
                     change.consume()
@@ -69,6 +75,23 @@ fun ShowroomViewport(
                 view.onPause()
             }
         )
+
+        // Subtle studio CAD corner brackets
+        Canvas(modifier = Modifier.fillMaxSize().padding(6.dp)) {
+            val len = 14.dp.toPx()
+            val c = Color(0xFF38BDF8).copy(alpha = 0.42f)
+            val w = size.width
+            val h = size.height
+            val sw = 2f
+            drawLine(c, Offset(0f, 0f), Offset(len, 0f), sw, StrokeCap.Round)
+            drawLine(c, Offset(0f, 0f), Offset(0f, len), sw, StrokeCap.Round)
+            drawLine(c, Offset(w, 0f), Offset(w - len, 0f), sw, StrokeCap.Round)
+            drawLine(c, Offset(w, 0f), Offset(w, len), sw, StrokeCap.Round)
+            drawLine(c, Offset(0f, h), Offset(len, h), sw, StrokeCap.Round)
+            drawLine(c, Offset(0f, h), Offset(0f, h - len), sw, StrokeCap.Round)
+            drawLine(c, Offset(w, h), Offset(w - len, h), sw, StrokeCap.Round)
+            drawLine(c, Offset(w, h), Offset(w, h - len), sw, StrokeCap.Round)
+        }
 
         if (badgeLabel != null) {
             Surface(

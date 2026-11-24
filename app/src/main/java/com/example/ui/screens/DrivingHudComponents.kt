@@ -170,7 +170,7 @@ fun SpeedometerArcCluster(
                         cap = StrokeCap.Round
                     )
 
-                    // Inner RPM arc
+                    // Inner RPM arc with crimson redline band (>2050 RPM)
                     val innerInset = 20f
                     val innerSize = Size(size.width - innerInset * 2f, size.height - innerInset * 2f)
                     val innerTopLeft = Offset(innerInset, innerInset)
@@ -178,6 +178,15 @@ fun SpeedometerArcCluster(
                         color = Color(0xFF0F172A),
                         startAngle = 135f,
                         sweepAngle = 270f,
+                        useCenter = false,
+                        topLeft = innerTopLeft,
+                        size = innerSize,
+                        style = Stroke(width = 4.5f, cap = StrokeCap.Round)
+                    )
+                    drawArc(
+                        color = CrimsonAlert.copy(alpha = 0.36f),
+                        startAngle = 360f,
+                        sweepAngle = 45f,
                         useCenter = false,
                         topLeft = innerTopLeft,
                         size = innerSize,
@@ -215,18 +224,28 @@ fun SpeedometerArcCluster(
                     0 -> "N"
                     else -> "D${telemetry.gear}"
                 }
-                Surface(
-                    color = if (telemetry.gear == -1) CrimsonAlert.copy(alpha = 0.25f) else RacingOrange.copy(alpha = 0.24f),
-                    border = BorderStroke(1.dp, if (telemetry.gear == -1) CrimsonAlert else RacingOrange),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        text = gearLabel,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (telemetry.gear == -1) CrimsonAlert else RacingOrange,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp)
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    if (telemetry.rpm > 2050f) {
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(CrimsonAlert)
+                        )
+                    }
+                    Surface(
+                        color = if (telemetry.gear == -1) CrimsonAlert.copy(alpha = 0.25f) else RacingOrange.copy(alpha = 0.24f),
+                        border = BorderStroke(1.dp, if (telemetry.gear == -1) CrimsonAlert else RacingOrange),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = gearLabel,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (telemetry.gear == -1) CrimsonAlert else RacingOrange,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp)
+                        )
+                    }
                 }
 
                 val fuelColor = if (telemetry.fuelPercent < 20f) CrimsonAlert else EmeraldGo
@@ -492,13 +511,26 @@ fun TactileSteeringWheel(
                 drawCircle(color = Color(0xFF0F172A), radius = r, center = c, style = Stroke(width = 23f))
                 drawCircle(color = Color(0xFF1E293B), radius = r, center = c, style = Stroke(width = 16f))
                 drawCircle(color = Color(0xFF64748B), radius = r + 5.5f, center = c, style = Stroke(width = 2.5f))
+                // Fine leather grip stitch ticks around perimeter
+                for (i in 0 until 24) {
+                    val ang = Math.toRadians((i * 15.0))
+                    val ca = cos(ang).toFloat(); val sa = sin(ang).toFloat()
+                    drawLine(
+                        color = Color(0xFF475569).copy(alpha = 0.65f),
+                        start = Offset(c.x + ca * (r - 4f), c.y + sa * (r - 4f)),
+                        end = Offset(c.x + ca * (r + 4f), c.y + sa * (r + 4f)),
+                        strokeWidth = 1.6f
+                    )
+                }
                 // Thumb grip bolsters at 9 & 3 o'clock
                 drawCircle(color = Color(0xFF334155), radius = 11.5f, center = Offset(c.x - r + 2f, c.y))
                 drawCircle(color = Color(0xFF334155), radius = 11.5f, center = Offset(c.x + r - 2f, c.y))
-                // Brushed aluminum spokes
+                // Brushed aluminum twin spokes + diagonal lower strut
                 drawLine(Color(0xFF94A3B8), Offset(c.x - r + 8f, c.y), Offset(c.x + r - 8f, c.y), strokeWidth = 12f, cap = StrokeCap.Round)
                 drawLine(Color(0xFFE2E8F0), Offset(c.x - r + 10f, c.y - 1.5f), Offset(c.x + r - 10f, c.y - 1.5f), strokeWidth = 3f, cap = StrokeCap.Round)
                 drawLine(Color(0xFF94A3B8), Offset(c.x, c.y), Offset(c.x, c.y + r - 8f), strokeWidth = 12f, cap = StrokeCap.Round)
+                drawLine(Color(0xFF64748B), Offset(c.x - r * 0.44f, c.y + r * 0.44f), Offset(c.x, c.y), strokeWidth = 7f, cap = StrokeCap.Round)
+                drawLine(Color(0xFF64748B), Offset(c.x + r * 0.44f, c.y + r * 0.44f), Offset(c.x, c.y), strokeWidth = 7f, cap = StrokeCap.Round)
                 // Center horn boss with metallic trim, orange racing badge & center gloss pin
                 drawCircle(Color(0xFF0F172A), radius = 24f, center = c)
                 drawCircle(Color(0xFF94A3B8), radius = 24f, center = c, style = Stroke(width = 2.5f))
@@ -554,8 +586,15 @@ fun HoldButtonPad(
             }
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Subtle ribbed pedal traction bars behind content
+            // Glossy top bevel + ribbed pedal traction bars behind content
             Canvas(modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 8.dp)) {
+                drawLine(
+                    color = Color.White.copy(alpha = if (held) 0.35f else 0.12f),
+                    start = Offset(4f, 0f),
+                    end = Offset(size.width - 4f, 0f),
+                    strokeWidth = 2.2f,
+                    cap = StrokeCap.Round
+                )
                 val barCount = 5
                 val step = size.height / (barCount + 1)
                 val barColor = if (held) Color.Black.copy(alpha = 0.24f) else accent.copy(alpha = 0.16f)
@@ -642,9 +681,10 @@ fun MiniMapRadar(
             radius = w * 0.46f,
             center = Offset(cx, cy)
         )
-        drawCircle(Color(0xFF334155).copy(alpha = 0.72f), radius = w * 0.45f, center = Offset(cx, cy), style = Stroke(1.5f))
+        drawCircle(Color(0xFF475569).copy(alpha = 0.80f), radius = w * 0.45f, center = Offset(cx, cy), style = Stroke(2f))
         drawCircle(Color(0xFF1E293B), radius = w * 0.24f, center = Offset(cx, cy), style = Stroke(1f))
-        drawLine(Color(0xFF334155), Offset(cx, 4f), Offset(cx, 12f), strokeWidth = 2f)
+        drawLine(SkyCyan.copy(alpha = 0.72f), Offset(cx, 3f), Offset(cx, 13f), strokeWidth = 2.5f, cap = StrokeCap.Round)
+        drawCircle(SkyCyan.copy(alpha = 0.85f), radius = 2.5f, center = Offset(cx, 3f))
         drawLine(Color(0xFF334155), Offset(cx, h - 12f), Offset(cx, h - 4f), strokeWidth = 2f)
         drawLine(Color(0xFF334155), Offset(4f, cy), Offset(12f, cy), strokeWidth = 2f)
         drawLine(Color(0xFF334155), Offset(w - 12f, cy), Offset(w - 4f, cy), strokeWidth = 2f)
