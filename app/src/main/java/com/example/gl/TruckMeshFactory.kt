@@ -58,14 +58,21 @@ object TruckMeshFactory {
         chassis.addBox(0f, 0.86f, -1.96f, 0.96f, 0.12f, 0.85f, 0.13f, 0.15f, 0.18f)
         chrome.addCylinderX(0.42f, 0.96f, 0.92f, -1.85f, 0.025f, 8, 0.85f, 0.88f, 0.92f)
 
-        // Curved rear drive-axle wheel arch fenders & mudflaps with polished chrome weights
+        // Curved rear drive-axle wheel arch fenders, mudflaps & sculpted rear steel tail-light crossmember bar
         for (side in listOf(-1f, 1f)) {
             val fx = side * 1.16f
             chassis.addWheelArch(fx, 0.55f, -1.25f, 0.56f, 0.59f, 0.66f, 12, 0.12f, 0.13f, 0.16f)
             chassis.addWheelArch(fx, 0.55f, -2.55f, 0.56f, 0.59f, 0.66f, 12, 0.12f, 0.13f, 0.16f)
             chassis.addBox(fx, 0.66f, -3.38f, 0.52f, 0.72f, 0.06f, 0.09f, 0.10f, 0.12f)
             chrome.addBox(fx, 0.36f, -3.41f, 0.46f, 0.10f, 0.02f, 0.88f, 0.90f, 0.94f)
+            chassis.addBox(fx, 0.44f, -3.415f, 0.42f, 0.035f, 0.018f, 0.94f, 0.16f, 0.12f)
+            chrome.addBox(fx, 0.98f, -3.39f, 0.50f, 0.055f, 0.07f, 0.84f, 0.87f, 0.92f)
+            // Tail/turn light bezel boxes framing rear emissive lamps cleanly
+            chrome.addBox(side * 0.85f, 0.77f, -3.70f, 0.42f, 0.13f, 0.08f, 0.84f, 0.87f, 0.92f)
+            chrome.addBox(side * 1.15f, 0.76f, -3.70f, 0.24f, 0.21f, 0.08f, 0.84f, 0.87f, 0.92f)
         }
+        chassis.addBeveledBox(0f, 0.77f, -3.66f, 2.52f, 0.18f, 0.14f, 0.03f, 0.13f, 0.15f, 0.18f)
+        chrome.addBox(0f, 0.77f, -3.72f, 0.38f, 0.14f, 0.04f, 0.88f, 0.91f, 0.95f)
 
         // Coiled Red & Blue Air-Brake Gladhand Hoses, Pogo-Stick & Diamond-Plate Catwalk behind cab
         val hoseZ = if (style == TruckStyle.EURO_CABOVER) 0.12f else -0.96f
@@ -83,6 +90,10 @@ object TruckMeshFactory {
             chassis.addBox(tx, 0.76f, 0.35f, 0.64f, 0.64f, 0.08f, 0.15f, 0.17f, 0.20f)
             chrome.addBox(side * 1.24f, 0.62f, 1.35f, 0.22f, 0.055f, 0.78f, 0.84f, 0.87f, 0.92f)
             chrome.addBox(side * 1.22f, 0.92f, 1.35f, 0.17f, 0.05f, 0.74f, 0.84f, 0.87f, 0.92f)
+            for (ribZ in listOf(1.12f, 1.35f, 1.58f)) {
+                chassis.addBox(side * 1.27f, 0.655f, ribZ, 0.15f, 0.018f, 0.035f, 0.14f, 0.16f, 0.20f)
+                chassis.addBox(side * 1.24f, 0.950f, ribZ, 0.12f, 0.018f, 0.035f, 0.14f, 0.16f, 0.20f)
+            }
         }
         // AdBlue DEF tank + blue cap on right rail & pressurized brake air reservoir tanks along center rail
         chassis.addBox(-1.02f, 0.76f, 1.05f, 0.42f, 0.48f, 0.48f, 0.14f, 0.16f, 0.19f)
@@ -376,7 +387,13 @@ object TruckMeshFactory {
             chrome.addCylinderY(side * 1.32f, 0.95f, -0.45f, 0.115f, 3.22f, 16, 0.90f, 0.92f, 0.96f)
             chrome.addCylinderY(side * 1.32f, 1.45f, -0.45f, 0.152f, 1.68f, 16, 0.78f, 0.80f, 0.85f)
             chrome.addCylinderY(side * 1.18f, 1.85f, 1.82f, 0.15f, 0.68f, 14, 0.85f, 0.88f, 0.92f)
+            chrome.addCylinderZ(side * 0.44f, 3.42f, 1.24f, 1.82f, 0.058f, 12, 0.90f, 0.93f, 0.97f)
+            chrome.addTaperedCylinderY(side * 1.32f, 1.95f, -0.45f, 0.162f, 0.162f, 0.06f, 14, 0.88f, 0.91f, 0.95f)
         }
+        // Heavy-haul amber strobe warning lightbar atop sleeper roof
+        chrome.addBox(-0.55f, 3.44f, 0.82f, 0.08f, 0.10f, 0.14f, 0.86f, 0.89f, 0.94f)
+        chrome.addBox(0.55f, 3.44f, 0.82f, 0.08f, 0.10f, 0.14f, 0.86f, 0.89f, 0.94f)
+        chassis.addBeveledBox(0f, 3.51f, 0.82f, 1.36f, 0.10f, 0.24f, 0.03f, 0.96f, 0.58f, 0.06f)
         addDetailedCabInterior(chassis, chrome, seatZ = 0.90f, dashZ = 1.72f, seatY = 2.26f, dashY = 2.22f)
         chassis.addSlopedBox(0f, 2.60f, 2.10f, 2.18f, 0.14f, 2.08f, 0.12f, 0.80f, -0.10f, 0.08f, 0.10f, 0.13f)
         glass.addSlopedBox(0f, 2.60f, 2.13f, 2.08f, 0.14f, 1.98f, 0.12f, 0.70f, -0.10f, 0.08f, 0.16f, 0.25f, 0.54f)
@@ -433,6 +450,10 @@ object TruckMeshFactory {
         chassis.addBox(0f, 3.60f, 1.25f, 2.25f, 0.18f, 1.65f, 0.16f, 0.18f, 0.20f)
         for (lx in listOf(-0.75f, -0.25f, 0.25f, 0.75f)) {
             chrome.addCylinderZ(lx, 3.75f, 1.95f, 2.12f, 0.12f, 14, 0.86f, 0.89f, 0.94f)
+        }
+        for (side in listOf(-1f, 1f)) {
+            chrome.addCylinderZ(side * 0.48f, 3.74f, 1.26f, 1.80f, 0.055f, 12, 0.88f, 0.91f, 0.95f)
+            chrome.addBox(side * 0.56f, 0.62f, 3.74f, 0.09f, 0.12f, 0.12f, 0.92f, 0.34f, 0.08f)
         }
         chassis.addCylinderY(1.32f, 1.25f, 2.05f, 0.11f, 2.45f, 12, 0.14f, 0.16f, 0.18f)
 
@@ -682,12 +703,17 @@ object TruckMeshFactory {
         dash.addCylinderX(-0.18f, -0.04f, -0.34f, 0.56f, 0.010f, 8, 0.16f, 0.18f, 0.21f)
         dash.addCylinderX(0.04f, 0.18f, -0.34f, 0.56f, 0.010f, 8, 0.16f, 0.18f, 0.21f)
 
-        // GPS Infotainment bezel, tactile switch bank, dual cupholders & sculpted shifter
+        // GPS Infotainment bezel, tactile switch bank, dual air-brake valve knobs, cupholders & sculpted shifter
         dash.addBox(-0.46f, -0.34f, 0.71f, 0.28f, 0.18f, 0.04f, 0.08f, 0.09f, 0.12f)
         dash.addBox(-0.46f, -0.47f, 0.69f, 0.26f, 0.055f, 0.03f, 0.12f, 0.14f, 0.18f)
         for (swX in listOf(-0.54f, -0.50f, -0.46f, -0.42f, -0.38f)) {
             dash.addBox(swX, -0.47f, 0.672f, 0.018f, 0.028f, 0.016f, 0.76f, 0.80f, 0.86f)
         }
+        // Iconic yellow parking-brake & red trailer-supply air-brake push/pull dashboard knobs
+        dash.addCylinderZ(-0.27f, -0.365f, 0.61f, 0.65f, 0.008f, 8, 0.76f, 0.80f, 0.86f)
+        dash.addBox(-0.27f, -0.365f, 0.602f, 0.028f, 0.028f, 0.016f, 0.96f, 0.76f, 0.08f)
+        dash.addCylinderZ(-0.315f, -0.365f, 0.61f, 0.65f, 0.008f, 8, 0.76f, 0.80f, 0.86f)
+        dash.addCylinderZ(-0.315f, -0.365f, 0.594f, 0.610f, 0.016f, 8, 0.88f, 0.14f, 0.12f)
         // Center console dual chrome cupholder rings
         for (cxRing in listOf(-0.52f, -0.41f)) {
             dash.addCylinderY(cxRing, -0.66f, 0.50f, 0.038f, 0.028f, 14, 0.72f, 0.76f, 0.82f)

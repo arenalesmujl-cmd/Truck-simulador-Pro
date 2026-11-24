@@ -386,84 +386,128 @@ object TextureFactory {
         nosePaint.color = Color.argb(34, 138, 82, 62)
         canvas.drawRoundRect(RectF(cx - 2.8f * k, s * 0.448f, cx + 2.8f * k, s * 0.482f), 2.8f * k, 6f * k, nosePaint)
 
-        // Tailored short-boxed beard with feathered cheek & jawline transition (clean neck!)
+        // Tailored short-boxed beard with ultra-fine feathered cheek & jawline transition (clean neck!)
         val beardBase = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             shader = RadialGradient(
-                cx, s * 0.346f, 64f * k,
+                cx, s * 0.346f, 60f * k,
                 intArrayOf(
-                    Color.argb(132, 42, 29, 22),
-                    Color.argb(82, 50, 35, 27),
+                    Color.argb(104, 42, 29, 22),
+                    Color.argb(58, 50, 35, 27),
                     Color.argb(0, 50, 35, 27)
                 ),
-                floatArrayOf(0f, 0.54f, 1f),
+                floatArrayOf(0f, 0.50f, 1f),
                 Shader.TileMode.CLAMP
             )
         }
-        canvas.drawOval(RectF(cx - 56f * k, s * 0.258f, cx + 56f * k, s * 0.446f), beardBase)
+        canvas.drawOval(RectF(cx - 52f * k, s * 0.258f, cx + 52f * k, s * 0.446f), beardBase)
 
         val bristlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            strokeWidth = 0.95f * k
+            strokeWidth = 0.85f * k
             strokeCap = Paint.Cap.ROUND
         }
-        for (i in 0 until 3600) {
+        for (i in 0 until 4200) {
             val angle = rand() * Math.PI.toFloat() * 2f
             val rad = sqrt(rand().toDouble()).toFloat()
-            val bx = cx + cos(angle) * rad * 60f * k
-            val dxNorm = ((bx - cx) / (60f * k)).coerceIn(-1f, 1f)
+            val bx = cx + cos(angle) * rad * 57f * k
+            val dxNorm = ((bx - cx) / (57f * k)).coerceIn(-1f, 1f)
             val jawEdgeY = s * (0.260f + 0.084f * dxNorm * dxNorm)
             val by = s * 0.350f + sin(angle) * rad * 54f * k
             val edgeFade = ((by - jawEdgeY) / (s * 0.032f)).coerceIn(0f, 1f)
             if (edgeFade <= 0.05f || rand() > edgeFade * 1.15f) continue
             if (by > s * 0.392f && by < s * 0.444f && abs(bx - cx) < 22f * k) continue
-            if (by > s * 0.445f && abs(bx - cx) > 19f * k) continue
-            val alphaScale = (0.45f + 0.55f * edgeFade) * (1f - 0.35f * rad)
+            if (by > s * 0.445f && abs(bx - cx) > 18f * k) continue
+            val alphaScale = (0.42f + 0.58f * edgeFade) * (1f - 0.42f * rad)
             bristlePaint.color = when (i % 4) {
-                0 -> Color.argb((145 * alphaScale).toInt(), 24, 17, 13)
-                1 -> Color.argb((115 * alphaScale).toInt(), 62, 44, 32)
-                else -> Color.argb((130 * alphaScale).toInt(), 36, 25, 19)
+                0 -> Color.argb((132 * alphaScale).toInt(), 24, 17, 13)
+                1 -> Color.argb((105 * alphaScale).toInt(), 64, 45, 34)
+                else -> Color.argb((118 * alphaScale).toInt(), 36, 25, 19)
             }
-            val hairLen = (3.4f + rand() * 2.2f) * k
-            canvas.drawLine(bx, by, bx + (rand() - 0.5f) * 1.4f * k, by - hairLen, bristlePaint)
+            val hairLen = (2.8f + rand() * 2.0f) * k
+            canvas.drawLine(bx, by, bx + (rand() - 0.5f) * 1.3f * k, by - hairLen, bristlePaint)
         }
 
         // Contoured natural mustache hairs with clean Cupid's bow arch
         val stacheSoft = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            shader = RadialGradient(cx, s * 0.453f, 20f * k, Color.argb(118, 34, 24, 18), Color.TRANSPARENT, Shader.TileMode.CLAMP)
+            shader = RadialGradient(cx, s * 0.453f, 19f * k, Color.argb(96, 34, 24, 18), Color.TRANSPARENT, Shader.TileMode.CLAMP)
         }
-        canvas.drawOval(RectF(cx - 21f * k, s * 0.437f, cx + 21f * k, s * 0.471f), stacheSoft)
+        canvas.drawOval(RectF(cx - 20f * k, s * 0.437f, cx + 20f * k, s * 0.471f), stacheSoft)
         for (i in 0 until 290) {
-            val mx = cx + (rand() - 0.5f) * 35f * k
+            val mx = cx + (rand() - 0.5f) * 34f * k
             val my = s * (0.442f + rand() * 0.025f)
-            bristlePaint.color = Color.argb(138, 28, 19, 14)
-            canvas.drawLine(mx, my, mx + (mx - cx) * 0.08f, my - 3.8f * k, bristlePaint)
+            bristlePaint.color = Color.argb(126, 28, 19, 14)
+            canvas.drawLine(mx, my, mx + (mx - cx) * 0.08f, my - 3.4f * k, bristlePaint)
         }
 
-        // Sculpted natural masculine lips with muted warm undertone, Cupid's bow & subtle parting shade
-        val lipPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-        lipPaint.color = Color.rgb(162, 108, 96)
-        canvas.drawOval(RectF(cx - 15.0f * k, s * 0.400f, cx + 15.0f * k, s * 0.424f), lipPaint)
-        lipPaint.color = Color.rgb(138, 88, 78)
-        canvas.drawOval(RectF(cx - 16.0f * k, s * 0.419f, cx + 16.0f * k, s * 0.440f), lipPaint)
-        lipPaint.color = Color.argb(42, 250, 218, 204)
-        canvas.drawOval(RectF(cx - 7.0f * k, s * 0.405f, cx + 7.0f * k, s * 0.415f), lipPaint)
-        lipPaint.color = Color.argb(175, 68, 34, 28)
-        lipPaint.strokeWidth = 1.5f * k
-        canvas.drawLine(cx - 15.0f * k, s * 0.421f, cx + 15.0f * k, s * 0.421f, lipPaint)
+        // Sculpted natural masculine lips with feathered Cupid's-bow, volumetric lower-lip highlight & soft corners
+        val lipSoft = Paint(Paint.ANTI_ALIAS_FLAG)
+        lipSoft.shader = RadialGradient(
+            cx, s * 0.422f, 16.5f * k,
+            intArrayOf(Color.argb(115, 162, 106, 94), Color.argb(46, 178, 124, 110), Color.TRANSPARENT),
+            floatArrayOf(0f, 0.65f, 1f),
+            Shader.TileMode.CLAMP
+        )
+        canvas.drawOval(RectF(cx - 17f * k, s * 0.398f, cx + 17f * k, s * 0.445f), lipSoft)
+        lipSoft.shader = null
 
-        // Photorealistic 1024px Almond-Clipped Eyes with eyelid occlusion shadow, iris fibers & catchlights
+        val lowerLipPath = android.graphics.Path().apply {
+            moveTo(cx - 13.5f * k, s * 0.421f)
+            cubicTo(cx - 7.5f * k, s * 0.402f, cx + 7.5f * k, s * 0.402f, cx + 13.5f * k, s * 0.421f)
+            quadTo(cx, s * 0.415f, cx - 13.5f * k, s * 0.421f)
+            close()
+        }
+        lipSoft.color = Color.argb(182, 164, 108, 96)
+        canvas.drawPath(lowerLipPath, lipSoft)
+
+        val upperLipPath = android.graphics.Path().apply {
+            moveTo(cx - 14.5f * k, s * 0.421f)
+            cubicTo(cx - 8f * k, s * 0.436f, cx - 3.5f * k, s * 0.439f, cx, s * 0.433f)
+            cubicTo(cx + 3.5f * k, s * 0.439f, cx + 8f * k, s * 0.436f, cx + 14.5f * k, s * 0.421f)
+            quadTo(cx, s * 0.419f, cx - 14.5f * k, s * 0.421f)
+            close()
+        }
+        lipSoft.color = Color.argb(192, 138, 86, 76)
+        canvas.drawPath(upperLipPath, lipSoft)
+
+        lipSoft.shader = RadialGradient(
+            cx, s * 0.411f, 8.5f * k,
+            Color.argb(54, 248, 214, 198), Color.TRANSPARENT, Shader.TileMode.CLAMP
+        )
+        canvas.drawOval(RectF(cx - 8.5f * k, s * 0.404f, cx + 8.5f * k, s * 0.418f), lipSoft)
+        lipSoft.shader = null
+
+        lipSoft.style = Paint.Style.STROKE
+        lipSoft.strokeCap = Paint.Cap.ROUND
+        lipSoft.strokeWidth = 1.15f * k
+        lipSoft.color = Color.argb(145, 76, 40, 34)
+        val lipPartPath = android.graphics.Path().apply {
+            moveTo(cx - 14.2f * k, s * 0.422f)
+            quadTo(cx - 5f * k, s * 0.420f, cx, s * 0.421f)
+            quadTo(cx + 5f * k, s * 0.420f, cx + 14.2f * k, s * 0.422f)
+        }
+        canvas.drawPath(lipPartPath, lipSoft)
+        lipSoft.style = Paint.Style.FILL
+        for (side in listOf(-1f, 1f)) {
+            lipSoft.shader = RadialGradient(
+                cx + side * 14.5f * k, s * 0.421f, 4.2f * k,
+                Color.argb(74, 88, 48, 38), Color.TRANSPARENT, Shader.TileMode.CLAMP
+            )
+            drawTrueCircle(cx + side * 14.5f * k, s * 0.421f, 4.2f * k, lipSoft)
+            lipSoft.shader = null
+        }
+
+        // Photorealistic 1024px Almond-Clipped Eyes with eyelid occlusion shadow, golden-hazel iris & natural layered brows
         val p = Paint(Paint.ANTI_ALIAS_FLAG)
         for (side in listOf(-1f, 1f)) {
-            val ex = cx + side * 27.5f * k
+            val ex = cx + side * 26.8f * k
             val ey = s * 0.600f
             val eyeRx = 10.6f * k
             val eyeRy = 4.9f * k * yScale
 
-            // Deep orbital socket AO shade & subtle lower-lid warm contour
-            p.shader = RadialGradient(ex, ey, 22f * k, Color.argb(82, 108, 62, 44), Color.TRANSPARENT, Shader.TileMode.CLAMP)
+            // Deep orbital socket AO shade & subtle tear-trough warmth
+            p.shader = RadialGradient(ex, ey, 22f * k, Color.argb(88, 102, 58, 42), Color.TRANSPARENT, Shader.TileMode.CLAMP)
             canvas.drawOval(RectF(ex - 20f * k, ey - 20f * k * yScale * 0.65f, ex + 20f * k, ey + 20f * k * yScale * 0.65f), p)
             p.shader = null
 
-            // True almond eye contour path clipping sclera + iris neatly behind upper & lower eyelids
             val almondPath = android.graphics.Path().apply {
                 moveTo(ex - eyeRx, ey - 0.3f * k * yScale)
                 quadTo(ex, ey + eyeRy * 1.15f, ex + eyeRx, ey - 0.3f * k * yScale)
@@ -474,52 +518,54 @@ object TextureFactory {
             canvas.save()
             canvas.clipPath(almondPath)
 
-            // Shaded natural sclera (eliminates bright mannequin glare!) + warm inner caruncle
-            p.color = Color.rgb(206, 202, 198)
+            p.color = Color.rgb(208, 203, 198)
             canvas.drawRect(ex - eyeRx - 2f, ey - eyeRy - 2f, ex + eyeRx + 2f, ey + eyeRy + 2f, p)
-            p.color = Color.argb(105, 186, 108, 96)
+            p.color = Color.argb(112, 184, 104, 92)
             drawTrueCircle(ex - side * 8.6f * k, ey, 1.85f * k, p)
 
-            // Multi-layered hazel-steel iris + limbal ring + radial stroma + pupil
-            p.color = Color.rgb(16, 28, 40)
+            // Multi-layered steel-blue & warm amber-hazel limbal iris + radial stroma + crisp pupil
+            p.color = Color.rgb(16, 26, 38)
             drawTrueCircle(ex, ey, 4.75f * k, p)
-            p.color = Color.rgb(42, 88, 116)
+            p.color = Color.rgb(44, 86, 114)
             drawTrueCircle(ex, ey, 4.05f * k, p)
-            p.color = Color.rgb(82, 136, 164)
-            drawTrueCircle(ex, ey - 0.5f * k * yScale, 2.75f * k, p)
-            p.strokeWidth = 1.0f * k
-            for (fi in 0 until 22) {
-                val fa = (fi / 22f) * Math.PI.toFloat() * 2f
-                p.color = if (fi % 2 == 0) Color.argb(115, 148, 196, 218) else Color.argb(95, 28, 58, 82)
+            p.color = Color.rgb(92, 140, 162)
+            drawTrueCircle(ex, ey - 0.4f * k * yScale, 2.80f * k, p)
+            p.color = Color.argb(118, 162, 134, 82)
+            drawTrueCircle(ex, ey, 2.35f * k, p)
+            p.strokeWidth = 0.85f * k
+            for (fi in 0 until 28) {
+                val fa = (fi / 28f) * Math.PI.toFloat() * 2f
+                p.color = when (fi % 3) {
+                    0 -> Color.argb(122, 152, 198, 220)
+                    1 -> Color.argb(105, 194, 158, 98)
+                    else -> Color.argb(95, 28, 56, 78)
+                }
                 canvas.drawLine(
-                    ex + cos(fa) * 1.9f * k, ey + sin(fa) * 1.9f * k * yScale,
-                    ex + cos(fa) * 3.9f * k, ey + sin(fa) * 3.9f * k * yScale,
+                    ex + cos(fa) * 1.85f * k, ey + sin(fa) * 1.85f * k * yScale,
+                    ex + cos(fa) * 3.95f * k, ey + sin(fa) * 3.95f * k * yScale,
                     p
                 )
             }
             p.color = Color.rgb(6, 8, 12)
-            drawTrueCircle(ex, ey, 1.90f * k, p)
+            drawTrueCircle(ex, ey, 1.88f * k, p)
 
-            // Stronger upper-eyelid cast shadow across top of sclera & iris
             p.shader = LinearGradient(
                 ex, ey + eyeRy * 0.05f, ex, ey + eyeRy * 0.95f,
-                Color.argb(0, 34, 22, 18), Color.argb(132, 24, 15, 12), Shader.TileMode.CLAMP
+                Color.argb(0, 34, 22, 18), Color.argb(138, 24, 15, 12), Shader.TileMode.CLAMP
             )
             canvas.drawRect(ex - eyeRx, ey, ex + eyeRx, ey + eyeRy, p)
             p.shader = null
 
-            // Subtle natural corneal catchlights
-            p.color = Color.argb(232, 248, 250, 255)
-            drawTrueCircle(ex + 1.35f * k, ey + 1.05f * k * yScale, 0.86f * k, p)
-            p.color = Color.argb(128, 255, 255, 255)
-            drawTrueCircle(ex - 1.15f * k, ey - 1.10f * k * yScale, 0.44f * k, p)
+            p.color = Color.argb(236, 248, 250, 255)
+            drawTrueCircle(ex + 1.35f * k, ey + 1.05f * k * yScale, 0.84f * k, p)
+            p.color = Color.argb(132, 255, 255, 255)
+            drawTrueCircle(ex - 1.15f * k, ey - 1.10f * k * yScale, 0.42f * k, p)
 
             canvas.restore()
 
-            // Crisp upper lash rim, eyelid crease & subtle lower lid outline
             p.style = Paint.Style.STROKE
             p.strokeCap = Paint.Cap.ROUND
-            p.strokeWidth = 3.1f * k
+            p.strokeWidth = 2.9f * k
             p.color = Color.rgb(22, 15, 11)
             val upperLash = android.graphics.Path().apply {
                 moveTo(ex - eyeRx, ey - 0.2f * k * yScale)
@@ -527,16 +573,16 @@ object TextureFactory {
             }
             canvas.drawPath(upperLash, p)
 
-            p.strokeWidth = 1.4f * k
-            p.color = Color.argb(145, 96, 58, 40)
+            p.strokeWidth = 1.35f * k
+            p.color = Color.argb(150, 96, 58, 40)
             val lidCrease = android.graphics.Path().apply {
                 moveTo(ex - eyeRx * 0.96f, ey + 1.4f * k * yScale)
                 quadTo(ex, ey + eyeRy * 1.72f, ex + eyeRx * 0.96f, ey + 1.4f * k * yScale)
             }
             canvas.drawPath(lidCrease, p)
 
-            p.strokeWidth = 1.1f * k
-            p.color = Color.argb(86, 86, 52, 36)
+            p.strokeWidth = 1.05f * k
+            p.color = Color.argb(82, 86, 52, 36)
             val lowerLid = android.graphics.Path().apply {
                 moveTo(ex - eyeRx * 0.90f, ey - 0.6f * k * yScale)
                 quadTo(ex, ey - eyeRy * 1.05f, ex + eyeRx * 0.90f, ey - 0.6f * k * yScale)
@@ -544,16 +590,31 @@ object TextureFactory {
             canvas.drawPath(lowerLid, p)
             p.style = Paint.Style.FILL
 
-            // Bold masculine feathered eyebrow ridge following supraorbital arch
-            p.strokeWidth = 1.85f * k
-            for (b in 0..56) {
-                val frac = b / 56f
+            // Soft feathered eyebrow tint base + ultra-fine multi-layered curved brow hairs
+            p.shader = LinearGradient(
+                ex - side * 13.5f * k, s * 0.654f, ex + side * 14.5f * k, s * 0.654f,
+                intArrayOf(Color.argb(62, 32, 22, 16), Color.argb(122, 28, 19, 14), Color.argb(38, 32, 22, 16)),
+                floatArrayOf(0f, 0.45f, 1f),
+                Shader.TileMode.CLAMP
+            )
+            canvas.drawOval(RectF(ex - 14f * k, s * 0.646f, ex + 14f * k, s * 0.665f), p)
+            p.shader = null
+
+            p.strokeCap = Paint.Cap.ROUND
+            p.strokeWidth = 0.78f * k
+            for (b in 0..138) {
+                val frac = b / 138f
                 val bx = ex - side * 13.4f * k + side * frac * 27.6f * k
-                val arch = sin(frac * Math.PI).toFloat() * 5.6f * k
-                val taper = 0.60f + 0.45f * sin(frac * Math.PI).toFloat()
-                val by = s * 0.654f + arch
-                p.color = if (b % 3 == 0) Color.argb(205, 42, 30, 21) else Color.argb(232, 24, 16, 12)
-                canvas.drawLine(bx, by - 4.0f * k * taper, bx + side * 2.2f * k, by + 3.8f * k * taper, p)
+                val arch = sin(frac * Math.PI).toFloat() * 5.2f * k
+                val taper = 0.55f + 0.48f * sin(frac * Math.PI).toFloat()
+                val jitter = ((b * 29) % 7 - 3) * 0.45f * k
+                val by = s * 0.654f + arch + jitter
+                p.color = when (b % 3) {
+                    0 -> Color.argb(165, 52, 37, 27)
+                    1 -> Color.argb(195, 24, 17, 13)
+                    else -> Color.argb(180, 34, 24, 18)
+                }
+                canvas.drawLine(bx, by - 3.2f * k * taper, bx + side * 2.6f * k, by + 2.8f * k * taper, p)
             }
         }
 

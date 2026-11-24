@@ -426,7 +426,7 @@ class TruckGLRenderer(
             val hipTwist = (3.5f * (1f - moveBlend)) + sin(phase) * 5.8f * moveBlend
             val torsoRoll = (1.6f + sin(physics.simTimeSeconds * 1.4f) * 0.7f) * (1f - moveBlend) +
                 cos(phase) * 2.2f * moveBlend
-            val pelvisY = dy + 0.89f + hipBob
+            val pelvisY = dy + 0.868f + hipBob
             val shoulderYaw = yawDeg - hipTwist * 0.45f
 
             Matrix.setIdentityM(modelMatrix, 0)
@@ -993,7 +993,7 @@ class TruckGLRenderer(
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_SKIN_FABRIC)
 
-        val pelvisY = dy + 0.89f + hipBob
+        val pelvisY = dy + 0.868f + hipBob
         val shoulderYaw = yawDeg - hipTwist * 0.45f
 
         Matrix.setIdentityM(modelMatrix, 0)
@@ -1033,13 +1033,17 @@ class TruckGLRenderer(
         px: Float, pelvisY: Float, pz: Float,
         yawDeg: Float, forwardLean: Float,
         side: Float, upperRotX: Float, elbowFlex: Float,
-        grippingWheel: Boolean = false
+        grippingWheel: Boolean = false,
+        cabRoll: Float = 0f
     ) {
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, px, pelvisY, pz)
         Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
         Matrix.rotateM(modelMatrix, 0, forwardLean, 1f, 0f, 0f)
-        Matrix.translateM(modelMatrix, 0, side * 0.214f, 0.49f, 0f)
+        if (cabRoll != 0f) {
+            Matrix.rotateM(modelMatrix, 0, cabRoll, 0f, 0f, 1f)
+        }
+        Matrix.translateM(modelMatrix, 0, side * 0.198f, 0.49f, 0f)
         Matrix.rotateM(modelMatrix, 0, side * 7.5f, 0f, 0f, 1f)
         Matrix.rotateM(modelMatrix, 0, upperRotX, 1f, 0f, 0f)
         drawMeshWithModelMatrix(driverMeshes.upperArmMesh, 1f, 1f, 1f, 1f)
@@ -1121,9 +1125,16 @@ class TruckGLRenderer(
             Matrix.translateM(modelMatrix, 0, side * 0.11f, 0.03f, 0.04f)
             Matrix.rotateM(modelMatrix, 0, -86f, 1f, 0f, 0f)
             drawMeshWithModelMatrix(driverMeshes.thighMesh, 1f, 1f, 1f, 1f)
+
+            Matrix.translateM(modelMatrix, 0, 0f, -0.42f, 0f)
+            Matrix.rotateM(modelMatrix, 0, 74f, 1f, 0f, 0f)
+            drawMeshWithModelMatrix(driverMeshes.shinBootMesh, 1f, 1f, 1f, 1f)
         }
-        drawArticulatedArm(seatX, seatY, seatZ, yawDeg, cabPitchDeg, side = 1f, upperRotX = -46f, elbowFlex = 42f, grippingWheel = true)
-        drawArticulatedArm(seatX, seatY, seatZ, yawDeg, cabPitchDeg, side = -1f, upperRotX = -46f, elbowFlex = 42f, grippingWheel = true)
+        val steerSwing = currentInputs.steering * 11f
+        val leftElbow = (42f - currentInputs.steering * 6f).coerceIn(28f, 54f)
+        val rightElbow = (42f + currentInputs.steering * 6f).coerceIn(28f, 54f)
+        drawArticulatedArm(seatX, seatY, seatZ, yawDeg, cabPitchDeg, side = 1f, upperRotX = -46f + steerSwing, elbowFlex = leftElbow, grippingWheel = true, cabRoll = cabRollDeg)
+        drawArticulatedArm(seatX, seatY, seatZ, yawDeg, cabPitchDeg, side = -1f, upperRotX = -46f - steerSwing, elbowFlex = rightElbow, grippingWheel = true, cabRoll = cabRollDeg)
     }
 
     private fun renderInteriorCockpit(camPos: FloatArray, inputs: DrivingInputs) {
@@ -1342,7 +1353,7 @@ class TruckGLRenderer(
         Matrix.translateM(modelMatrix, 0, px, pelvisY, pz)
         Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
         Matrix.rotateM(modelMatrix, 0, forwardLean, 1f, 0f, 0f)
-        Matrix.translateM(modelMatrix, 0, side * 0.214f, 0.49f, 0f)
+        Matrix.translateM(modelMatrix, 0, side * 0.198f, 0.49f, 0f)
         Matrix.rotateM(modelMatrix, 0, side * 7.5f, 0f, 0f, 1f)
         Matrix.rotateM(modelMatrix, 0, upperRotX, 1f, 0f, 0f)
         drawShadowMesh(driverMeshes.upperArmMesh)
@@ -1360,7 +1371,7 @@ class TruckGLRenderer(
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, px, pelvisY, pz)
         Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
-        Matrix.translateM(modelMatrix, 0, side * 0.108f, 0.02f, 0f)
+        Matrix.translateM(modelMatrix, 0, side * 0.102f, 0.02f, 0f)
         Matrix.rotateM(modelMatrix, 0, side * 3f, 0f, 0f, 1f)
         Matrix.rotateM(modelMatrix, 0, hipRotX, 1f, 0f, 0f)
         drawShadowMesh(driverMeshes.thighMesh)

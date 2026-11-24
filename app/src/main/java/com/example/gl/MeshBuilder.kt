@@ -1356,11 +1356,26 @@ object WorldMeshFactory {
     fun buildStaticEnvironmentMesh(): MeshBuffer {
         val mb = DynamicMeshBuilder()
 
-        // Ridged Multifractal Alpine Peaks with snow caps & foothills
+        // Ridged Multifractal Alpine Peaks with snow caps & foothills + weathered limestone rock outcrops
         TruckWorld.mountains.forEachIndexed { idx, m ->
             val my = TruckWorld.terrainHeightAt(m.x, m.z) - 2.5f
             addFractalMountain(mb, m.x, my, m.z, m.radius * 1.15f, m.height, seedPhase = idx * 1.37f)
             addFractalMountain(mb, m.x + m.radius * 0.42f, my, m.z - m.radius * 0.25f, m.radius * 0.65f, m.height * 0.64f, seedPhase = idx * 2.11f + 0.9f)
+            for (k in 0 until 5) {
+                val angle = idx * 1.25f + k * 1.22f
+                val dist = m.radius * (0.94f + (k % 3) * 0.08f)
+                val rx = m.x + cos(angle) * dist
+                val rz = m.z + sin(angle) * dist
+                val rq = TruckWorld.queryRoad(rx, rz)
+                if (!rq.onRoad && rq.distanceToCenter > rq.roadWidth * 0.5f + 16f && !(rx > 868f && rz < -180f)) {
+                    val ry = TruckWorld.terrainHeightAt(rx, rz)
+                    val rw = 4.2f + (k % 3) * 1.9f
+                    val rh = 2.6f + (k % 2) * 1.5f
+                    val tone = 0.36f + (k % 3) * 0.04f
+                    mb.addEllipsoid(rx, ry + rh * 0.36f, rz, rw, rh, rw * 0.86f, 5, 7, tone, tone * 0.97f, tone * 0.93f)
+                    mb.addEllipsoid(rx + rw * 0.45f, ry + rh * 0.22f, rz - rw * 0.25f, rw * 0.58f, rh * 0.56f, rw * 0.54f, 4, 6, tone * 0.90f, tone * 0.88f, tone * 0.84f)
+                }
+            }
         }
 
         // Solid concrete city sidewalk plazas, lobby podiums, glass entrance canopies, structural fins & rooftop details (whiteTex)
@@ -1474,13 +1489,40 @@ object WorldMeshFactory {
                     mb.addBox(hx - 14f, zy + 1.4f, hz + 1f, 2.5f, 2.8f, 6.4f, 0.82f, 0.26f, 0.16f)
                     mb.addBox(hx - 14f, zy + 4.2f, hz + 1f, 2.5f, 2.8f, 6.4f, 0.14f, 0.46f, 0.76f)
                     mb.addBox(hx - 11f, zy + 1.4f, hz + 1f, 2.5f, 2.8f, 6.4f, 0.16f, 0.58f, 0.36f)
+                    // Stacked wooden & shrink-wrapped freight pallets + yard safety wheel-stops
+                    for (pIdx in 0..2) {
+                        val px = hx - 8.5f + pIdx * 2.2f
+                        val pz = hz - 9.2f
+                        mb.addBox(px, zy + 0.14f, pz, 1.4f, 0.22f, 1.4f, 0.58f, 0.40f, 0.22f)
+                        mb.addBox(px, zy + 0.82f, pz, 1.32f, 1.15f, 1.32f, 0.78f, 0.64f, 0.44f)
+                        if (pIdx != 1) {
+                            mb.addBox(px, zy + 1.52f, pz, 1.15f, 0.24f, 1.15f, 0.24f, 0.56f, 0.82f)
+                        }
+                    }
+                    mb.addBox(hx - 0.5f, zy + 0.14f, hz - 8.2f, 14.2f, 0.18f, 0.32f, 0.96f, 0.72f, 0.08f)
                 }
                 ZoneType.PARKING -> Unit
             }
         }
 
-        // Puerto Bahia Port Gantry Cranes & Docked Container Vessel on Coastline
+        // Puerto Bahia Port Gantry Cranes, Timber Pier Pilings, Bollards, Channel Buoys & Container Vessel
         val craneX = 876f
+        mb.addBox(866f, 0.38f, -455f, 18f, 0.85f, 108f, 0.42f, 0.36f, 0.29f)
+        for (pilingZ in -505..-405 step 10) {
+            mb.addCylinderY(857.5f, -0.8f, pilingZ.toFloat(), 0.28f, 1.65f, 8, 0.30f, 0.21f, 0.13f)
+            mb.addCylinderY(874.5f, -0.8f, pilingZ.toFloat(), 0.28f, 1.85f, 8, 0.30f, 0.21f, 0.13f)
+            if (pilingZ % 20 == 0) {
+                mb.addCylinderY(873.4f, 0.80f, pilingZ.toFloat(), 0.22f, 0.52f, 8, 0.96f, 0.68f, 0.10f)
+            }
+        }
+        for ((bx, bz, isGreen) in listOf(
+            Triple(896f, -388f, true),
+            Triple(902f, -522f, false)
+        )) {
+            mb.addCylinderY(bx, -0.55f, bz, 0.95f, 0.75f, 10, if (isGreen) 0.12f else 0.88f, if (isGreen) 0.72f else 0.18f, 0.22f)
+            mb.addCylinderY(bx, 0.20f, bz, 0.32f, 1.85f, 8, 0.90f, 0.92f, 0.95f)
+            mb.addBox(bx, 2.20f, bz, 0.36f, 0.36f, 0.36f, if (isGreen) 0.20f else 0.98f, if (isGreen) 0.95f else 0.32f, 0.20f)
+        }
         for (craneZ in listOf(-415f, -495f)) {
             mb.addCylinderY(craneX - 4f, -0.2f, craneZ - 4f, 0.55f, 24f, 8, 0.88f, 0.30f, 0.14f)
             mb.addCylinderY(craneX - 4f, -0.2f, craneZ + 4f, 0.55f, 24f, 8, 0.88f, 0.30f, 0.14f)
@@ -1495,6 +1537,18 @@ object WorldMeshFactory {
         mb.addBox(924f, 6.4f, -438f, 14f, 3.2f, 44f, 0.82f, 0.28f, 0.18f)
         mb.addBox(920f, 9.4f, -438f, 5f, 3.0f, 36f, 0.14f, 0.52f, 0.78f)
         mb.addBox(928f, 9.4f, -442f, 5f, 3.0f, 28f, 0.18f, 0.62f, 0.42f)
+
+        // Puerto Bahia Coastal Stone Jetty & Red-and-White Harbor Lighthouse Beacon
+        val lhX = 866f
+        val lhZ = -526f
+        val lhBaseY = TruckWorld.terrainHeightAt(lhX, lhZ)
+        mb.addBox(lhX, lhBaseY + 0.55f, lhZ, 12.5f, 1.4f, 12.5f, 0.44f, 0.46f, 0.49f)
+        mb.addTaperedCylinderY(lhX, lhBaseY + 1.25f, lhZ, 3.2f, 2.7f, 4.4f, 14, 0.92f, 0.94f, 0.96f)
+        mb.addTaperedCylinderY(lhX, lhBaseY + 5.65f, lhZ, 2.7f, 2.25f, 4.4f, 14, 0.84f, 0.18f, 0.16f)
+        mb.addTaperedCylinderY(lhX, lhBaseY + 10.05f, lhZ, 2.25f, 1.85f, 4.4f, 14, 0.92f, 0.94f, 0.96f)
+        mb.addTaperedCylinderY(lhX, lhBaseY + 14.45f, lhZ, 2.45f, 2.45f, 0.55f, 14, 0.22f, 0.25f, 0.30f)
+        mb.addCylinderY(lhX, lhBaseY + 15.0f, lhZ, 1.65f, 2.1f, 12, 0.26f, 0.58f, 0.82f)
+        mb.addCone(lhX, lhBaseY + 17.1f, lhZ, 2.15f, 2.2f, 14, 0.84f, 0.18f, 0.16f)
 
         // Organic 5-tier evergreen pine boughs & clustered deciduous crowns with botanical hue variation
         TruckWorld.trees.forEachIndexed { idx, t ->
@@ -1640,6 +1694,9 @@ object WorldMeshFactory {
             val y2 = TruckWorld.terrainHeightAt(11.5f, d.toFloat())
             mb.addBox(11.5f, y2 + 7.0f, d.toFloat() - 1.4f, 0.45f, 0.18f, 0.65f, 1.0f, 0.90f, 0.65f)
         }
+        // Puerto Bahia Lighthouse warm amber Fresnel lantern housing at night
+        val lhBaseY = TruckWorld.terrainHeightAt(866f, -526f)
+        mb.addBox(866f, lhBaseY + 16.05f, -526f, 2.1f, 1.45f, 2.1f, 1.0f, 0.84f, 0.36f)
         return mb.build()
     }
 

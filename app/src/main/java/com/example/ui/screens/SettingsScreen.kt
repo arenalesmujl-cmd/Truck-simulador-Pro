@@ -1,8 +1,14 @@
 package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -139,11 +146,20 @@ fun SettingsScreen(
                 }
             }
 
+            val saveInteraction = remember { MutableInteractionSource() }
+            val savePressed by saveInteraction.collectIsPressedAsState()
+            val saveScale by animateFloatAsState(
+                targetValue = if (savePressed) 0.96f else 1f,
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                label = "save_btn_scale"
+            )
             Button(
                 onClick = { onSaveSettings(driverName, graphics, gearbox, steering, sound) },
+                interactionSource = saveInteraction,
                 colors = ButtonDefaults.buttonColors(containerColor = EmeraldGo),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
+                    .graphicsLayer(scaleX = saveScale, scaleY = saveScale)
                     .height(48.dp)
                     .minimumInteractiveComponentSize()
                     .testTag("save_settings_button")
@@ -199,7 +215,10 @@ fun SettingsScreen(
                     )
 
                     Text("CALIDAD GRÁFICA 3D (OPTIMIZACIÓN)", style = MaterialTheme.typography.labelSmall, color = SkyCyan)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         GraphicsQuality.entries.forEach { q ->
                             FilterChip(
                                 selected = graphics == q,
@@ -212,7 +231,10 @@ fun SettingsScreen(
                     }
 
                     Text("CAJA DE CAMBIOS", style = MaterialTheme.typography.labelSmall, color = SkyCyan)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         GearboxMode.entries.forEach { g ->
                             FilterChip(
                                 selected = gearbox == g,
@@ -225,7 +247,10 @@ fun SettingsScreen(
                     }
 
                     Text("TIPO DE DIRECCIÓN", style = MaterialTheme.typography.labelSmall, color = SkyCyan)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         SteeringMode.entries.forEach { s ->
                             FilterChip(
                                 selected = steering == s,
@@ -284,7 +309,10 @@ fun SettingsScreen(
                     }
 
                     Text("CLIMA Y CICLO DÍA/NOCHE", style = MaterialTheme.typography.labelSmall, color = SkyCyan)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         FilterChip(
                             selected = dynamicWeather,
                             onClick = { onSetWeather(WeatherType.CLEAR, true) },
@@ -303,7 +331,10 @@ fun SettingsScreen(
                         }
                     }
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         FilterChip(
                             selected = selectedDynamicTime,
                             onClick = {
@@ -346,11 +377,20 @@ fun SettingsScreen(
                     }
 
                     Spacer(Modifier.weight(1f))
+                    val signOutInteraction = remember { MutableInteractionSource() }
+                    val signOutPressed by signOutInteraction.collectIsPressedAsState()
+                    val signOutScale by animateFloatAsState(
+                        targetValue = if (signOutPressed) 0.97f else 1f,
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        label = "signout_btn_scale"
+                    )
                     OutlinedButton(
                         onClick = onSignOut,
+                        interactionSource = signOutInteraction,
                         border = BorderStroke(1.dp, CrimsonAlert),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier
+                            .graphicsLayer(scaleX = signOutScale, scaleY = signOutScale)
                             .fillMaxWidth()
                             .height(48.dp)
                             .minimumInteractiveComponentSize()

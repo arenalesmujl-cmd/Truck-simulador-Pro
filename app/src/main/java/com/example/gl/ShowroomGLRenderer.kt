@@ -160,7 +160,7 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
         val driverZ = 2.62f
         val driverYaw = 20f
         val breathBob = sin(idleTime * 2.0f) * 0.0055f
-        val pelvisY = 0.89f + breathBob
+        val pelvisY = 0.868f + breathBob
         val axles = when (style) {
             TruckStyle.EURO_CABOVER -> listOf(2.40f, -1.20f, -2.50f)
             TruckStyle.ARCTIC_EXPEDITION -> listOf(2.55f, 1.35f, -1.25f, -2.55f)
@@ -321,19 +321,21 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
             GLES30.glDepthMask(true)
             GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_SKIN_FABRIC)
 
+            val armBreath = sin(idleTime * 2.0f) * 1.4f
+            val elbowBreath = cos(idleTime * 2.0f) * 1.6f
             bindTexture(textures.driverClothTex)
             for (side in listOf(-1f, 1f)) {
                 Matrix.setIdentityM(modelMatrix, 0)
                 Matrix.translateM(modelMatrix, 0, driverX, pelvisY, driverZ)
                 Matrix.rotateM(modelMatrix, 0, driverYaw, 0f, 1f, 0f)
                 Matrix.rotateM(modelMatrix, 0, torsoRoll, 0f, 0f, 1f)
-                Matrix.translateM(modelMatrix, 0, side * 0.214f, 0.49f, 0f)
+                Matrix.translateM(modelMatrix, 0, side * 0.198f, 0.49f, 0f)
                 Matrix.rotateM(modelMatrix, 0, side * 9.0f, 0f, 0f, 1f)
-                Matrix.rotateM(modelMatrix, 0, if (side > 0) -8f else 5f, 1f, 0f, 0f)
+                Matrix.rotateM(modelMatrix, 0, (if (side > 0) -8f else 5f) + side * armBreath, 1f, 0f, 0f)
                 drawMesh(driverMeshes.upperArmMesh, 1f, 1f, 1f, 1f)
 
                 Matrix.translateM(modelMatrix, 0, 0f, -0.29f, 0f)
-                Matrix.rotateM(modelMatrix, 0, if (side > 0) -28f else -14f, 1f, 0f, 0f)
+                Matrix.rotateM(modelMatrix, 0, (if (side > 0) -28f else -14f) + elbowBreath, 1f, 0f, 0f)
                 val forearmMesh = if (side > 0) driverMeshes.leftForearmHandMesh else driverMeshes.rightForearmHandMesh
                 drawMesh(forearmMesh, 1f, 1f, 1f, 1f)
             }
@@ -406,18 +408,20 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
             drawShadowMesh(driverMeshes.headAccMesh)
             drawShadowMesh(driverMeshes.headGlassesFrameMesh)
 
+            val armBreath = sin(idleTime * 2.0f) * 1.4f
+            val elbowBreath = cos(idleTime * 2.0f) * 1.6f
             for (side in listOf(-1f, 1f)) {
                 Matrix.setIdentityM(modelMatrix, 0)
                 Matrix.translateM(modelMatrix, 0, driverX, pelvisY, driverZ)
                 Matrix.rotateM(modelMatrix, 0, driverYaw, 0f, 1f, 0f)
                 Matrix.rotateM(modelMatrix, 0, torsoRoll, 0f, 0f, 1f)
-                Matrix.translateM(modelMatrix, 0, side * 0.214f, 0.49f, 0f)
+                Matrix.translateM(modelMatrix, 0, side * 0.198f, 0.49f, 0f)
                 Matrix.rotateM(modelMatrix, 0, side * 9.0f, 0f, 0f, 1f)
-                Matrix.rotateM(modelMatrix, 0, if (side > 0) -8f else 5f, 1f, 0f, 0f)
+                Matrix.rotateM(modelMatrix, 0, (if (side > 0) -8f else 5f) + side * armBreath, 1f, 0f, 0f)
                 drawShadowMesh(driverMeshes.upperArmMesh)
 
                 Matrix.translateM(modelMatrix, 0, 0f, -0.29f, 0f)
-                Matrix.rotateM(modelMatrix, 0, if (side > 0) -28f else -14f, 1f, 0f, 0f)
+                Matrix.rotateM(modelMatrix, 0, (if (side > 0) -28f else -14f) + elbowBreath, 1f, 0f, 0f)
                 val forearmMesh = if (side > 0) driverMeshes.leftForearmHandMesh else driverMeshes.rightForearmHandMesh
                 drawShadowMesh(forearmMesh)
             }

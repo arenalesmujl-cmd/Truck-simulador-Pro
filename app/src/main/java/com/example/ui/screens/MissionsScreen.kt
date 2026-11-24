@@ -1,8 +1,13 @@
 package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,10 +42,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -119,11 +127,20 @@ fun MissionsScreen(
                 }
             }
             if (activeMission != null) {
+                val cancelInteraction = remember { MutableInteractionSource() }
+                val cancelPressed by cancelInteraction.collectIsPressedAsState()
+                val cancelScale by animateFloatAsState(
+                    targetValue = if (cancelPressed) 0.96f else 1f,
+                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                    label = "cancel_btn_scale"
+                )
                 Button(
                     onClick = onCancelMission,
+                    interactionSource = cancelInteraction,
                     colors = ButtonDefaults.buttonColors(containerColor = SimSurfaceElevated),
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier
+                        .graphicsLayer(scaleX = cancelScale, scaleY = cancelScale)
                         .height(48.dp)
                         .minimumInteractiveComponentSize()
                         .testTag("cancel_mission_button")
@@ -149,7 +166,15 @@ fun MissionsScreen(
                 items(MissionCatalog.all, key = { it.id }) { mission ->
                     val routeUnlocked = profile.unlockedRouteIds.contains(mission.routeId)
                     val isCurrent = activeMission?.id == mission.id
+                    val btnInteraction = remember(mission.id) { MutableInteractionSource() }
+                    val btnPressed by btnInteraction.collectIsPressedAsState()
+                    val cardScale by animateFloatAsState(
+                        targetValue = if (btnPressed) 0.985f else 1f,
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        label = "mission_card_scale"
+                    )
                     Card(
+                        modifier = Modifier.graphicsLayer(scaleX = cardScale, scaleY = cardScale),
                         colors = CardDefaults.cardColors(containerColor = SimSurface),
                         border = BorderStroke(
                             width = if (isCurrent) 1.5.dp else 1.dp,
@@ -220,6 +245,7 @@ fun MissionsScreen(
                             Button(
                                 onClick = { onAcceptMission(mission) },
                                 enabled = routeUnlocked,
+                                interactionSource = btnInteraction,
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = if (isCurrent) EmeraldGo else RacingOrange,
                                     disabledContainerColor = SimSurfaceElevated

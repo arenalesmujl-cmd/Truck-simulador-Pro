@@ -1,10 +1,16 @@
 package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,6 +56,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -247,10 +254,24 @@ fun TruckSelectScreen(
                     val isFocused = focusedTruckId == truck.id
                     val canAfford = profile.money >= truck.price
 
+                    val cardInteraction = remember { MutableInteractionSource() }
+                    val cardPressed by cardInteraction.collectIsPressedAsState()
+                    val cardScale by animateFloatAsState(
+                        targetValue = if (cardPressed) 0.98f else 1f,
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        label = "truckCardScale"
+                    )
+
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { focusedTruckId = truck.id },
+                            .minimumInteractiveComponentSize()
+                            .graphicsLayer(scaleX = cardScale, scaleY = cardScale)
+                            .clip(RoundedCornerShape(14.dp))
+                            .clickable(
+                                interactionSource = cardInteraction,
+                                indication = LocalIndication.current
+                            ) { focusedTruckId = truck.id },
                         colors = CardDefaults.cardColors(
                             containerColor = if (isFocused) SimSurfaceElevated else SimSurface
                         ),

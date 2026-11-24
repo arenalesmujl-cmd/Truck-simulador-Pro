@@ -1,10 +1,16 @@
 package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,11 +48,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -218,14 +227,29 @@ fun GarageScreen(
                                     green = (baseColor.green * 0.68f + 0.32f).coerceIn(0f, 1f),
                                     blue = (baseColor.blue * 0.68f + 0.32f).coerceIn(0f, 1f)
                                 )
+                                val swatchInteraction = remember { MutableInteractionSource() }
+                                val swatchPressed by swatchInteraction.collectIsPressedAsState()
+                                val swatchScale by animateFloatAsState(
+                                    targetValue = when {
+                                        swatchPressed -> 0.90f
+                                        selected -> 1.06f
+                                        else -> 1f
+                                    },
+                                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                                    label = "paintSwatchScale"
+                                )
                                 Box(
                                     contentAlignment = Alignment.Center,
                                     modifier = Modifier
                                         .size(48.dp)
+                                        .graphicsLayer(scaleX = swatchScale, scaleY = swatchScale)
                                         .clip(CircleShape)
                                         .minimumInteractiveComponentSize()
                                         .testTag("paint_${paint.hex}")
-                                        .clickable { onSelectPaint(paint.hex) }
+                                        .clickable(
+                                            interactionSource = swatchInteraction,
+                                            indication = LocalIndication.current
+                                        ) { onSelectPaint(paint.hex) }
                                 ) {
                                     Box(
                                         contentAlignment = Alignment.Center,
