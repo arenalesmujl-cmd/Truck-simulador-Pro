@@ -96,15 +96,21 @@ fun GarageScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(
-                    onClick = onBack,
-                    modifier = Modifier
-                        .minimumInteractiveComponentSize()
-                        .testTag("garage_back_button")
+                Surface(
+                    color = SimSurfaceGlass,
+                    border = BorderStroke(1.dp, SimOutline),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = TextPrimary)
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .minimumInteractiveComponentSize()
+                            .testTag("garage_back_button")
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = TextPrimary)
+                    }
                 }
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(12.dp))
                 Column {
                     Text(
                         text = "TALLER Y PERSONALIZACIÓN 3D",
@@ -144,9 +150,15 @@ fun GarageScreen(
                     .weight(0.95f)
                     .fillMaxHeight(),
                 colors = CardDefaults.cardColors(containerColor = SimSurface),
-                border = BorderStroke(1.dp, RacingOrange.copy(alpha = 0.35f)),
+                border = BorderStroke(1.dp, RacingOrange.copy(alpha = 0.38f)),
                 shape = RoundedCornerShape(16.dp)
             ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .background(Brush.horizontalGradient(listOf(RacingOrange, SkyCyan)))
+                )
                 Column(
                     modifier = Modifier
                         .fillMaxSize()

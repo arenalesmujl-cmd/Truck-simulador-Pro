@@ -5,6 +5,7 @@ import android.opengl.GLES30
 import android.opengl.GLSurfaceView
 import android.opengl.Matrix
 import com.example.model.TruckStyle
+import java.nio.ByteBuffer
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import kotlin.math.cos
@@ -23,6 +24,7 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
     private var autoSpinRad = 0.56f
     private var idleTime = 0f
 
+    private lateinit var shadowShader: ShadowDepthShaderProgram
     private lateinit var worldShader: WorldShaderProgram
     private lateinit var textures: WorldTextureSet
     private lateinit var unitCube: MeshBuffer
@@ -33,17 +35,28 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
     private lateinit var truckMeshes: Map<TruckStyle, TruckMeshSet>
     private lateinit var driverMeshes: DriverMeshSet
 
+    // Real-time directional shadow map FBO (1024x1024 depth texture)
+    private var shadowFbo = 0
+    private var shadowDepthTex = 0
+    private val shadowSize = 1024
+
     private val projMatrix = FloatArray(16)
     private val viewMatrix = FloatArray(16)
     private val vpMatrix = FloatArray(16)
     private val modelMatrix = FloatArray(16)
     private val mvpMatrix = FloatArray(16)
 
+    private val lightProjMatrix = FloatArray(16)
+    private val lightViewMatrix = FloatArray(16)
+    private val lightVpMatrix = FloatArray(16)
+    private val lightMvpMatrix = FloatArray(16)
+
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         GLES30.glEnable(GLES30.GL_DEPTH_TEST)
         GLES30.glEnable(GLES30.GL_BLEND)
         GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA, GLES30.GL_ONE_MINUS_SRC_ALPHA)
 
+        shadowShader = ShadowDepthShaderProgram()
         worldShader = WorldShaderProgram()
         textures = TextureFactory.createAll()
         unitCube = WorldMeshFactory.buildUnitCube()
@@ -65,6 +78,7 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
 
         truckMeshes = TruckStyle.entries.associateWith { TruckMeshFactory.buildTruckMesh(it) }
         driverMeshes = CharacterMeshFactory.buildDriverMeshes()
+        initShadowFbo()
         lastFrameNs = System.nanoTime()
     }
 
@@ -81,6 +95,25 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
         idleTime += dt
         autoSpinRad += dt * 0.18f
 
+        val style = truckStyle
+        val meshSet = truckMeshes[style] ?: return
+        val driverX = 2.04f
+        val driverZ = 2.52f
+        val driverYaw = 30f
+        val breathBob = sin(idleTime * 2.0f) * 0.006f
+        val pelvisY = 0.89f + breathBob
+        val axles = when (style) {
+            TruckStyle.EURO_CABOVER -> listOf(2.40f, -1.20f, -2.50f)
+            TruckStyle.ARCTIC_EXPEDITION -> listOf(2.55f, 1.35f, -1.25f, -2.55f)
+            else -> listOf(2.50f, -1.25f, -2.55f)
+        }
+
+        // 1. Directional Shadow Depth Pass
+        renderShadowPass(meshSet, style, axles, driverX, pelvisY, driverZ, driverYaw)
+
+        // 2. Main Beauty Pass
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
+        GLES30.glViewport(0, 0, surfaceWidth, surfaceHeight)
         GLES30.glClearColor(0.035f, 0.052f, 0.088f, 1f)
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT or GLES30.GL_DEPTH_BUFFER_BIT)
 
@@ -96,6 +129,13 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
         Matrix.multiplyMM(vpMatrix, 0, projMatrix, 0, viewMatrix, 0)
 
         worldShader.use()
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE1)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, shadowDepthTex)
+        GLES30.glUniform1i(worldShader.uShadowMapLoc, 1)
+        GLES30.glUniformMatrix4fv(worldShader.uLightVpLoc, 1, false, lightVpMatrix, 0)
+        GLES30.glUniform1f(worldShader.uShadowEnabledLoc, 1f)
+        GLES30.glUniform1f(worldShader.uStarIntensityLoc, 0f)
+
         bindTexture(textures.whiteTex)
         GLES30.glUniform1f(worldShader.uTimeLoc, idleTime)
         GLES30.glUniform3f(worldShader.uLightDirLoc, 0.60f, 0.85f, 0.58f)
@@ -117,28 +157,24 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
         drawMesh(pedestalTrimMesh, 1f, 1f, 1f, 1f)
 
-        // Soft studio ambient ground shadows
-        val driverX = 2.04f
-        val driverZ = 2.52f
+        // Soft studio ambient ground shadows beneath tires and boots
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, textures.softShadowTex)
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 3f)
         GLES30.glDepthMask(false)
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, 0f, 0.02f, 0f)
         Matrix.scaleM(modelMatrix, 0, 4.4f, 1f, 9.2f)
-        drawMesh(groundQuad, 1f, 1f, 1f, 0.92f)
+        drawMesh(groundQuad, 1f, 1f, 1f, 0.86f)
         if (showDriver) {
             Matrix.setIdentityM(modelMatrix, 0)
             Matrix.translateM(modelMatrix, 0, driverX, 0.025f, driverZ)
-            Matrix.scaleM(modelMatrix, 0, 1.05f, 1f, 1.05f)
-            drawMesh(groundQuad, 1f, 1f, 1f, 0.88f)
+            Matrix.scaleM(modelMatrix, 0, 0.96f, 1f, 0.96f)
+            drawMesh(groundQuad, 1f, 1f, 1f, 0.84f)
         }
         GLES30.glDepthMask(true)
 
         // Selected 3D Truck
         bindTexture(textures.whiteTex)
-        val style = truckStyle
-        val meshSet = truckMeshes[style] ?: return
         val (pr, pg, pb) = parseHexRgb(paintHex)
 
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
@@ -155,13 +191,8 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_GLASS)
         drawMesh(meshSet.glassMesh, 1f, 1f, 1f, 1f)
 
-        // Steered hero wheels
+        // Steered hero forged-aluminum wheels
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_CHROME)
-        val axles = when (style) {
-            TruckStyle.EURO_CABOVER -> listOf(2.40f, -1.20f, -2.50f)
-            TruckStyle.ARCTIC_EXPEDITION -> listOf(2.55f, 1.35f, -1.25f, -2.55f)
-            else -> listOf(2.50f, -1.25f, -2.55f)
-        }
         axles.forEachIndexed { idx, fz ->
             val st = if (idx == 0 || (style == TruckStyle.ARCTIC_EXPEDITION && idx == 1)) -14f else 0f
             for (sx in listOf(-1.18f, 1.18f)) {
@@ -191,13 +222,10 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
             drawBox(lx, roofY, roofZ, 0.12f, 0.07f, 0.08f, 1.0f, 0.62f, 0.06f)
         }
 
-        // Articulated UV-Textured 3D Realistic Human Driver standing in hero stance
+        // Articulated UV-Textured 3D Realistic Human Driver standing in grounded hero stance
         if (showDriver) {
             GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
             GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_SKIN_FABRIC)
-            val driverYaw = 30f
-            val breathBob = sin(idleTime * 2.0f) * 0.006f
-            val pelvisY = 0.89f + breathBob
 
             bindTexture(textures.driverClothTex)
             Matrix.setIdentityM(modelMatrix, 0)
@@ -207,7 +235,7 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
 
             // UV-textured sculpted head + ears/hair/cap accessories
             Matrix.translateM(modelMatrix, 0, 0f, 0.58f, 0f)
-            Matrix.rotateM(modelMatrix, 0, sin(idleTime * 1.1f) * 6f, 0f, 1f, 0f)
+            Matrix.rotateM(modelMatrix, 0, sin(idleTime * 1.1f) * 5.5f, 0f, 1f, 0f)
             bindTexture(textures.driverFaceTex)
             drawMesh(driverMeshes.headFaceMesh, 1f, 1f, 1f, 1f)
             bindTexture(textures.whiteTex)
@@ -219,12 +247,12 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
                 Matrix.translateM(modelMatrix, 0, driverX, pelvisY, driverZ)
                 Matrix.rotateM(modelMatrix, 0, driverYaw, 0f, 1f, 0f)
                 Matrix.translateM(modelMatrix, 0, side * 0.235f, 0.49f, 0f)
-                Matrix.rotateM(modelMatrix, 0, side * 7f, 0f, 0f, 1f)
-                Matrix.rotateM(modelMatrix, 0, if (side > 0) -6f else 4f, 1f, 0f, 0f)
+                Matrix.rotateM(modelMatrix, 0, side * 8.5f, 0f, 0f, 1f)
+                Matrix.rotateM(modelMatrix, 0, if (side > 0) -6f else 5f, 1f, 0f, 0f)
                 drawMesh(driverMeshes.upperArmMesh, 1f, 1f, 1f, 1f)
 
                 Matrix.translateM(modelMatrix, 0, 0f, -0.29f, 0f)
-                Matrix.rotateM(modelMatrix, 0, if (side > 0) -22f else -14f, 1f, 0f, 0f)
+                Matrix.rotateM(modelMatrix, 0, if (side > 0) -24f else -15f, 1f, 0f, 0f)
                 val forearmMesh = if (side > 0) driverMeshes.leftForearmHandMesh else driverMeshes.rightForearmHandMesh
                 drawMesh(forearmMesh, 1f, 1f, 1f, 1f)
             }
@@ -233,16 +261,129 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
                 Matrix.setIdentityM(modelMatrix, 0)
                 Matrix.translateM(modelMatrix, 0, driverX, pelvisY, driverZ)
                 Matrix.rotateM(modelMatrix, 0, driverYaw, 0f, 1f, 0f)
-                Matrix.translateM(modelMatrix, 0, side * 0.105f, 0.02f, 0f)
-                Matrix.rotateM(modelMatrix, 0, side * 3.0f, 0f, 0f, 1f)
-                Matrix.rotateM(modelMatrix, 0, side * 5.0f, 1f, 0f, 0f)
+                Matrix.translateM(modelMatrix, 0, side * 0.112f, 0.02f, 0f)
+                Matrix.rotateM(modelMatrix, 0, side * 4.5f, 0f, 0f, 1f)
+                Matrix.rotateM(modelMatrix, 0, side * 3.5f, 1f, 0f, 0f)
                 drawMesh(driverMeshes.thighMesh, 1f, 1f, 1f, 1f)
 
                 Matrix.translateM(modelMatrix, 0, 0f, -0.42f, 0f)
-                Matrix.rotateM(modelMatrix, 0, if (side > 0) 6f else 0f, 1f, 0f, 0f)
+                Matrix.rotateM(modelMatrix, 0, if (side > 0) 4f else -2f, 1f, 0f, 0f)
                 drawMesh(driverMeshes.shinBootMesh, 1f, 1f, 1f, 1f)
             }
         }
+    }
+
+    private fun renderShadowPass(
+        meshSet: TruckMeshSet,
+        style: TruckStyle,
+        axles: List<Float>,
+        driverX: Float,
+        pelvisY: Float,
+        driverZ: Float,
+        driverYaw: Float
+    ) {
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, shadowFbo)
+        GLES30.glViewport(0, 0, shadowSize, shadowSize)
+        GLES30.glClear(GLES30.GL_DEPTH_BUFFER_BIT)
+        GLES30.glEnable(GLES30.GL_POLYGON_OFFSET_FILL)
+        GLES30.glPolygonOffset(1.8f, 3.0f)
+
+        Matrix.orthoM(lightProjMatrix, 0, -9.5f, 9.5f, -9.5f, 9.5f, 1f, 36f)
+        Matrix.setLookAtM(lightViewMatrix, 0, 9.6f, 14.6f, 9.8f, 0f, 1.0f, 0.5f, 0f, 1f, 0f)
+        Matrix.multiplyMM(lightVpMatrix, 0, lightProjMatrix, 0, lightViewMatrix, 0)
+
+        shadowShader.use()
+
+        Matrix.setIdentityM(modelMatrix, 0)
+        drawShadowMesh(meshSet.chassisMesh)
+        drawShadowMesh(meshSet.cabPaintMesh)
+        drawShadowMesh(meshSet.chromeMesh)
+
+        axles.forEachIndexed { idx, fz ->
+            val st = if (idx == 0 || (style == TruckStyle.ARCTIC_EXPEDITION && idx == 1)) -14f else 0f
+            for (sx in listOf(-1.18f, 1.18f)) {
+                Matrix.setIdentityM(modelMatrix, 0)
+                Matrix.translateM(modelMatrix, 0, sx, 0.53f, fz)
+                Matrix.rotateM(modelMatrix, 0, st, 0f, 1f, 0f)
+                drawShadowMesh(unitWheel)
+            }
+        }
+
+        if (showDriver) {
+            Matrix.setIdentityM(modelMatrix, 0)
+            Matrix.translateM(modelMatrix, 0, driverX, pelvisY, driverZ)
+            Matrix.rotateM(modelMatrix, 0, driverYaw, 0f, 1f, 0f)
+            drawShadowMesh(driverMeshes.torsoMesh)
+
+            Matrix.translateM(modelMatrix, 0, 0f, 0.58f, 0f)
+            Matrix.rotateM(modelMatrix, 0, sin(idleTime * 1.1f) * 5.5f, 0f, 1f, 0f)
+            drawShadowMesh(driverMeshes.headFaceMesh)
+            drawShadowMesh(driverMeshes.headAccMesh)
+
+            for (side in listOf(-1f, 1f)) {
+                Matrix.setIdentityM(modelMatrix, 0)
+                Matrix.translateM(modelMatrix, 0, driverX, pelvisY, driverZ)
+                Matrix.rotateM(modelMatrix, 0, driverYaw, 0f, 1f, 0f)
+                Matrix.translateM(modelMatrix, 0, side * 0.235f, 0.49f, 0f)
+                Matrix.rotateM(modelMatrix, 0, side * 8.5f, 0f, 0f, 1f)
+                Matrix.rotateM(modelMatrix, 0, if (side > 0) -6f else 5f, 1f, 0f, 0f)
+                drawShadowMesh(driverMeshes.upperArmMesh)
+
+                Matrix.translateM(modelMatrix, 0, 0f, -0.29f, 0f)
+                Matrix.rotateM(modelMatrix, 0, if (side > 0) -24f else -15f, 1f, 0f, 0f)
+                val forearmMesh = if (side > 0) driverMeshes.leftForearmHandMesh else driverMeshes.rightForearmHandMesh
+                drawShadowMesh(forearmMesh)
+            }
+
+            for (side in listOf(-1f, 1f)) {
+                Matrix.setIdentityM(modelMatrix, 0)
+                Matrix.translateM(modelMatrix, 0, driverX, pelvisY, driverZ)
+                Matrix.rotateM(modelMatrix, 0, driverYaw, 0f, 1f, 0f)
+                Matrix.translateM(modelMatrix, 0, side * 0.112f, 0.02f, 0f)
+                Matrix.rotateM(modelMatrix, 0, side * 4.5f, 0f, 0f, 1f)
+                Matrix.rotateM(modelMatrix, 0, side * 3.5f, 1f, 0f, 0f)
+                drawShadowMesh(driverMeshes.thighMesh)
+
+                Matrix.translateM(modelMatrix, 0, 0f, -0.42f, 0f)
+                Matrix.rotateM(modelMatrix, 0, if (side > 0) 4f else -2f, 1f, 0f, 0f)
+                drawShadowMesh(driverMeshes.shinBootMesh)
+            }
+        }
+
+        GLES30.glDisable(GLES30.GL_POLYGON_OFFSET_FILL)
+    }
+
+    private fun drawShadowMesh(mesh: MeshBuffer) {
+        Matrix.multiplyMM(lightMvpMatrix, 0, lightVpMatrix, 0, modelMatrix, 0)
+        GLES30.glUniformMatrix4fv(shadowShader.uLightMvpLoc, 1, false, lightMvpMatrix, 0)
+        mesh.draw()
+    }
+
+    private fun initShadowFbo() {
+        val fbos = IntArray(1)
+        val texs = IntArray(1)
+        GLES30.glGenFramebuffers(1, fbos, 0)
+        GLES30.glGenTextures(1, texs, 0)
+
+        shadowFbo = fbos[0]
+        shadowDepthTex = texs[0]
+
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, shadowDepthTex)
+        GLES30.glTexImage2D(
+            GLES30.GL_TEXTURE_2D, 0, GLES30.GL_DEPTH_COMPONENT24,
+            shadowSize, shadowSize, 0,
+            GLES30.GL_DEPTH_COMPONENT, GLES30.GL_UNSIGNED_INT, null as ByteBuffer?
+        )
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_NEAREST)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_NEAREST)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_S, GLES30.GL_CLAMP_TO_EDGE)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_T, GLES30.GL_CLAMP_TO_EDGE)
+
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, shadowFbo)
+        GLES30.glFramebufferTexture2D(GLES30.GL_FRAMEBUFFER, GLES30.GL_DEPTH_ATTACHMENT, GLES30.GL_TEXTURE_2D, shadowDepthTex, 0)
+        GLES30.glDrawBuffers(1, intArrayOf(GLES30.GL_NONE), 0)
+        GLES30.glReadBuffer(GLES30.GL_NONE)
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
     }
 
     private fun bindTexture(texId: Int) {

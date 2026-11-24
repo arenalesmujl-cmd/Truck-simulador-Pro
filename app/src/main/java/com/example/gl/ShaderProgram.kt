@@ -3,11 +3,43 @@ package com.example.gl
 import android.opengl.GLES30
 import android.util.Log
 
+class ShadowDepthShaderProgram {
+    val programId: Int
+    val uLightMvpLoc: Int
+
+    init {
+        programId = linkProgram(VERTEX_SHADER, FRAGMENT_SHADER)
+        uLightMvpLoc = GLES30.glGetUniformLocation(programId, "uLightMVP")
+    }
+
+    fun use() {
+        GLES30.glUseProgram(programId)
+    }
+
+    companion object {
+        private const val VERTEX_SHADER = """#version 300 es
+            precision highp float;
+            layout(location = 0) in vec3 aPos;
+            uniform mat4 uLightMVP;
+            void main() {
+                gl_Position = uLightMVP * vec4(aPos, 1.0);
+            }
+        """
+
+        private const val FRAGMENT_SHADER = """#version 300 es
+            precision highp float;
+            void main() {
+            }
+        """
+    }
+}
+
 class WorldShaderProgram {
     val programId: Int
 
     val uMvpLoc: Int
     val uModelLoc: Int
+    val uLightVpLoc: Int
     val uLightDirLoc: Int
     val uLightColorLoc: Int
     val uAmbientColorLoc: Int
@@ -22,12 +54,16 @@ class WorldShaderProgram {
     val uColorTintLoc: Int
     val uMaterialModeLoc: Int
     val uTextureLoc: Int
+    val uShadowMapLoc: Int
+    val uShadowEnabledLoc: Int
     val uTimeLoc: Int
+    val uStarIntensityLoc: Int
 
     init {
         programId = linkProgram(VERTEX_SHADER, FRAGMENT_SHADER)
         uMvpLoc = GLES30.glGetUniformLocation(programId, "uMVP")
         uModelLoc = GLES30.glGetUniformLocation(programId, "uModel")
+        uLightVpLoc = GLES30.glGetUniformLocation(programId, "uLightVP")
         uLightDirLoc = GLES30.glGetUniformLocation(programId, "uLightDir")
         uLightColorLoc = GLES30.glGetUniformLocation(programId, "uLightColor")
         uAmbientColorLoc = GLES30.glGetUniformLocation(programId, "uAmbientColor")
@@ -42,7 +78,10 @@ class WorldShaderProgram {
         uColorTintLoc = GLES30.glGetUniformLocation(programId, "uColorTint")
         uMaterialModeLoc = GLES30.glGetUniformLocation(programId, "uMaterialMode")
         uTextureLoc = GLES30.glGetUniformLocation(programId, "uTexture")
+        uShadowMapLoc = GLES30.glGetUniformLocation(programId, "uShadowMap")
+        uShadowEnabledLoc = GLES30.glGetUniformLocation(programId, "uShadowEnabled")
         uTimeLoc = GLES30.glGetUniformLocation(programId, "uTime")
+        uStarIntensityLoc = GLES30.glGetUniformLocation(programId, "uStarIntensity")
     }
 
     fun use() {
@@ -58,6 +97,7 @@ class WorldShaderProgram {
         const val MAT_SKIN_FABRIC = 5f
 
         private const val VERTEX_SHADER = """#version 300 es
+            precision highp float;
             layout(location = 0) in vec3 aPos;
             layout(location = 1) in vec3 aNormal;
             layout(location = 2) in vec2 aUv;
@@ -65,11 +105,13 @@ class WorldShaderProgram {
 
             uniform mat4 uMVP;
             uniform mat4 uModel;
+            uniform mat4 uLightVP;
 
             out vec3 vWorldPos;
             out vec3 vNormal;
             out vec2 vUv;
             out vec4 vColor;
+            out vec4 vShadowCoord;
 
             void main() {
                 vec4 worldPos = uModel * vec4(aPos, 1.0);
@@ -77,19 +119,23 @@ class WorldShaderProgram {
                 vNormal = normalize(mat3(uModel) * aNormal);
                 vUv = aUv;
                 vColor = aColor;
+                vShadowCoord = uLightVP * worldPos;
                 gl_Position = uMVP * vec4(aPos, 1.0);
             }
         """
 
         private const val FRAGMENT_SHADER = """#version 300 es
-            precision mediump float;
+            precision highp float;
 
             in vec3 vWorldPos;
             in vec3 vNormal;
             in vec2 vUv;
             in vec4 vColor;
+            in vec4 vShadowCoord;
 
             uniform sampler2D uTexture;
+            uniform sampler2D uShadowMap;
+            uniform float uShadowEnabled;
             uniform vec3 uLightDir;
             uniform vec3 uLightColor;
             uniform vec3 uAmbientColor;
@@ -104,6 +150,7 @@ class WorldShaderProgram {
             uniform vec4 uColorTint;
             uniform float uMaterialMode;
             uniform float uTime;
+            uniform float uStarIntensity;
 
             out vec4 fragColor;
 
@@ -124,6 +171,54 @@ class WorldShaderProgram {
                 return pow(max(c, vec3(0.0001)), vec3(1.0 / 2.1));
             }
 
+            float hash21(vec2 p) {
+                p = fract(p * vec2(123.34, 456.21));
+                p += dot(p, p + 45.32);
+                return fract(p.x * p.y);
+            }
+
+            float valueNoise(vec2 p) {
+                vec2 i = floor(p);
+                vec2 f = fract(p);
+                f = f * f * (3.0 - 2.0 * f);
+                float a = hash21(i);
+                float b = hash21(i + vec2(1.0, 0.0));
+                float c = hash21(i + vec2(0.0, 1.0));
+                float d = hash21(i + vec2(1.0, 1.0));
+                return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+            }
+
+            float fbmClouds(vec2 p) {
+                float v = 0.0;
+                float amp = 0.52;
+                for (int i = 0; i < 4; i++) {
+                    v += amp * valueNoise(p);
+                    p = p * 2.04 + vec2(17.1, -9.4);
+                    amp *= 0.5;
+                }
+                return v;
+            }
+
+            float sampleDirectionalShadow(vec3 N, vec3 L) {
+                if (uShadowEnabled < 0.5) return 1.0;
+                vec3 proj = vShadowCoord.xyz / max(vShadowCoord.w, 0.0001);
+                proj = proj * 0.5 + 0.5;
+                if (proj.z > 1.0 || proj.z < 0.0) return 1.0;
+                float edge = max(abs(proj.x - 0.5), abs(proj.y - 0.5));
+                if (edge >= 0.495) return 1.0;
+
+                float bias = max(0.0022 * (1.0 - max(dot(N, L), 0.0)), 0.00075);
+                float texel = 1.0 / 1024.0;
+                float occ = 0.0;
+                occ += (proj.z - bias > texture(uShadowMap, proj.xy + vec2(-texel, -texel)).r) ? 1.0 : 0.0;
+                occ += (proj.z - bias > texture(uShadowMap, proj.xy + vec2( texel, -texel)).r) ? 1.0 : 0.0;
+                occ += (proj.z - bias > texture(uShadowMap, proj.xy + vec2(-texel,  texel)).r) ? 1.0 : 0.0;
+                occ += (proj.z - bias > texture(uShadowMap, proj.xy + vec2( texel,  texel)).r) ? 1.0 : 0.0;
+                float rawShadow = 1.0 - (occ * 0.25) * 0.68;
+                float fade = 1.0 - smoothstep(0.36, 0.49, edge);
+                return mix(1.0, rawShadow, fade);
+            }
+
             void main() {
                 vec4 texSample = texture(uTexture, vUv);
                 vec4 base = texSample * vColor * uColorTint;
@@ -135,34 +230,56 @@ class WorldShaderProgram {
                     return;
                 }
 
-                // Sky dome atmospheric Rayleigh/Mie scatter gradient + wispy horizon clouds (uEmissive > 1.5)
+                // Sky dome atmospheric Rayleigh/Mie scatter + volumetric FBM clouds + twinkling stars (uEmissive > 1.5)
                 if (uEmissive > 1.5) {
                     vec3 viewDir = normalize(vWorldPos - uCameraPos);
                     float h = clamp(viewDir.y * 1.18 + 0.04, 0.0, 1.0);
-                    vec3 zenith = uFogColor * vec3(0.32, 0.54, 1.05);
-                    vec3 horizon = mix(uFogColor * 1.10, uLightColor * 0.62 + uFogColor * 0.62, 0.45);
-                    vec3 skyGrad = mix(horizon, zenith, pow(h, 0.56));
-                    float sunDot = max(dot(viewDir, normalize(uLightDir)), 0.0);
-                    float sunDisc = smoothstep(0.9968, 0.9994, sunDot) * 1.45;
+                    vec3 zenith = uFogColor * vec3(0.30, 0.52, 1.08);
+                    vec3 horizon = mix(uFogColor * 1.12, uLightColor * 0.64 + uFogColor * 0.60, 0.46);
+                    vec3 skyGrad = mix(horizon, zenith, pow(h, 0.55));
+                    vec3 L = normalize(uLightDir);
+                    float sunDot = max(dot(viewDir, L), 0.0);
+                    float sunDisc = smoothstep(0.9968, 0.9994, sunDot) * 1.50;
                     float sunHalo = pow(sunDot, 22.0) * 0.48 + pow(sunDot, 4.5) * 0.16;
                     skyGrad += uLightColor * (sunDisc + sunHalo);
 
-                    float az = atan(viewDir.z, viewDir.x);
-                    float wispBand = smoothstep(0.06, 0.45, viewDir.y) * (1.0 - smoothstep(0.38, 0.85, viewDir.y));
-                    float wisp = sin(az * 6.0 + viewDir.y * 14.0 + uTime * 0.02) * cos(az * 3.0 - viewDir.y * 9.0);
-                    float wispMask = smoothstep(0.15, 0.78, wisp * 0.5 + 0.5) * wispBand * 0.22;
-                    vec3 cloudTint = mix(uFogColor * 1.15, uLightColor * 1.05, 0.45 + 0.35 * sunDot);
-                    skyGrad = mix(skyGrad, cloudTint, wispMask);
+                    // Crisp twinkling starfield & faint Milky Way band at night
+                    if (uStarIntensity > 0.02 && viewDir.y > 0.04) {
+                        vec2 starUv = viewDir.xz / (viewDir.y + 0.28) * 32.0;
+                        vec2 cell = floor(starUv);
+                        vec2 f = fract(starUv) - 0.5;
+                        float rnd = hash21(cell);
+                        if (rnd > 0.968) {
+                            float d = length(f - (vec2(hash21(cell + 3.1), hash21(cell + 7.7)) - 0.5) * 0.55);
+                            float twinkle = 0.68 + 0.32 * sin(uTime * 2.8 + rnd * 90.0);
+                            float starBright = smoothstep(0.16, 0.02, d) * twinkle * uStarIntensity * smoothstep(0.04, 0.28, viewDir.y);
+                            skyGrad += vec3(0.86, 0.92, 1.0) * starBright * 1.25;
+                        }
+                    }
+
+                    // Multi-octave drifting procedural cumulus cloud deck
+                    if (viewDir.y > 0.025) {
+                        vec2 cloudProj = viewDir.xz / (viewDir.y + 0.16) * 1.85 + vec2(uTime * 0.012, uTime * 0.005);
+                        float density = fbmClouds(cloudProj);
+                        float detail = fbmClouds(cloudProj * 2.35 - vec2(uTime * 0.008, 0.0));
+                        float coverage = mix(0.46, 0.30, clamp(uWetness * 0.85, 0.0, 1.0));
+                        float cloudAlpha = smoothstep(coverage, coverage + 0.34, density * 0.78 + detail * 0.22);
+                        cloudAlpha *= smoothstep(0.025, 0.16, viewDir.y);
+                        vec3 cloudUnder = mix(uFogColor * 0.62, uAmbientColor * 1.15, 0.45);
+                        vec3 cloudLit = mix(uFogColor * 1.18, uLightColor * 1.12, 0.55 + 0.40 * pow(sunDot, 3.0));
+                        vec3 cloudColor = mix(cloudUnder, cloudLit, smoothstep(0.25, 0.78, detail));
+                        skyGrad = mix(skyGrad, cloudColor, cloudAlpha * 0.88);
+                    }
 
                     fragColor = vec4(clamp(skyGrad, 0.0, 1.0), 1.0);
                     return;
                 }
 
-                // Pure emissive lights / stars / LEDs
+                // Pure emissive lights / LEDs
                 if (uEmissive > 0.5) {
                     float dist = length(vWorldPos - uCameraPos);
                     float fog = 1.0 - exp(-pow(dist * uFogDensity * 0.48, 2.0));
-                    vec3 finalRgb = mix(base.rgb * 1.18, uFogColor, clamp(fog, 0.0, 0.85));
+                    vec3 finalRgb = mix(base.rgb * 1.22, uFogColor, clamp(fog, 0.0, 0.85));
                     fragColor = vec4(finalRgb, base.a);
                     return;
                 }
@@ -178,31 +295,36 @@ class WorldShaderProgram {
 
                 bool isOceanWater = (uMaterialMode < 0.5 && vWorldPos.x > 870.0 && vWorldPos.z < -180.0 && vWorldPos.y < -0.15 && N.y > 0.90);
                 if (isOceanWater) {
-                    // Animated dual-octave coastal ocean waves & shoreline foam
                     float w1 = sin(vWorldPos.x * 0.28 + uTime * 1.65) * cos(vWorldPos.z * 0.24 - uTime * 1.25);
                     float w2 = cos(vWorldPos.x * 0.52 - uTime * 2.1 + vWorldPos.z * 0.41);
-                    N = normalize(vec3((w1 * 0.14 + w2 * 0.08), 1.0, (w2 * 0.14 - w1 * 0.08)));
+                    N = normalize(vec3((w1 * 0.16 + w2 * 0.09), 1.0, (w2 * 0.16 - w1 * 0.09)));
                     float shoreDist = vWorldPos.x - 870.0;
-                    float foamWave = smoothstep(0.62, 0.95, sin(shoreDist * 0.55 - uTime * 2.2) * 0.5 + 0.5);
+                    float foamWave = smoothstep(0.58, 0.95, sin(shoreDist * 0.55 - uTime * 2.2) * 0.5 + 0.5);
                     float shoreMask = clamp(1.0 - shoreDist / 16.0, 0.0, 1.0);
-                    albedo = mix(srgbToLinear(vec3(0.05, 0.30, 0.56)), srgbToLinear(vec3(0.86, 0.93, 0.98)), shoreMask * (0.45 + 0.45 * foamWave));
+                    albedo = mix(srgbToLinear(vec3(0.04, 0.28, 0.54)), srgbToLinear(vec3(0.88, 0.94, 0.99)), shoreMask * (0.45 + 0.48 * foamWave));
                 } else if (uMaterialMode < 0.5 && N.y > 0.45) {
                     float macroPatch = sin(vWorldPos.x * 0.045) * cos(vWorldPos.z * 0.041)
                                      + 0.5 * sin(vWorldPos.x * 0.13 + vWorldPos.z * 0.11);
-                    albedo *= (1.0 + macroPatch * 0.085);
+                    albedo *= (1.0 + macroPatch * 0.09);
                 }
-
-                vec3 H = normalize(L + V);
 
                 float localWet = uWetness;
                 if (uMaterialMode > 2.5 && uMaterialMode < 3.5) {
-                    float grain = sin(vWorldPos.x * 2.4) * cos(vWorldPos.z * 2.3) * 0.045;
+                    float grain = sin(vWorldPos.x * 2.4) * cos(vWorldPos.z * 2.3) * 0.05;
+                    float rippleX = cos(vWorldPos.x * 5.2 + vWorldPos.z * 2.7) * 0.045;
+                    float rippleZ = sin(vWorldPos.z * 5.1 - vWorldPos.x * 2.3) * 0.045;
                     albedo *= (1.0 + grain);
                     if (uWetness > 0.1) {
                         float puddle = smoothstep(0.38, 0.86, sin(vWorldPos.x * 0.17) * cos(vWorldPos.z * 0.15) * 0.5 + 0.5);
                         localWet = mix(0.45, 1.0, puddle) * uWetness;
+                        N = normalize(N + vec3(rippleX, 0.0, rippleZ) * (1.0 - puddle * 0.7));
+                    } else {
+                        N = normalize(N + vec3(rippleX, 0.0, rippleZ) * 0.65);
                     }
                 }
+
+                vec3 H = normalize(L + V);
+                float shadowFactor = sampleDirectionalShadow(N, L);
 
                 float ndl = dot(N, L);
                 float diff = max(ndl, 0.0);
@@ -210,63 +332,63 @@ class WorldShaderProgram {
                 // Warm Subsurface Scattering (SSS) wrap fill on human skin & fabric
                 vec3 sssGlow = vec3(0.0);
                 if (uMaterialMode > 4.5) {
-                    diff = max((ndl + 0.44) / 1.44, 0.0);
+                    diff = max((ndl + 0.46) / 1.46, 0.0);
                     float wrapBand = smoothstep(-0.42, 0.30, ndl) * (1.0 - smoothstep(0.08, 0.74, ndl));
-                    sssGlow = vec3(0.25, 0.095, 0.045) * wrapBand * lightLin;
+                    sssGlow = vec3(0.28, 0.105, 0.048) * wrapBand * lightLin;
                 }
 
-                vec3 skyBounce = ambLin * 1.48;
-                vec3 groundBounce = ambLin * vec3(0.58, 0.54, 0.48);
+                vec3 skyBounce = ambLin * 1.52;
+                vec3 groundBounce = ambLin * vec3(0.56, 0.52, 0.46);
                 vec3 hemiAmbient = mix(groundBounce, skyBounce, N.y * 0.5 + 0.5);
 
-                vec3 fillDir = normalize(vec3(-L.x, 0.55, -L.z));
-                float fillDiff = max(dot(N, fillDir), 0.0) * 0.28;
+                vec3 fillDir = normalize(vec3(-L.x, 0.58, -L.z));
+                float fillDiff = max(dot(N, fillDir), 0.0) * 0.30;
                 vec3 fillLight = mix(ambLin, fogLin, 0.5) * fillDiff;
 
-                float shininess = mix(24.0, 110.0, localWet);
-                float specStrength = mix(0.05, 0.65, localWet);
+                float shininess = mix(24.0, 118.0, localWet);
+                float specStrength = mix(0.05, 0.72, localWet);
                 vec3 envReflect = vec3(0.0);
 
                 if (isOceanWater) {
-                    shininess = 135.0;
-                    specStrength = 1.15;
+                    shininess = 148.0;
+                    specStrength = 1.30;
                     float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.0);
                     vec3 R = reflect(-V, N);
-                    vec3 skyEnv = mix(ambLin * 0.45, fogLin * 1.45 + lightLin * 0.45, smoothstep(-0.08, 0.45, R.y));
-                    envReflect = skyEnv * (0.20 + fresnel * 0.68);
+                    vec3 skyEnv = mix(ambLin * 0.45, fogLin * 1.48 + lightLin * 0.48, smoothstep(-0.08, 0.45, R.y));
+                    envReflect = skyEnv * (0.22 + fresnel * 0.70);
                 } else if (uMaterialMode > 0.5 && uMaterialMode < 1.5) {
-                    shininess = 104.0;
-                    specStrength = 0.68;
-                    float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.2);
+                    shininess = 112.0;
+                    specStrength = 0.76;
+                    float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.0);
                     vec3 R = reflect(-V, N);
-                    vec3 skyEnv = mix(groundBounce * 0.55, fogLin * 1.40 + lightLin * 0.38, smoothstep(-0.15, 0.45, R.y));
-                    envReflect = skyEnv * (0.07 + fresnel * 0.52);
+                    vec3 skyEnv = mix(groundBounce * 0.55, fogLin * 1.44 + lightLin * 0.42, smoothstep(-0.15, 0.45, R.y));
+                    envReflect = skyEnv * (0.08 + fresnel * 0.54);
                 } else if (uMaterialMode > 1.5 && uMaterialMode < 2.5) {
-                    shininess = 165.0;
-                    specStrength = 1.45;
+                    shininess = 175.0;
+                    specStrength = 1.55;
                     vec3 R = reflect(-V, N);
-                    vec3 skyEnv = mix(vec3(0.06, 0.08, 0.12), fogLin * 1.40 + lightLin * 0.58, smoothstep(-0.14, 0.34, R.y));
-                    envReflect = skyEnv * 0.76;
-                    albedo *= 0.46;
+                    vec3 skyEnv = mix(vec3(0.06, 0.08, 0.12), fogLin * 1.44 + lightLin * 0.60, smoothstep(-0.14, 0.34, R.y));
+                    envReflect = skyEnv * 0.78;
+                    albedo *= 0.45;
                 } else if (uMaterialMode > 3.5 && uMaterialMode < 4.5) {
-                    shininess = 155.0;
-                    specStrength = 1.30;
-                    float fresnel = pow(1.0 - max(dot(N, V), 0.0), 2.2);
+                    shininess = 165.0;
+                    specStrength = 1.40;
+                    float fresnel = pow(1.0 - max(dot(N, V), 0.0), 2.1);
                     vec3 R = reflect(-V, N);
-                    vec3 skyEnv = mix(vec3(0.03, 0.05, 0.09), fogLin * 1.40 + lightLin * 0.32, smoothstep(-0.10, 0.42, R.y));
-                    envReflect = skyEnv * (0.36 + fresnel * 0.64);
+                    vec3 skyEnv = mix(vec3(0.03, 0.05, 0.10), fogLin * 1.46 + lightLin * 0.36, smoothstep(-0.10, 0.42, R.y));
+                    envReflect = skyEnv * (0.38 + fresnel * 0.62);
                 } else if (uMaterialMode > 4.5) {
-                    shininess = 24.0;
-                    specStrength = 0.09;
-                    float rim = pow(1.0 - max(dot(N, V), 0.0), 3.4);
-                    envReflect = (lightLin * 0.48 + skyBounce) * rim * 0.13;
+                    shininess = 26.0;
+                    specStrength = 0.095;
+                    float rim = pow(1.0 - max(dot(N, V), 0.0), 3.3);
+                    envReflect = (lightLin * 0.50 + skyBounce) * rim * 0.14;
                 } else if (uMaterialMode > 2.5 && uMaterialMode < 3.5 && localWet > 0.15) {
                     vec3 R = reflect(-V, N);
-                    vec3 skyEnv = mix(ambLin * 0.3, fogLin * 1.25, clamp(R.y * 0.5 + 0.5, 0.0, 1.0));
-                    envReflect = skyEnv * localWet * 0.38;
+                    vec3 skyEnv = mix(ambLin * 0.3, fogLin * 1.28, clamp(R.y * 0.5 + 0.5, 0.0, 1.0));
+                    envReflect = skyEnv * localWet * 0.42;
                 }
 
-                float specPower = pow(max(dot(N, H), 0.0), shininess) * specStrength;
+                float specPower = pow(max(dot(N, H), 0.0), shininess) * specStrength * shadowFactor;
 
                 vec3 spotContrib = vec3(0.0);
                 if (uHeadlightIntensity > 0.01) {
@@ -278,14 +400,14 @@ class WorldShaderProgram {
                         float spotMask = smoothstep(0.72, 0.96, cone);
                         float atten = 1.0 / (1.0 + 0.012 * distSpot + 0.0008 * distSpot * distSpot);
                         float nDotSpot = max(dot(N, -dirToFrag), 0.18);
-                        spotContrib = vec3(1.0, 0.92, 0.78) * uHeadlightIntensity * spotMask * atten * nDotSpot * 3.4;
+                        spotContrib = vec3(1.0, 0.92, 0.78) * uHeadlightIntensity * spotMask * atten * nDotSpot * 3.5;
                     }
                 }
 
-                vec3 hdr = albedo * (hemiAmbient + fillLight + lightLin * diff * 1.35 + sssGlow + spotContrib)
+                vec3 hdr = albedo * (hemiAmbient + fillLight + lightLin * diff * 1.38 * shadowFactor + sssGlow + spotContrib)
                          + lightLin * specPower
                          + envReflect;
-                vec3 toneMapped = acesToneMap(hdr * 1.15);
+                vec3 toneMapped = acesToneMap(hdr * 1.16);
                 vec3 litSrgb = linearToSrgb(toneMapped);
 
                 float distCam = length(vWorldPos - uCameraPos);
@@ -335,7 +457,6 @@ class MirrorQuadShaderProgram {
             out vec4 fragColor;
             void main() {
                 vec2 p = abs(vUv - 0.5) * 2.0;
-                // Rounded aerodynamic side-mirror housing bezel + glossy reflection glass
                 float corner = length(max(p - vec2(0.76, 0.80), 0.0));
                 if (corner > 0.24) {
                     discard;

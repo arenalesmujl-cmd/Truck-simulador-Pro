@@ -99,6 +99,14 @@ fun SpeedometerArcCluster(
                     val center = Offset(size.width / 2f, size.height / 2f)
                     val outerR = size.minDimension * 0.45f
 
+                    // Outer brushed bezel ring
+                    drawCircle(
+                        color = Color(0xFF475569).copy(alpha = 0.55f),
+                        radius = outerR + 3.5f,
+                        center = center,
+                        style = Stroke(width = 1.5f)
+                    )
+
                     // Precision speedometer dial ticks
                     for (i in 0..14) {
                         val deg = 135f + (i / 14f) * 270f
@@ -204,14 +212,48 @@ fun SpeedometerArcCluster(
                 }
 
                 val fuelColor = if (telemetry.fuelPercent < 20f) CrimsonAlert else EmeraldGo
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(Icons.Filled.LocalGasStation, contentDescription = "Combustible", tint = fuelColor, modifier = Modifier.size(13.dp))
-                    Text("${telemetry.fuelPercent.toInt()}%", style = MaterialTheme.typography.labelSmall, color = fuelColor)
+                Column(horizontalAlignment = Alignment.End) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Icon(Icons.Filled.LocalGasStation, contentDescription = "Combustible", tint = fuelColor, modifier = Modifier.size(13.dp))
+                        Text("${telemetry.fuelPercent.toInt()}%", style = MaterialTheme.typography.labelSmall, color = fuelColor)
+                    }
+                    Spacer(Modifier.height(2.dp))
+                    Box(
+                        modifier = Modifier
+                            .width(46.dp)
+                            .height(3.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(SimSurfaceElevated)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width((46f * (telemetry.fuelPercent / 100f).coerceIn(0f, 1f)).dp)
+                                .height(3.dp)
+                                .background(fuelColor)
+                        )
+                    }
                 }
                 val dmgColor = if (telemetry.damagePercent > 40f) AmberSignal else TextSecondary
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(Icons.Filled.Build, contentDescription = "Daño", tint = dmgColor, modifier = Modifier.size(13.dp))
-                    Text("${telemetry.damagePercent.toInt()}%", style = MaterialTheme.typography.labelSmall, color = dmgColor)
+                Column(horizontalAlignment = Alignment.End) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Icon(Icons.Filled.Build, contentDescription = "Daño", tint = dmgColor, modifier = Modifier.size(13.dp))
+                        Text("${telemetry.damagePercent.toInt()}%", style = MaterialTheme.typography.labelSmall, color = dmgColor)
+                    }
+                    Spacer(Modifier.height(2.dp))
+                    Box(
+                        modifier = Modifier
+                            .width(46.dp)
+                            .height(3.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(SimSurfaceElevated)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width((46f * ((100f - telemetry.damagePercent) / 100f).coerceIn(0f, 1f)).dp)
+                                .height(3.dp)
+                                .background(if (telemetry.damagePercent > 40f) AmberSignal else SkyCyan)
+                        )
+                    }
                 }
             }
         }
@@ -414,10 +456,11 @@ fun TactileSteeringWheel(
                 drawLine(Color(0xFF94A3B8), Offset(c.x - r + 8f, c.y), Offset(c.x + r - 8f, c.y), strokeWidth = 12f, cap = StrokeCap.Round)
                 drawLine(Color(0xFFE2E8F0), Offset(c.x - r + 10f, c.y - 1.5f), Offset(c.x + r - 10f, c.y - 1.5f), strokeWidth = 3f, cap = StrokeCap.Round)
                 drawLine(Color(0xFF94A3B8), Offset(c.x, c.y), Offset(c.x, c.y + r - 8f), strokeWidth = 12f, cap = StrokeCap.Round)
-                // Center horn boss with metallic trim & orange racing badge
+                // Center horn boss with metallic trim, orange racing badge & center gloss pin
                 drawCircle(Color(0xFF0F172A), radius = 24f, center = c)
                 drawCircle(Color(0xFF94A3B8), radius = 24f, center = c, style = Stroke(width = 2.5f))
                 drawCircle(RacingOrange, radius = 13f, center = c)
+                drawCircle(Color(0xFFFFD54F), radius = 5f, center = c)
                 // Top dead center stripe
                 drawLine(
                     color = RacingOrange,

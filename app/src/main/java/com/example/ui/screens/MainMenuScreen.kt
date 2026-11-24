@@ -191,6 +191,12 @@ fun MainMenuScreen(
                     border = BorderStroke(1.dp, SimOutline),
                     shape = RoundedCornerShape(18.dp)
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(3.dp)
+                            .background(Brush.horizontalGradient(listOf(RacingOrange, SkyCyan)))
+                    )
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
