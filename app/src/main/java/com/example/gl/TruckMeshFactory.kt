@@ -74,18 +74,21 @@ object TruckMeshFactory {
         chassis.addCylinderY(0.22f, 1.15f, hoseZ - 0.12f, 0.045f, 0.92f, 10, 0.14f, 0.36f, 0.86f)
         chrome.addBox(0f, 0.89f, hoseZ - 0.32f, 1.14f, 0.055f, 0.82f, 0.78f, 0.81f, 0.86f)
 
-        // Twin polished cylindrical aluminum fuel tanks, AdBlue DEF tank cap & Dual Boarding Steps
+        // Twin polished cylindrical aluminum fuel tanks, billet caps, AdBlue DEF tank & Dual Boarding Steps
         for (side in listOf(-1f, 1f)) {
             val tx = side * 1.04f
             chrome.addCylinderZ(tx, 0.76f, -0.95f, 0.75f, 0.30f, 20, 0.87f, 0.90f, 0.95f)
+            chrome.addCylinderY(tx + side * 0.10f, 1.05f, 0.45f, 0.058f, 0.045f, 12, 0.88f, 0.91f, 0.96f)
             chassis.addBox(tx, 0.76f, -0.55f, 0.64f, 0.64f, 0.08f, 0.15f, 0.17f, 0.20f)
             chassis.addBox(tx, 0.76f, 0.35f, 0.64f, 0.64f, 0.08f, 0.15f, 0.17f, 0.20f)
             chrome.addBox(side * 1.24f, 0.62f, 1.35f, 0.22f, 0.055f, 0.78f, 0.84f, 0.87f, 0.92f)
             chrome.addBox(side * 1.22f, 0.92f, 1.35f, 0.17f, 0.05f, 0.74f, 0.84f, 0.87f, 0.92f)
         }
-        // AdBlue DEF tank + blue cap on right rail
+        // AdBlue DEF tank + blue cap on right rail & pressurized brake air reservoir tanks along center rail
         chassis.addBox(-1.02f, 0.76f, 1.05f, 0.42f, 0.48f, 0.48f, 0.14f, 0.16f, 0.19f)
         chassis.addCylinderY(-1.08f, 1.00f, 1.05f, 0.06f, 0.05f, 10, 0.12f, 0.46f, 0.88f)
+        chassis.addCylinderZ(0.24f, 0.56f, -0.95f, 0.15f, 0.135f, 12, 0.16f, 0.18f, 0.22f)
+        chassis.addCylinderZ(-0.24f, 0.56f, -0.95f, 0.15f, 0.135f, 12, 0.16f, 0.18f, 0.22f)
 
         // Smooth curved aerodynamic front chrome bumper + twin projector headlight pods + plate
         val noseZ = when (style) {
@@ -531,6 +534,7 @@ object TruckMeshFactory {
         chrome.addBox(1.27f, 1.24f, 0f, 0.04f, 0.12f, 11.22f, 0.86f, 0.88f, 0.92f)
         for (lx in listOf(-0.62f, -0.22f, 0.22f, 0.62f)) {
             chrome.addCylinderY(lx, 1.25f, -5.64f, 0.028f, 2.48f, 8, 0.88f, 0.90f, 0.94f)
+            chrome.addBox(lx + 0.06f, 1.56f, -5.66f, 0.11f, 0.045f, 0.03f, 0.88f, 0.90f, 0.94f)
         }
 
         return TrailerMeshSet(

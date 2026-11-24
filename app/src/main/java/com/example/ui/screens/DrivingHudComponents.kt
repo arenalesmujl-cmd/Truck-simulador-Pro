@@ -1,11 +1,17 @@
 package com.example.ui.screens
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +50,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
@@ -208,6 +215,13 @@ fun SpeedometerArcCluster(
                         topLeft = innerTopLeft,
                         size = innerSize,
                         style = Stroke(width = 4.5f, cap = StrokeCap.Round)
+                    )
+                    // Brushed metallic inner hub ring framing the digital readout
+                    drawCircle(
+                        color = Color(0xFF334155).copy(alpha = 0.55f),
+                        radius = outerR * 0.44f,
+                        center = center,
+                        style = Stroke(width = 1.4f)
                     )
                 }
 
@@ -566,11 +580,20 @@ fun HoldButtonPad(
     onHeldChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val pressScale by animateFloatAsState(
+        targetValue = if (held) 0.94f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "pad_press_scale"
+    )
     Surface(
         color = Color.Transparent,
         border = BorderStroke(2.dp, if (held) accent else accent.copy(alpha = 0.68f)),
         shape = RoundedCornerShape(14.dp),
         modifier = modifier
+            .graphicsLayer {
+                scaleX = pressScale
+                scaleY = pressScale
+            }
             .minimumInteractiveComponentSize()
             .background(
                 Brush.verticalGradient(
@@ -644,15 +667,30 @@ fun HudToggleChip(
     testTag: String,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val chipScale by animateFloatAsState(
+        targetValue = if (pressed) 0.94f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "hud_chip_scale"
+    )
     Surface(
         color = if (active) activeColor.copy(alpha = 0.28f) else SimSurfaceGlass,
         border = BorderStroke(1.dp, if (active) activeColor else SimOutline),
         shape = RoundedCornerShape(10.dp),
         modifier = Modifier
             .height(42.dp)
+            .graphicsLayer {
+                scaleX = chipScale
+                scaleY = chipScale
+            }
             .minimumInteractiveComponentSize()
             .testTag(testTag)
-            .clickable(onClick = onClick)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                onClick = onClick
+            )
     ) {
         Box(modifier = Modifier.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
             if (icon != null) {

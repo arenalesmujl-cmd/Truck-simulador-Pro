@@ -84,11 +84,36 @@ object CharacterMeshFactory {
                     LoftRingY(0.164f, -0.009f, 0.0038f, 0.0070f, skinShadowR, skinShadowG, skinShadowB)
                 )
             )
-            // Tapered sideburn & temple hair flush with ear & cheekbone
-            // Sculpted subtle temple hair tuft & frontal hairline bangs peeking cleanly beneath the cap visor
-            headAcc.addEllipsoid(side * 0.046f, 0.187f, 0.075f, 0.028f, 0.0085f, 0.011f, 6, 10, hairR, hairG, hairB)
+            // Tapered anatomical sideburn hugging ear & cheekbone smoothly
+            headAcc.addCurvedFingerChain(
+                nodes = listOf(
+                    FingerNode(side * 0.075f, 0.186f, 0.018f, 0.0095f, hairR, hairG, hairB),
+                    FingerNode(side * 0.078f, 0.164f, 0.015f, 0.0085f, hairR, hairG, hairB),
+                    FingerNode(side * 0.075f, 0.140f, 0.012f, 0.0062f, hairR, hairG, hairB),
+                    FingerNode(side * 0.070f, 0.124f, 0.010f, 0.0038f, hairR, hairG, hairB)
+                ),
+                sectors = 8
+            )
+            // Subtle temple hair lock tucked naturally beneath cap rim
+            headAcc.addCurvedFingerChain(
+                nodes = listOf(
+                    FingerNode(side * 0.074f, 0.188f, 0.024f, 0.0075f, hairR, hairG, hairB),
+                    FingerNode(side * 0.062f, 0.190f, 0.056f, 0.0070f, hairR, hairG, hairB),
+                    FingerNode(side * 0.040f, 0.189f, 0.076f, 0.0045f, hairR, hairG, hairB)
+                ),
+                sectors = 8
+            )
         }
-        headAcc.addEllipsoid(0f, 0.189f, 0.083f, 0.024f, 0.0075f, 0.009f, 6, 10, hairR, hairG, hairB)
+        // Sculpted low-profile brow hair strip hugging the upper forehead cleanly under the visor
+        headAcc.addCurvedFingerChain(
+            nodes = listOf(
+                FingerNode(-0.042f, 0.188f, 0.075f, 0.0055f, hairR, hairG, hairB),
+                FingerNode(-0.018f, 0.190f, 0.083f, 0.0062f, hairR, hairG, hairB),
+                FingerNode(0.005f, 0.191f, 0.085f, 0.0064f, hairR, hairG, hairB),
+                FingerNode(0.028f, 0.189f, 0.081f, 0.0055f, hairR, hairG, hairB)
+            ),
+            sectors = 8
+        )
 
         // Tailored 6-Panel Charcoal-Slate & Burnt-Amber Pro Trucker Cap (natural cranium fit)
         headAcc.addLoftedProfileY(
@@ -204,18 +229,28 @@ object CharacterMeshFactory {
                 sectors = 8
             )
 
-            // Gently wrapped polarized dark-smoke aviator/sport lens
-            val nxSign = side * 0.26f
-            val nzLens = 0.965f
-            val innerX = side * 0.014f; val midX = side * 0.039f; val outerX = side * 0.065f
-            val topY = 0.170f; val midY = 0.157f; val botY = 0.142f
-            val zIn = 0.110f; val zMid = 0.108f; val zOut = 0.093f
-            if (side > 0f) {
-                glassesLens.addQuad(innerX, botY + 0.003f, zIn, midX, botY, zMid, midX, topY, zMid, innerX, topY - 0.002f, zIn, nxSign, 0f, nzLens, 0.04f, 0.08f, 0.14f, 0.88f)
-                glassesLens.addQuad(midX, botY, zMid, outerX, botY + 0.005f, zOut, outerX, topY - 0.004f, zOut, midX, topY, zMid, nxSign, 0f, nzLens, 0.04f, 0.08f, 0.14f, 0.88f)
-            } else {
-                glassesLens.addQuad(midX, botY, zMid, innerX, botY + 0.003f, zIn, innerX, topY - 0.002f, zIn, midX, topY, zMid, nxSign, 0f, nzLens, 0.04f, 0.08f, 0.14f, 0.88f)
-                glassesLens.addQuad(outerX, botY + 0.005f, zOut, midX, botY, zMid, midX, topY, zMid, outerX, topY - 0.004f, zOut, nxSign, 0f, nzLens, 0.04f, 0.08f, 0.14f, 0.88f)
+            // Smoothly curved 4-panel wrap polarized aviator/sport lens with progressive reflection normals
+            val lensXs = floatArrayOf(0.0135f, 0.0270f, 0.0410f, 0.0545f, 0.0658f)
+            val lensZs = floatArrayOf(0.1105f, 0.1102f, 0.1078f, 0.1018f, 0.0928f)
+            val lensBots = floatArrayOf(0.1450f, 0.1422f, 0.1415f, 0.1436f, 0.1476f)
+            val lensTops = floatArrayOf(0.1682f, 0.1700f, 0.1704f, 0.1688f, 0.1656f)
+            for (li in 0 until 4) {
+                val x0 = side * lensXs[li]
+                val x1 = side * lensXs[li + 1]
+                val z0 = lensZs[li]
+                val z1 = lensZs[li + 1]
+                val b0 = lensBots[li]
+                val b1 = lensBots[li + 1]
+                val t0 = lensTops[li]
+                val t1 = lensTops[li + 1]
+                val nxAvg = side * (0.08f + li * 0.12f)
+                val nzAvg = sqrt((1f - nxAvg * nxAvg).coerceAtLeast(0.1f))
+                val shade = 1.0f - li * 0.05f
+                if (side > 0f) {
+                    glassesLens.addQuad(x0, b0, z0, x1, b1, z1, x1, t1, z1, x0, t0, z0, nxAvg, 0.06f, nzAvg, 0.03f * shade, 0.065f * shade, 0.115f * shade, 0.90f)
+                } else {
+                    glassesLens.addQuad(x1, b1, z1, x0, b0, z0, x0, t0, z0, x1, t1, z1, nxAvg, 0.06f, nzAvg, 0.03f * shade, 0.065f * shade, 0.115f * shade, 0.90f)
+                }
             }
             // Subtle orange-amber hinge accent dot
             glassesFrame.addBox(side * 0.070f, 0.165f, 0.089f, 0.004f, 0.005f, 0.008f, 0.94f, 0.44f, 0.08f)
@@ -286,17 +321,19 @@ object CharacterMeshFactory {
             trimR = jacketTrimR, trimG = jacketTrimG, trimB = jacketTrimB,
             suedeR = suedeR, suedeG = suedeG, suedeB = suedeB
         )
-        // Sculpted folded suede collar band framing neck + saddle-suede back yoke + tailored chest pockets
+        // Sculpted folded suede collar band framing neck + open front suede-lined lapels + saddle-suede back yoke
         torso.addFoldedJacketCollar(suedeR = suedeR, suedeG = suedeG, suedeB = suedeB)
         torso.addBeveledBox(0f, 0.494f, -0.095f, 0.35f, 0.096f, 0.068f, 0.018f, suedeR * 0.88f, suedeG * 0.88f, suedeB * 0.88f)
         for (side in listOf(-1f, 1f)) {
+            // Turned-out front suede lapel flap framing chest Henley cleanly
+            torso.addSlopedBox(side * 0.072f, 0.492f, 0.106f, 0.042f, 0.022f, 0.058f, 0.024f, 0.074f, -0.008f, suedeR * 0.96f, suedeG * 0.96f, suedeB * 0.96f)
             torso.addBeveledBox(side * 0.118f, 0.388f, 0.123f, 0.064f, 0.068f, 0.016f, 0.006f, jacketTrimR, jacketTrimG, jacketTrimB)
             torso.addBeveledBox(side * 0.118f, 0.418f, 0.126f, 0.068f, 0.022f, 0.018f, 0.005f, jacketTrimR * 1.10f, jacketTrimG * 1.10f, jacketTrimB * 1.10f)
             torso.addCylinderZ(side * 0.118f, 0.417f, 0.132f, 0.137f, 0.0052f, 10, 0.88f, 0.74f, 0.38f)
             // Lower welt hand-warmer pockets + brushed brass zipper tab
             torso.addBeveledBox(side * 0.126f, 0.228f, 0.116f, 0.056f, 0.072f, 0.016f, 0.005f, jacketTrimR * 0.95f, jacketTrimG * 0.95f, jacketTrimB * 0.95f)
             torso.addBox(side * 0.104f, 0.228f, 0.126f, 0.008f, 0.054f, 0.006f, 0.80f, 0.66f, 0.36f)
-            torso.addEllipsoid(side * 0.212f, 0.494f, -0.004f, 0.064f, 0.063f, 0.088f, 10, 14, jacketR, jacketG, jacketB)
+            torso.addEllipsoid(side * 0.212f, 0.494f, -0.004f, 0.065f, 0.064f, 0.088f, 10, 14, jacketTrimR, jacketTrimG, jacketTrimB)
             // Tailored quilted suede shoulder yoke strap
             torso.addBeveledBox(side * 0.152f, 0.526f, 0.002f, 0.086f, 0.028f, 0.074f, 0.008f, suedeR, suedeG, suedeB)
         }
@@ -452,7 +489,10 @@ object CharacterMeshFactory {
             )
         )
         thigh.addEllipsoid(0f, -0.420f, 0f, 0.056f, 0.056f, 0.058f, 10, 14, denimR, denimG, denimB)
-        thigh.addEllipsoid(0.064f, -0.195f, 0f, 0.011f, 0.050f, 0.042f, 8, 10, denimR * 0.9f, denimG * 0.9f, denimB * 0.9f)
+        // Symmetric tailored selvedge side seams & subtle knee whisker creases on both thighs
+        for (sx in listOf(-0.064f, 0.064f)) {
+            thigh.addBox(sx, -0.210f, 0f, 0.005f, 0.36f, 0.010f, denimR * 0.78f, denimG * 0.78f, denimB * 0.78f)
+        }
 
         // =========================================================================
         // 6. SHIN + SEAMLESS KNEE CAP + GOODYEAR-WELT LUGGED LEATHER WORK BOOT
@@ -467,7 +507,8 @@ object CharacterMeshFactory {
             rings = listOf(
                 LoftRingY(-0.424f, 0.002f, 0.052f, 0.055f, leatherR, leatherG, leatherB),
                 LoftRingY(-0.354f, 0.000f, 0.051f, 0.053f, leatherR, leatherG, leatherB),
-                LoftRingY(-0.336f, 0.000f, 0.058f, 0.060f, 0.24f, 0.32f, 0.48f),
+                LoftRingY(-0.340f, 0.000f, 0.054f, 0.056f, leatherR * 0.76f, leatherG * 0.76f, leatherB * 0.76f),
+                LoftRingY(-0.334f, 0.000f, 0.059f, 0.061f, 0.24f, 0.32f, 0.48f),
                 LoftRingY(-0.312f, 0.000f, 0.059f, 0.061f, 0.22f, 0.30f, 0.46f),
                 LoftRingY(-0.306f, 0.000f, 0.055f, 0.057f, denimFadeR, denimFadeG, denimFadeB),
                 LoftRingY(-0.230f, -0.002f, 0.054f, 0.056f, denimR, denimG, denimB),

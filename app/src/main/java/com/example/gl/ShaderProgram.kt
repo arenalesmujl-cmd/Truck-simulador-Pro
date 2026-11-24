@@ -378,35 +378,39 @@ class WorldShaderProgram {
                     vec3 skyEnv = mix(ambLin * 0.45, fogLin * 1.48 + lightLin * 0.48, smoothstep(-0.08, 0.45, R.y));
                     envReflect = skyEnv * (0.22 + fresnel * 0.70);
                 } else if (uMaterialMode > 0.5 && uMaterialMode < 1.5) {
-                    // Dual-lobe automotive clearcoat + subtle metallic base flake shimmer
-                    shininess = 96.0;
-                    specStrength = 0.68;
+                    // Dual-lobe automotive clearcoat + crisp horizon-band studio reflection + metallic base flake
+                    shininess = 108.0;
+                    specStrength = 0.74;
                     float flake = hash21(floor(vWorldPos.xz * 260.0 + vWorldPos.y * 190.0));
-                    float flakeGlint = smoothstep(0.76, 0.99, flake) * 0.24 * max(ndl, 0.0);
-                    float clearcoat = pow(max(dot(N, H), 0.0), 240.0) * 0.88 * shadowFactor;
-                    float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.0);
+                    float flakeGlint = smoothstep(0.75, 0.99, flake) * 0.26 * max(ndl, 0.0);
+                    float clearcoat = pow(max(dot(N, H), 0.0), 260.0) * 0.96 * shadowFactor;
+                    float fresnel = pow(1.0 - max(dot(N, V), 0.0), 2.8);
                     vec3 R = reflect(-V, N);
-                    vec3 skyEnv = mix(groundBounce * 0.50, fogLin * 1.54 + lightLin * 0.52, smoothstep(-0.14, 0.44, R.y));
-                    envReflect = skyEnv * (0.11 + fresnel * 0.64) + lightLin * (clearcoat + flakeGlint);
+                    float horizonMix = smoothstep(-0.06, 0.14, R.y);
+                    float upperSkyMix = smoothstep(0.10, 0.62, R.y);
+                    vec3 asphaltGround = groundBounce * 0.42;
+                    vec3 horizonBand = mix(fogLin * 1.62 + lightLin * 0.58, skyBounce * 0.95, upperSkyMix);
+                    vec3 skyEnv = mix(asphaltGround, horizonBand, horizonMix);
+                    envReflect = skyEnv * (0.12 + fresnel * 0.68) + lightLin * (clearcoat + flakeGlint);
                 } else if (uMaterialMode > 1.5 && uMaterialMode < 2.5) {
-                    shininess = 185.0;
-                    specStrength = 1.64;
+                    shininess = 192.0;
+                    specStrength = 1.70;
                     vec3 R = reflect(-V, N);
-                    vec3 skyEnv = mix(vec3(0.06, 0.08, 0.12), fogLin * 1.50 + lightLin * 0.64, smoothstep(-0.14, 0.34, R.y));
-                    envReflect = skyEnv * 0.82;
-                    albedo *= 0.45;
+                    vec3 skyEnv = mix(vec3(0.05, 0.07, 0.11), fogLin * 1.54 + lightLin * 0.68, smoothstep(-0.12, 0.32, R.y));
+                    envReflect = skyEnv * 0.85;
+                    albedo *= 0.44;
                 } else if (uMaterialMode > 3.5 && uMaterialMode < 4.5) {
-                    shininess = 195.0;
-                    specStrength = 1.58;
-                    float fresnel = pow(1.0 - max(dot(N, V), 0.0), 1.85);
+                    shininess = 210.0;
+                    specStrength = 1.65;
+                    float fresnel = pow(1.0 - max(dot(N, V), 0.0), 1.80);
                     vec3 R = reflect(-V, N);
-                    vec3 skyEnv = mix(vec3(0.05, 0.09, 0.14), fogLin * 1.58 + lightLin * 0.48, smoothstep(-0.08, 0.42, R.y));
-                    envReflect = skyEnv * (0.48 + fresnel * 0.72);
+                    vec3 skyEnv = mix(vec3(0.04, 0.08, 0.13), fogLin * 1.64 + lightLin * 0.54, smoothstep(-0.08, 0.40, R.y));
+                    envReflect = skyEnv * (0.50 + fresnel * 0.74);
                 } else if (uMaterialMode > 4.5) {
-                    shininess = 22.0;
-                    specStrength = 0.085;
+                    shininess = 24.0;
+                    specStrength = 0.092;
                     float rim = pow(1.0 - max(dot(N, V), 0.0), 3.0);
-                    envReflect = (lightLin * 0.54 + skyBounce) * rim * 0.18;
+                    envReflect = (lightLin * 0.56 + skyBounce) * rim * 0.20;
                 } else if (uMaterialMode > 2.5 && uMaterialMode < 3.5 && localWet > 0.15) {
                     vec3 R = reflect(-V, N);
                     vec3 skyEnv = mix(ambLin * 0.3, fogLin * 1.28, clamp(R.y * 0.5 + 0.5, 0.0, 1.0));

@@ -438,17 +438,17 @@ object TextureFactory {
             canvas.drawLine(mx, my, mx + (mx - cx) * 0.08f, my - 3.8f * k, bristlePaint)
         }
 
-        // Sculpted lips with crisp vermilion border, Cupid's bow, parting shade & lower-lip specular
+        // Sculpted natural masculine lips with muted warm undertone, Cupid's bow & subtle parting shade
         val lipPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-        lipPaint.color = Color.rgb(180, 110, 99)
-        canvas.drawOval(RectF(cx - 15.5f * k, s * 0.399f, cx + 15.5f * k, s * 0.425f), lipPaint)
-        lipPaint.color = Color.rgb(148, 84, 76)
-        canvas.drawOval(RectF(cx - 16.5f * k, s * 0.419f, cx + 16.5f * k, s * 0.441f), lipPaint)
-        lipPaint.color = Color.argb(52, 255, 224, 214)
-        canvas.drawOval(RectF(cx - 7.5f * k, s * 0.405f, cx + 7.5f * k, s * 0.416f), lipPaint)
-        lipPaint.color = Color.argb(185, 70, 32, 28)
-        lipPaint.strokeWidth = 1.6f * k
-        canvas.drawLine(cx - 15.5f * k, s * 0.421f, cx + 15.5f * k, s * 0.421f, lipPaint)
+        lipPaint.color = Color.rgb(162, 108, 96)
+        canvas.drawOval(RectF(cx - 15.0f * k, s * 0.400f, cx + 15.0f * k, s * 0.424f), lipPaint)
+        lipPaint.color = Color.rgb(138, 88, 78)
+        canvas.drawOval(RectF(cx - 16.0f * k, s * 0.419f, cx + 16.0f * k, s * 0.440f), lipPaint)
+        lipPaint.color = Color.argb(42, 250, 218, 204)
+        canvas.drawOval(RectF(cx - 7.0f * k, s * 0.405f, cx + 7.0f * k, s * 0.415f), lipPaint)
+        lipPaint.color = Color.argb(175, 68, 34, 28)
+        lipPaint.strokeWidth = 1.5f * k
+        canvas.drawLine(cx - 15.0f * k, s * 0.421f, cx + 15.0f * k, s * 0.421f, lipPaint)
 
         // Photorealistic 1024px Almond-Clipped Eyes with eyelid occlusion shadow, iris fibers & catchlights
         val p = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -641,12 +641,12 @@ object TextureFactory {
         }
         for (y in 0 until size) {
             for (x in 0 until size) {
-                val twill = sin((x + y) * 1.15f) * 0.024f
-                val weave = cos((x - y) * 1.15f) * 0.016f
-                val fold = sin(y * 0.065f + sin(x * 0.030f) * 1.1f) * 0.015f
-                val stitch = if (y % 64 in 0..1 && (x % 12) < 7) 0.022f else 0f
-                val fiber = (rand() - 0.5f) * 0.020f
-                val v = ((0.968f + twill + weave + fold + fiber + stitch) * 255f).toInt().coerceIn(228, 255)
+                val twill = sin((x + y) * 1.15f) * 0.032f
+                val weave = cos((x - y) * 1.15f) * 0.022f
+                val fold = sin(y * 0.065f + sin(x * 0.030f) * 1.1f) * 0.019f
+                val stitch = if (y % 64 in 0..1 && (x % 12) < 7) 0.026f else 0f
+                val fiber = (rand() - 0.5f) * 0.024f
+                val v = ((0.958f + twill + weave + fold + fiber + stitch) * 255f).toInt().coerceIn(220, 255)
                 pixels[y * size + x] = Color.argb(255, v, v, v)
             }
         }

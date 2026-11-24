@@ -982,19 +982,26 @@ object WorldMeshFactory {
                 val urbanBlend = (1f - ((distCity - 180f) / 145f).coerceIn(0f, 1f))
                 val isSierra = z > 450f
                 val steep = (1f - ny)
+                val shoreDepth = ((x - 870f) / 280f).coerceIn(0f, 1f)
+                val biomeNoise = (sin(x * 0.018f) * cos(z * 0.016f)) * 0.03f
 
                 val (baseR, baseG, baseB) = when {
-                    isOcean -> Triple(0.08f, 0.38f, 0.66f)
-                    isBeach -> Triple(0.75f, 0.67f, 0.50f)
+                    isOcean -> Triple(
+                        0.09f - shoreDepth * 0.05f,
+                        0.42f - shoreDepth * 0.16f,
+                        0.70f - shoreDepth * 0.14f
+                    )
+                    isBeach -> Triple(0.77f, 0.69f, 0.52f)
                     else -> {
-                        val rockBlend = ((steep - 0.08f) / 0.14f).coerceIn(0f, 1f)
-                        val grassR = if (isSierra) 0.23f else 0.24f
-                        val grassG = if (isSierra) 0.40f else 0.48f
-                        val grassB = if (isSierra) 0.21f else 0.19f
+                        val rockBlend = ((steep - 0.075f) / 0.14f).coerceIn(0f, 1f)
+                        val elevWarm = ((y - 6f) / 28f).coerceIn(0f, 1f) * 0.05f
+                        val grassR = (if (isSierra) 0.22f else 0.23f) + elevWarm + biomeNoise
+                        val grassG = (if (isSierra) 0.39f else 0.48f) - elevWarm * 0.4f + biomeNoise * 0.6f
+                        val grassB = (if (isSierra) 0.21f else 0.19f) + biomeNoise * 0.3f
                         Triple(
-                            grassR + (0.42f - grassR) * rockBlend,
-                            grassG + (0.39f - grassG) * rockBlend,
-                            grassB + (0.36f - grassB) * rockBlend
+                            grassR + (0.43f - grassR) * rockBlend,
+                            grassG + (0.40f - grassG) * rockBlend,
+                            grassB + (0.37f - grassB) * rockBlend
                         )
                     }
                 }
@@ -1128,15 +1135,29 @@ object WorldMeshFactory {
                     )
 
                     if (i % 2 == 0) {
-                        val lineW = 0.22f
-                        val (lr, lg, lb) = if (road.isHighway) Triple(0.95f, 0.74f, 0.14f) else Triple(0.90f, 0.92f, 0.95f)
+                        // Crisp MUTCD 7.2m dashed highway/street lane stripe (leaving clean gap) + raised reflective cat's-eye stud
+                        val lineW = 0.20f
+                        val dashEnd = 0.46f
+                        val dx0 = cx0 + (cx1 - cx0) * 0.04f
+                        val dz0 = cz0 + (cz1 - cz0) * 0.04f
+                        val dy0 = y0 + (y1 - y0) * 0.04f
+                        val dx1 = cx0 + (cx1 - cx0) * dashEnd
+                        val dz1 = cz0 + (cz1 - cz0) * dashEnd
+                        val dy1 = y0 + (y1 - y0) * dashEnd
+                        val (lr, lg, lb) = if (road.isHighway) Triple(0.96f, 0.76f, 0.14f) else Triple(0.92f, 0.94f, 0.97f)
                         mb.addQuad(
-                            cx0 - rightX * lineW, y0 + 0.026f, cz0 - rightZ * lineW,
-                            cx0 + rightX * lineW, y0 + 0.026f, cz0 + rightZ * lineW,
-                            cx1 + rightX * lineW, y1 + 0.026f, cz1 + rightZ * lineW,
-                            cx1 - rightX * lineW, y1 + 0.026f, cz1 - rightZ * lineW,
+                            dx0 - rightX * lineW, dy0 + 0.026f, dz0 - rightZ * lineW,
+                            dx0 + rightX * lineW, dy0 + 0.026f, dz0 + rightZ * lineW,
+                            dx1 + rightX * lineW, dy1 + 0.026f, dz1 + rightZ * lineW,
+                            dx1 - rightX * lineW, dy1 + 0.026f, dz1 - rightZ * lineW,
                             0f, 1f, 0f, lr, lg, lb
                         )
+                        if (road.isHighway) {
+                            val studX = cx0 + (cx1 - cx0) * 0.75f
+                            val studZ = cz0 + (cz1 - cz0) * 0.75f
+                            val studY = y0 + (y1 - y0) * 0.75f + 0.042f
+                            mb.addBox(studX, studY, studZ, 0.22f, 0.04f, 0.22f, 1.0f, 0.78f, 0.14f)
+                        }
                     }
                 }
 
@@ -1342,15 +1363,25 @@ object WorldMeshFactory {
             addFractalMountain(mb, m.x + m.radius * 0.42f, my, m.z - m.radius * 0.25f, m.radius * 0.65f, m.height * 0.64f, seedPhase = idx * 2.11f + 0.9f)
         }
 
-        // Solid concrete city sidewalk plazas, lobby podiums, gravel roof caps, HVAC chillers & spires (whiteTex)
+        // Solid concrete city sidewalk plazas, lobby podiums, glass entrance canopies, structural fins & rooftop details (whiteTex)
         for (b in TruckWorld.buildings) {
             val baseY = TruckWorld.terrainHeightAt(b.x, b.z)
-            mb.addBox(b.x, baseY + 0.22f, b.z, b.width + 4.4f, 0.45f, b.depth + 4.4f, 0.32f, 0.35f, 0.40f)
+            mb.addBox(b.x, baseY + 0.22f, b.z, b.width + 4.6f, 0.45f, b.depth + 4.6f, 0.32f, 0.35f, 0.40f)
             mb.addBox(b.x, baseY + 1.8f, b.z, b.width + 0.7f, 3.6f, b.depth + 0.7f, 0.17f, 0.20f, 0.25f)
+            // Architectural projecting street-level entrance canopy & mid-tower belt band
+            mb.addBox(b.x, baseY + 3.62f, b.z + b.depth * 0.5f + 1.15f, b.width * 0.46f, 0.18f, 1.9f, 0.24f, 0.28f, 0.34f)
+            if (b.height > 18f) {
+                mb.addBox(b.x, baseY + b.height * 0.52f, b.z, b.width + 0.36f, 0.55f, b.depth + 0.36f, 0.22f, 0.25f, 0.30f)
+            }
             // Concrete parapet & gravel roof slab covering 100% of tower roof
             mb.addBeveledBox(b.x, baseY + b.height + 0.38f, b.z, b.width + 0.62f, 0.82f, b.depth + 0.62f, 0.15f, 0.20f, 0.23f, 0.28f)
             mb.addBox(b.x, baseY + b.height + 0.82f, b.z, b.width * 0.90f, 0.12f, b.depth * 0.90f, 0.34f, 0.37f, 0.42f)
             if (b.isSkyscraper) {
+                for (cxSign in listOf(-1f, 1f)) {
+                    for (czSign in listOf(-1f, 1f)) {
+                        mb.addBox(b.x + cxSign * b.width * 0.50f, baseY + b.height * 0.5f, b.z + czSign * b.depth * 0.50f, 0.48f, b.height, 0.48f, 0.22f, 0.26f, 0.32f)
+                    }
+                }
                 mb.addBeveledBox(b.x, baseY + b.height + 3.85f, b.z, b.width * 0.66f, 0.45f, b.depth * 0.66f, 0.12f, 0.20f, 0.24f, 0.29f)
                 mb.addBox(b.x, baseY + b.height + 4.45f, b.z, b.width * 0.36f, 1.3f, b.depth * 0.36f, 0.19f, 0.22f, 0.27f)
                 mb.addBox(b.x - b.width * 0.22f, baseY + b.height + 1.25f, b.z + b.depth * 0.22f, 1.8f, 0.85f, 1.8f, 0.36f, 0.40f, 0.46f)
@@ -1465,25 +1496,27 @@ object WorldMeshFactory {
         mb.addBox(920f, 9.4f, -438f, 5f, 3.0f, 36f, 0.14f, 0.52f, 0.78f)
         mb.addBox(928f, 9.4f, -442f, 5f, 3.0f, 28f, 0.18f, 0.62f, 0.42f)
 
-        // Organic 5-tier evergreen pine boughs & clustered deciduous crowns with flared roots
+        // Organic 5-tier evergreen pine boughs & clustered deciduous crowns with botanical hue variation
         TruckWorld.trees.forEachIndexed { idx, t ->
             val ty = TruckWorld.terrainHeightAt(t.x, t.z)
             val s = t.scale
             val jx = sin(idx * 2.3f) * 0.28f * s
             val jz = cos(idx * 1.9f) * 0.28f * s
+            val hueShift = ((idx * 37) % 11) * 0.016f - 0.08f
+            val warmDecid = if (!t.isPine && idx % 5 == 0) 0.11f else 0f
             mb.addTaperedCylinderY(t.x, ty, t.z, 0.54f * s, 0.34f * s, 1.1f * s, 8, 0.27f, 0.18f, 0.10f, capped = false)
             mb.addTaperedCylinderY(t.x, ty + 0.9f * s, t.z, 0.35f * s, 0.18f * s, 3.5f * s, 8, 0.31f, 0.20f, 0.11f, capped = false)
             if (t.isPine) {
-                mb.addCone(t.x + jx * 0.3f, ty + 2.0f * s, t.z + jz * 0.3f, 2.75f * s, 3.1f * s, 10, 0.09f, 0.27f, 0.13f)
-                mb.addCone(t.x - jx * 0.3f, ty + 3.4f * s, t.z + jz * 0.2f, 2.35f * s, 2.9f * s, 10, 0.11f, 0.32f, 0.15f)
-                mb.addCone(t.x + jx * 0.2f, ty + 4.8f * s, t.z - jz * 0.3f, 1.90f * s, 2.7f * s, 10, 0.12f, 0.37f, 0.16f)
-                mb.addCone(t.x - jx * 0.2f, ty + 6.1f * s, t.z + jz * 0.2f, 1.42f * s, 2.4f * s, 9, 0.14f, 0.42f, 0.18f)
-                mb.addCone(t.x, ty + 7.4f * s, t.z, 0.90f * s, 2.1f * s, 8, 0.16f, 0.46f, 0.20f)
+                mb.addCone(t.x + jx * 0.3f, ty + 2.0f * s, t.z + jz * 0.3f, 2.75f * s, 3.1f * s, 10, (0.09f + hueShift * 0.3f).coerceIn(0.05f, 0.2f), (0.27f + hueShift).coerceIn(0.18f, 0.45f), 0.13f)
+                mb.addCone(t.x - jx * 0.3f, ty + 3.4f * s, t.z + jz * 0.2f, 2.35f * s, 2.9f * s, 10, (0.11f + hueShift * 0.3f).coerceIn(0.06f, 0.22f), (0.32f + hueShift).coerceIn(0.22f, 0.50f), 0.15f)
+                mb.addCone(t.x + jx * 0.2f, ty + 4.8f * s, t.z - jz * 0.3f, 1.90f * s, 2.7f * s, 10, (0.12f + hueShift * 0.3f).coerceIn(0.07f, 0.24f), (0.37f + hueShift).coerceIn(0.25f, 0.54f), 0.16f)
+                mb.addCone(t.x - jx * 0.2f, ty + 6.1f * s, t.z + jz * 0.2f, 1.42f * s, 2.4f * s, 9, (0.14f + hueShift * 0.3f).coerceIn(0.08f, 0.26f), (0.42f + hueShift).coerceIn(0.28f, 0.58f), 0.18f)
+                mb.addCone(t.x, ty + 7.4f * s, t.z, 0.90f * s, 2.1f * s, 8, (0.16f + hueShift * 0.3f).coerceIn(0.09f, 0.28f), (0.46f + hueShift).coerceIn(0.32f, 0.62f), 0.20f)
             } else {
-                mb.addEllipsoid(t.x, ty + 5.2f * s, t.z, 2.35f * s, 1.95f * s, 2.35f * s, 7, 10, 0.16f, 0.43f, 0.15f)
-                mb.addEllipsoid(t.x + 1.15f * s + jx, ty + 4.3f * s, t.z + 0.85f * s, 1.65f * s, 1.45f * s, 1.65f * s, 6, 8, 0.14f, 0.37f, 0.14f)
-                mb.addEllipsoid(t.x - 1.05f * s, ty + 4.5f * s, t.z - 0.85f * s + jz, 1.65f * s, 1.42f * s, 1.65f * s, 6, 8, 0.20f, 0.48f, 0.17f)
-                mb.addEllipsoid(t.x + 0.3f * s, ty + 6.3f * s, t.z - 0.3f * s, 1.38f * s, 1.15f * s, 1.38f * s, 6, 8, 0.24f, 0.54f, 0.18f)
+                mb.addEllipsoid(t.x, ty + 5.2f * s, t.z, 2.35f * s, 1.95f * s, 2.35f * s, 7, 10, (0.16f + warmDecid + hueShift * 0.4f).coerceIn(0.10f, 0.38f), (0.43f + hueShift).coerceIn(0.30f, 0.56f), 0.15f)
+                mb.addEllipsoid(t.x + 1.15f * s + jx, ty + 4.3f * s, t.z + 0.85f * s, 1.65f * s, 1.45f * s, 1.65f * s, 6, 8, (0.14f + warmDecid + hueShift * 0.4f).coerceIn(0.10f, 0.36f), (0.37f + hueShift).coerceIn(0.26f, 0.50f), 0.14f)
+                mb.addEllipsoid(t.x - 1.05f * s, ty + 4.5f * s, t.z - 0.85f * s + jz, 1.65f * s, 1.42f * s, 1.65f * s, 6, 8, (0.20f + warmDecid + hueShift * 0.4f).coerceIn(0.12f, 0.42f), (0.48f + hueShift).coerceIn(0.32f, 0.60f), 0.17f)
+                mb.addEllipsoid(t.x + 0.3f * s, ty + 6.3f * s, t.z - 0.3f * s, 1.38f * s, 1.15f * s, 1.38f * s, 6, 8, (0.24f + warmDecid + hueShift * 0.4f).coerceIn(0.14f, 0.46f), (0.54f + hueShift).coerceIn(0.36f, 0.64f), 0.18f)
             }
         }
 

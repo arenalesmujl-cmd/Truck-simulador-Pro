@@ -327,8 +327,8 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
                 Matrix.translateM(modelMatrix, 0, driverX, pelvisY, driverZ)
                 Matrix.rotateM(modelMatrix, 0, driverYaw, 0f, 1f, 0f)
                 Matrix.rotateM(modelMatrix, 0, torsoRoll, 0f, 0f, 1f)
-                Matrix.translateM(modelMatrix, 0, side * 0.235f, 0.49f, 0f)
-                Matrix.rotateM(modelMatrix, 0, side * 9.5f, 0f, 0f, 1f)
+                Matrix.translateM(modelMatrix, 0, side * 0.214f, 0.49f, 0f)
+                Matrix.rotateM(modelMatrix, 0, side * 9.0f, 0f, 0f, 1f)
                 Matrix.rotateM(modelMatrix, 0, if (side > 0) -8f else 5f, 1f, 0f, 0f)
                 drawMesh(driverMeshes.upperArmMesh, 1f, 1f, 1f, 1f)
 
@@ -342,8 +342,8 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
                 Matrix.setIdentityM(modelMatrix, 0)
                 Matrix.translateM(modelMatrix, 0, driverX, pelvisY, driverZ)
                 Matrix.rotateM(modelMatrix, 0, driverYaw, 0f, 1f, 0f)
-                Matrix.translateM(modelMatrix, 0, side * 0.114f, 0.02f, 0f)
-                Matrix.rotateM(modelMatrix, 0, side * 5.0f, 0f, 0f, 1f)
+                Matrix.translateM(modelMatrix, 0, side * 0.102f, 0.02f, 0f)
+                Matrix.rotateM(modelMatrix, 0, side * 4.5f, 0f, 0f, 1f)
                 Matrix.rotateM(modelMatrix, 0, if (side > 0) -4.5f else 3.0f, 1f, 0f, 0f)
                 drawMesh(driverMeshes.thighMesh, 1f, 1f, 1f, 1f)
 
@@ -411,8 +411,8 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
                 Matrix.translateM(modelMatrix, 0, driverX, pelvisY, driverZ)
                 Matrix.rotateM(modelMatrix, 0, driverYaw, 0f, 1f, 0f)
                 Matrix.rotateM(modelMatrix, 0, torsoRoll, 0f, 0f, 1f)
-                Matrix.translateM(modelMatrix, 0, side * 0.235f, 0.49f, 0f)
-                Matrix.rotateM(modelMatrix, 0, side * 9.5f, 0f, 0f, 1f)
+                Matrix.translateM(modelMatrix, 0, side * 0.214f, 0.49f, 0f)
+                Matrix.rotateM(modelMatrix, 0, side * 9.0f, 0f, 0f, 1f)
                 Matrix.rotateM(modelMatrix, 0, if (side > 0) -8f else 5f, 1f, 0f, 0f)
                 drawShadowMesh(driverMeshes.upperArmMesh)
 
@@ -426,8 +426,8 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
                 Matrix.setIdentityM(modelMatrix, 0)
                 Matrix.translateM(modelMatrix, 0, driverX, pelvisY, driverZ)
                 Matrix.rotateM(modelMatrix, 0, driverYaw, 0f, 1f, 0f)
-                Matrix.translateM(modelMatrix, 0, side * 0.114f, 0.02f, 0f)
-                Matrix.rotateM(modelMatrix, 0, side * 5.0f, 0f, 0f, 1f)
+                Matrix.translateM(modelMatrix, 0, side * 0.102f, 0.02f, 0f)
+                Matrix.rotateM(modelMatrix, 0, side * 4.5f, 0f, 0f, 1f)
                 Matrix.rotateM(modelMatrix, 0, if (side > 0) -4.5f else 3.0f, 1f, 0f, 0f)
                 drawShadowMesh(driverMeshes.thighMesh)
 

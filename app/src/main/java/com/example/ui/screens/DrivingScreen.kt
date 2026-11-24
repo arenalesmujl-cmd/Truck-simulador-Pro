@@ -1,10 +1,16 @@
 package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,6 +54,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -276,6 +283,13 @@ fun DrivingScreen(
 
                 // Top-Right: Exit/Enter Driver + Camera Switch + Pause Menu
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val driverBtnInteraction = remember { MutableInteractionSource() }
+                    val driverBtnPressed by driverBtnInteraction.collectIsPressedAsState()
+                    val driverBtnScale by animateFloatAsState(
+                        targetValue = if (driverBtnPressed) 0.94f else 1f,
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                        label = "driver_btn_scale"
+                    )
                     Surface(
                         color = if (isOnFoot && telemetry.isNearTruckDoor) EmeraldGo.copy(alpha = 0.25f) else SimSurfaceGlass,
                         border = BorderStroke(
@@ -288,9 +302,17 @@ fun DrivingScreen(
                         ),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
+                            .graphicsLayer {
+                                scaleX = driverBtnScale
+                                scaleY = driverBtnScale
+                            }
                             .minimumInteractiveComponentSize()
                             .testTag("driver_mode_button")
-                            .clickable(onClick = onToggleDriverMode)
+                            .clickable(
+                                interactionSource = driverBtnInteraction,
+                                indication = LocalIndication.current,
+                                onClick = onToggleDriverMode
+                            )
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -312,14 +334,29 @@ fun DrivingScreen(
                     }
 
                     if (!isOnFoot) {
+                        val camBtnInteraction = remember { MutableInteractionSource() }
+                        val camBtnPressed by camBtnInteraction.collectIsPressedAsState()
+                        val camBtnScale by animateFloatAsState(
+                            targetValue = if (camBtnPressed) 0.94f else 1f,
+                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                            label = "cam_btn_scale"
+                        )
                         Surface(
                             color = SimSurfaceGlass,
                             border = BorderStroke(1.dp, RacingOrange),
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier
+                                .graphicsLayer {
+                                    scaleX = camBtnScale
+                                    scaleY = camBtnScale
+                                }
                                 .minimumInteractiveComponentSize()
                                 .testTag("camera_switch_button")
-                                .clickable(onClick = onCycleCamera)
+                                .clickable(
+                                    interactionSource = camBtnInteraction,
+                                    indication = LocalIndication.current,
+                                    onClick = onCycleCamera
+                                )
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -332,14 +369,29 @@ fun DrivingScreen(
                         }
                     }
 
+                    val pauseBtnInteraction = remember { MutableInteractionSource() }
+                    val pauseBtnPressed by pauseBtnInteraction.collectIsPressedAsState()
+                    val pauseBtnScale by animateFloatAsState(
+                        targetValue = if (pauseBtnPressed) 0.94f else 1f,
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                        label = "pause_btn_scale"
+                    )
                     Surface(
                         color = SimSurfaceGlass,
                         border = BorderStroke(1.dp, SimOutline),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
+                            .graphicsLayer {
+                                scaleX = pauseBtnScale
+                                scaleY = pauseBtnScale
+                            }
                             .minimumInteractiveComponentSize()
                             .testTag("pause_menu_button")
-                            .clickable(onClick = onPauseMenu)
+                            .clickable(
+                                interactionSource = pauseBtnInteraction,
+                                indication = LocalIndication.current,
+                                onClick = onPauseMenu
+                            )
                     ) {
                         Box(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -498,12 +550,21 @@ fun DrivingScreen(
                                 testTag = "wipers_button",
                                 onClick = onToggleWipers
                             )
+                            val hornScale by animateFloatAsState(
+                                targetValue = if (hornHeld) 0.93f else 1f,
+                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                                label = "horn_scale"
+                            )
                             Surface(
                                 color = if (hornHeld) RacingOrange else SimSurfaceGlass,
                                 border = BorderStroke(1.dp, if (hornHeld) RacingOrange else SimOutline),
                                 shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier
                                     .height(42.dp)
+                                    .graphicsLayer {
+                                        scaleX = hornScale
+                                        scaleY = hornScale
+                                    }
                                     .minimumInteractiveComponentSize()
                                     .testTag("horn_button")
                                     .pointerInput(Unit) {
@@ -565,44 +626,87 @@ fun DrivingScreen(
 
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             if (gearboxMode == GearboxMode.MANUAL) {
+                                val gearUpInteraction = remember { MutableInteractionSource() }
+                                val gearUpPressed by gearUpInteraction.collectIsPressedAsState()
+                                val gearUpScale by animateFloatAsState(
+                                    targetValue = if (gearUpPressed) 0.93f else 1f,
+                                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                                    label = "gear_up_scale"
+                                )
                                 Surface(
                                     color = SimSurfaceGlass,
                                     border = BorderStroke(1.dp, SimOutline),
                                     shape = RoundedCornerShape(10.dp),
                                     modifier = Modifier
                                         .size(width = 50.dp, height = 46.dp)
+                                        .graphicsLayer {
+                                            scaleX = gearUpScale
+                                            scaleY = gearUpScale
+                                        }
                                         .minimumInteractiveComponentSize()
                                         .testTag("gear_up_button")
-                                        .clickable { onShiftManual(1) }
+                                        .clickable(
+                                            interactionSource = gearUpInteraction,
+                                            indication = LocalIndication.current
+                                        ) { onShiftManual(1) }
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Text("+", style = MaterialTheme.typography.titleLarge, color = EmeraldGo)
                                     }
                                 }
+                                val gearDownInteraction = remember { MutableInteractionSource() }
+                                val gearDownPressed by gearDownInteraction.collectIsPressedAsState()
+                                val gearDownScale by animateFloatAsState(
+                                    targetValue = if (gearDownPressed) 0.93f else 1f,
+                                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                                    label = "gear_down_scale"
+                                )
                                 Surface(
                                     color = SimSurfaceGlass,
                                     border = BorderStroke(1.dp, SimOutline),
                                     shape = RoundedCornerShape(10.dp),
                                     modifier = Modifier
                                         .size(width = 50.dp, height = 46.dp)
+                                        .graphicsLayer {
+                                            scaleX = gearDownScale
+                                            scaleY = gearDownScale
+                                        }
                                         .minimumInteractiveComponentSize()
                                         .testTag("gear_down_button")
-                                        .clickable { onShiftManual(-1) }
+                                        .clickable(
+                                            interactionSource = gearDownInteraction,
+                                            indication = LocalIndication.current
+                                        ) { onShiftManual(-1) }
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Text("-", style = MaterialTheme.typography.titleLarge, color = AmberSignal)
                                     }
                                 }
                             } else {
+                                val revInteraction = remember { MutableInteractionSource() }
+                                val revPressed by revInteraction.collectIsPressedAsState()
+                                val revScale by animateFloatAsState(
+                                    targetValue = if (revPressed) 0.94f else 1f,
+                                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                                    label = "rev_scale"
+                                )
                                 Surface(
                                     color = if (telemetry.gear == -1) CrimsonAlert.copy(alpha = 0.3f) else SimSurfaceGlass,
                                     border = BorderStroke(1.dp, if (telemetry.gear == -1) CrimsonAlert else SimOutline),
                                     shape = RoundedCornerShape(10.dp),
                                     modifier = Modifier
                                         .size(width = 52.dp, height = 64.dp)
+                                        .graphicsLayer {
+                                            scaleX = revScale
+                                            scaleY = revScale
+                                        }
                                         .minimumInteractiveComponentSize()
                                         .testTag("reverse_toggle_button")
-                                        .clickable(onClick = onToggleReverseAuto)
+                                        .clickable(
+                                            interactionSource = revInteraction,
+                                            indication = LocalIndication.current,
+                                            onClick = onToggleReverseAuto
+                                        )
                                 ) {
                                     Column(
                                         horizontalAlignment = Alignment.CenterHorizontally,

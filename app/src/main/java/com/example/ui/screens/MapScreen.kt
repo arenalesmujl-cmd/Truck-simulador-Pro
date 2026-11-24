@@ -51,12 +51,10 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextMeasurer
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.model.CareerProfile
 import com.example.model.RouteCatalog
 import com.example.model.RouteInfo
@@ -327,6 +325,10 @@ private fun WorldMapCanvas(
     textMeasurer: TextMeasurer,
     modifier: Modifier = Modifier
 ) {
+    val cityLabelStyle = MaterialTheme.typography.labelSmall.copy(
+        color = TextPrimary,
+        fontWeight = FontWeight.SemiBold
+    )
     Canvas(modifier = modifier.background(Color(0xFF07101C), RoundedCornerShape(12.dp))) {
         val w = size.width
         val h = size.height
@@ -412,19 +414,21 @@ private fun WorldMapCanvas(
         // City Labels + zone ring
         for (city in TruckWorld.cities) {
             val pos = toMap(city.x, city.z)
-            drawCircle(Color(0xFF38BDF8).copy(alpha = 0.20f), radius = city.radius * scale, center = pos, style = Stroke(width = 1.5f))
+            drawCircle(Color(0xFF38BDF8).copy(alpha = 0.22f), radius = city.radius * scale, center = pos, style = Stroke(width = 1.6f))
+            drawCircle(SkyCyan.copy(alpha = 0.10f), radius = city.radius * scale * 0.65f, center = pos)
             drawText(
                 textMeasurer = textMeasurer,
                 text = city.name,
                 topLeft = Offset(pos.x - 44f, pos.y - 26f),
-                style = TextStyle(color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                style = cityLabelStyle
             )
         }
 
         // Player Truck Directional Chevron
         val pPos = toMap(telemetry.truckX, telemetry.truckZ)
         rotate(degrees = Math.toDegrees(telemetry.truckYawRad.toDouble()).toFloat(), pivot = pPos) {
-            drawCircle(RacingOrange.copy(alpha = 0.25f), radius = 18f, center = pPos)
+            drawCircle(RacingOrange.copy(alpha = 0.25f), radius = 19f, center = pPos)
+            drawCircle(RacingOrange.copy(alpha = 0.45f), radius = 19f, center = pPos, style = Stroke(width = 1.4f))
             val path = Path().apply {
                 moveTo(pPos.x, pPos.y + 11f)
                 lineTo(pPos.x - 8f, pPos.y - 8f)
@@ -433,6 +437,7 @@ private fun WorldMapCanvas(
                 close()
             }
             drawPath(path, color = RacingOrange)
+            drawPath(path, color = TextPrimary.copy(alpha = 0.85f), style = Stroke(width = 1.6f))
         }
     }
 }
