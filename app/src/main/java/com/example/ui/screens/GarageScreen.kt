@@ -27,6 +27,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.filled.SettingsInputComponent
 import androidx.compose.material.icons.filled.Speed
@@ -207,25 +208,51 @@ fun GarageScreen(
                         Spacer(Modifier.height(6.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             PaintCatalog.options.forEach { paint ->
                                 val selected = profile.truckPaintHex.equals(paint.hex, ignoreCase = true)
-                                val color = Color(android.graphics.Color.parseColor(paint.hex))
+                                val baseColor = Color(android.graphics.Color.parseColor(paint.hex))
+                                val highlightColor = Color(
+                                    red = (baseColor.red * 0.68f + 0.32f).coerceIn(0f, 1f),
+                                    green = (baseColor.green * 0.68f + 0.32f).coerceIn(0f, 1f),
+                                    blue = (baseColor.blue * 0.68f + 0.32f).coerceIn(0f, 1f)
+                                )
                                 Box(
+                                    contentAlignment = Alignment.Center,
                                     modifier = Modifier
-                                        .size(34.dp)
+                                        .size(48.dp)
                                         .clip(CircleShape)
-                                        .background(color)
-                                        .border(
-                                            width = if (selected) 3.dp else 1.dp,
-                                            color = if (selected) TextPrimary else SimOutline,
-                                            shape = CircleShape
-                                        )
                                         .minimumInteractiveComponentSize()
                                         .testTag("paint_${paint.hex}")
                                         .clickable { onSelectPaint(paint.hex) }
-                                )
+                                ) {
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier
+                                            .size(34.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                Brush.radialGradient(
+                                                    colors = listOf(highlightColor, baseColor, baseColor.copy(alpha = 0.85f))
+                                                )
+                                            )
+                                            .border(
+                                                width = if (selected) 2.5.dp else 1.dp,
+                                                color = if (selected) TextPrimary else SimOutline,
+                                                shape = CircleShape
+                                            )
+                                    ) {
+                                        if (selected) {
+                                            Icon(
+                                                imageVector = Icons.Filled.Check,
+                                                contentDescription = paint.name,
+                                                tint = TextPrimary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -295,9 +322,19 @@ private fun UpgradeCard(
     val cost = level * 3500L
     Card(
         colors = CardDefaults.cardColors(containerColor = SimSurface),
-        border = BorderStroke(1.dp, SimOutline),
+        border = BorderStroke(1.dp, if (isMax) EmeraldGo.copy(alpha = 0.45f) else SimOutline),
         shape = RoundedCornerShape(14.dp)
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(2.5.dp)
+                .background(
+                    Brush.horizontalGradient(
+                        if (isMax) listOf(EmeraldGo, SkyCyan) else listOf(RacingOrange, SkyCyan.copy(alpha = 0.5f))
+                    )
+                )
+        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()

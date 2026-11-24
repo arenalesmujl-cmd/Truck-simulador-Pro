@@ -853,56 +853,82 @@ object WorldMeshFactory {
 
     fun buildTerrainMesh(): MeshBuffer {
         val mb = DynamicMeshBuilder()
-        val grid = 96
+        val grid = 112
+        val n = grid + 1
         val minCoord = -1300f
         val step = 2600f / grid
 
-        for (gx in 0 until grid) {
-            for (gz in 0 until grid) {
-                val x0 = minCoord + gx * step
-                val x1 = x0 + step
-                val z0 = minCoord + gz * step
-                val z1 = z0 + step
-                val cx = (x0 + x1) * 0.5f
-                val cz = (z0 + z1) * 0.5f
+        val posX = Array(n) { FloatArray(n) }
+        val posY = Array(n) { FloatArray(n) }
+        val posZ = Array(n) { FloatArray(n) }
+        val norX = Array(n) { FloatArray(n) }
+        val norY = Array(n) { FloatArray(n) }
+        val norZ = Array(n) { FloatArray(n) }
+        val colR = Array(n) { FloatArray(n) }
+        val colG = Array(n) { FloatArray(n) }
+        val colB = Array(n) { FloatArray(n) }
 
-                val y00 = TruckWorld.terrainHeightAt(x0, z0)
-                val y10 = TruckWorld.terrainHeightAt(x1, z0)
-                val y11 = TruckWorld.terrainHeightAt(x1, z1)
-                val y01 = TruckWorld.terrainHeightAt(x0, z1)
+        for (gx in 0..grid) {
+            val x = minCoord + gx * step
+            for (gz in 0..grid) {
+                val z = minCoord + gz * step
+                val isOcean = x > 870f && z < -180f
+                val isBeach = x > 820f && x <= 875f && z < -170f
+                val y = if (isOcean) -0.5f else TruckWorld.terrainHeightAt(x, z)
+                val (nx, ny, nz) = if (isOcean) Triple(0f, 1f, 0f) else terrainNormalAt(x, z)
 
-                val distCity = hypot(cx, cz)
-                val isOcean = cx > 870f && cz < -180f
-                val isBeach = cx > 820f && cx <= 875f && cz < -170f
-                val urbanBlend = (1f - ((distCity - 180f) / 140f).coerceIn(0f, 1f))
-                val isSierra = cz > 450f
-
-                val (nx, ny, nz) = if (isOcean) Triple(0f, 1f, 0f) else terrainNormalAt(cx, cz)
-                val steep = 1f - ny
+                val distCity = hypot(x, z)
+                val urbanBlend = (1f - ((distCity - 180f) / 145f).coerceIn(0f, 1f))
+                val isSierra = z > 450f
+                val steep = (1f - ny)
 
                 val (baseR, baseG, baseB) = when {
                     isOcean -> Triple(0.08f, 0.38f, 0.66f)
-                    isBeach -> Triple(0.74f, 0.66f, 0.49f)
-                    steep > 0.14f -> Triple(0.40f, 0.38f, 0.35f)
-                    isSierra -> Triple(0.24f, 0.41f, 0.22f)
-                    else -> Triple(0.24f, 0.49f, 0.20f)
+                    isBeach -> Triple(0.75f, 0.67f, 0.50f)
+                    else -> {
+                        val rockBlend = ((steep - 0.08f) / 0.14f).coerceIn(0f, 1f)
+                        val grassR = if (isSierra) 0.23f else 0.24f
+                        val grassG = if (isSierra) 0.40f else 0.48f
+                        val grassB = if (isSierra) 0.21f else 0.19f
+                        Triple(
+                            grassR + (0.42f - grassR) * rockBlend,
+                            grassG + (0.39f - grassG) * rockBlend,
+                            grassB + (0.36f - grassB) * rockBlend
+                        )
+                    }
                 }
                 val r = if (!isOcean && !isBeach) baseR + (0.28f - baseR) * urbanBlend * 0.72f else baseR
                 val g = if (!isOcean && !isBeach) baseG + (0.31f - baseG) * urbanBlend * 0.72f else baseG
                 val b = if (!isOcean && !isBeach) baseB + (0.34f - baseB) * urbanBlend * 0.72f else baseB
 
-                val h00 = if (isOcean) -0.5f else y00
-                val h10 = if (isOcean) -0.5f else y10
-                val h11 = if (isOcean) -0.5f else y11
-                val h01 = if (isOcean) -0.5f else y01
+                posX[gx][gz] = x
+                posY[gx][gz] = y
+                posZ[gx][gz] = z
+                norX[gx][gz] = nx
+                norY[gx][gz] = ny
+                norZ[gx][gz] = nz
+                colR[gx][gz] = r
+                colG[gx][gz] = g
+                colB[gx][gz] = b
+            }
+        }
 
-                mb.addQuadUv(
-                    x0, h01, z1, 0f, 3f,
-                    x1, h11, z1, 3f, 3f,
-                    x1, h10, z0, 3f, 0f,
-                    x0, h00, z0, 0f, 0f,
-                    nx, ny, nz, r, g, b
-                )
+        val uvDiv = 14.0f
+        for (gx in 0 until grid) {
+            for (gz in 0 until grid) {
+                val u0 = posX[gx][gz] / uvDiv
+                val u1 = posX[gx + 1][gz] / uvDiv
+                val v0 = posZ[gx][gz] / uvDiv
+                val v1 = posZ[gx][gz + 1] / uvDiv
+
+                // Smooth bilinear interpolated triangles (01 -> 11 -> 10, 01 -> 10 -> 00)
+                mb.addVertex(posX[gx][gz + 1], posY[gx][gz + 1], posZ[gx][gz + 1], norX[gx][gz + 1], norY[gx][gz + 1], norZ[gx][gz + 1], u0, v1, colR[gx][gz + 1], colG[gx][gz + 1], colB[gx][gz + 1])
+                mb.addVertex(posX[gx + 1][gz + 1], posY[gx + 1][gz + 1], posZ[gx + 1][gz + 1], norX[gx + 1][gz + 1], norY[gx + 1][gz + 1], norZ[gx + 1][gz + 1], u1, v1, colR[gx + 1][gz + 1], colG[gx + 1][gz + 1], colB[gx + 1][gz + 1])
+                mb.addVertex(posX[gx + 1][gz], posY[gx + 1][gz], posZ[gx + 1][gz], norX[gx + 1][gz], norY[gx + 1][gz], norZ[gx + 1][gz], u1, v0, colR[gx + 1][gz], colG[gx + 1][gz], colB[gx + 1][gz])
+
+                mb.addVertex(posX[gx][gz + 1], posY[gx][gz + 1], posZ[gx][gz + 1], norX[gx][gz + 1], norY[gx][gz + 1], norZ[gx][gz + 1], u0, v1, colR[gx][gz + 1], colG[gx][gz + 1], colB[gx][gz + 1])
+                mb.addVertex(posX[gx + 1][gz], posY[gx + 1][gz], posZ[gx + 1][gz], norX[gx + 1][gz], norY[gx + 1][gz], norZ[gx + 1][gz], u1, v0, colR[gx + 1][gz], colG[gx + 1][gz], colB[gx + 1][gz])
+                mb.addVertex(posX[gx][gz], posY[gx][gz], posZ[gx][gz], norX[gx][gz], norY[gx][gz], norZ[gx][gz], u0, v0, colR[gx][gz], colG[gx][gz], colB[gx][gz])
             }
         }
         return mb.build()
@@ -1013,12 +1039,45 @@ object WorldMeshFactory {
                     }
                 }
 
-                if (road.isHighway && i % 2 == 1 && hypot(cx0, cz0) > 250f) {
-                    val railOff = halfW + 1.25f
-                    mb.addBox(cx0 + rightX * railOff, y0 + 0.52f, cz0 + rightZ * railOff, 0.18f, 0.35f, 12f, 0.68f, 0.70f, 0.74f)
-                    mb.addBox(cx0 - rightX * railOff, y0 + 0.52f, cz0 - rightZ * railOff, 0.18f, 0.35f, 12f, 0.68f, 0.70f, 0.74f)
-                    mb.addCylinderY(cx0 + rightX * railOff, y0, cz0 + rightZ * railOff, 0.09f, 0.66f, 6, 0.45f, 0.47f, 0.52f)
-                    mb.addCylinderY(cx0 - rightX * railOff, y0, cz0 - rightZ * railOff, 0.09f, 0.66f, 6, 0.45f, 0.47f, 0.52f)
+                if (road.isHighway && hypot(cx0, cz0) > 250f && !nearIntersection((cx0 + cx1) * 0.5f, (cz0 + cz1) * 0.5f)) {
+                    val railOff = halfW + 1.28f
+                    val railHalfT = 0.08f
+                    val railBot = 0.38f
+                    val railTop = 0.72f
+                    for (side in listOf(-1f, 1f)) {
+                        val centerOff = railOff * side
+                        val innerOff = centerOff - side * railHalfT
+                        val outerOff = centerOff + side * railHalfT
+                        // Road-facing steel W-beam face
+                        mb.addQuad(
+                            cx0 + rightX * innerOff, y0 + railBot, cz0 + rightZ * innerOff,
+                            cx1 + rightX * innerOff, y1 + railBot, cz1 + rightZ * innerOff,
+                            cx1 + rightX * innerOff, y1 + railTop, cz1 + rightZ * innerOff,
+                            cx0 + rightX * innerOff, y0 + railTop, cz0 + rightZ * innerOff,
+                            -rightX * side, 0.1f, -rightZ * side, 0.72f, 0.75f, 0.79f
+                        )
+                        // Outer shoulder-facing W-beam face
+                        mb.addQuad(
+                            cx1 + rightX * outerOff, y1 + railBot, cz1 + rightZ * outerOff,
+                            cx0 + rightX * outerOff, y0 + railBot, cz0 + rightZ * outerOff,
+                            cx0 + rightX * outerOff, y0 + railTop, cz0 + rightZ * outerOff,
+                            cx1 + rightX * outerOff, y1 + railTop, cz1 + rightZ * outerOff,
+                            rightX * side, 0.1f, rightZ * side, 0.58f, 0.61f, 0.66f
+                        )
+                        // Top rail bevel cap
+                        mb.addQuad(
+                            cx0 + rightX * innerOff, y0 + railTop, cz0 + rightZ * innerOff,
+                            cx1 + rightX * innerOff, y1 + railTop, cz1 + rightZ * innerOff,
+                            cx1 + rightX * outerOff, y1 + railTop, cz1 + rightZ * outerOff,
+                            cx0 + rightX * outerOff, y0 + railTop, cz0 + rightZ * outerOff,
+                            0f, 1f, 0f, 0.78f, 0.81f, 0.85f
+                        )
+                        if (i % 2 == 1) {
+                            mb.addCylinderY(cx0 + rightX * centerOff, y0, cz0 + rightZ * centerOff, 0.085f, 0.70f, 6, 0.44f, 0.47f, 0.52f)
+                            // Retro-reflective roadside safety tab
+                            mb.addBox(cx0 + rightX * (innerOff - side * 0.03f), y0 + 0.60f, cz0 + rightZ * (innerOff - side * 0.03f), 0.06f, 0.11f, 0.06f, 0.98f, 0.64f, 0.10f)
+                        }
+                    }
                 }
             }
         }
@@ -1072,19 +1131,10 @@ object WorldMeshFactory {
             val baseY = TruckWorld.terrainHeightAt(b.x, b.z)
             val uvX = (b.width / 12f).coerceIn(1f, 4f)
             val uvY = (b.height / 16f).coerceIn(1f, 6f)
-            // Raised concrete sidewalk plaza plinth grounding every city building
-            mb.addBox(b.x, baseY + 0.22f, b.z, b.width + 4.4f, 0.45f, b.depth + 4.4f, 0.32f, 0.35f, 0.40f)
-            // Ground-floor architectural lobby podium
-            mb.addBox(b.x, baseY + 1.8f, b.z, b.width + 0.7f, 3.6f, b.depth + 0.7f, 0.17f, 0.20f, 0.25f)
-            // Main curtain-wall tower shaft
+            // Main glass curtain-wall tower shaft (podium, parapet & clean concrete roof belong in buildStaticEnvironmentMesh)
             mb.addBoxUv(b.x, baseY + b.height * 0.5f, b.z, b.width, b.height, b.depth, uvX, uvY, b.colorR + 0.26f, b.colorG + 0.26f, b.colorB + 0.29f)
-            // Cornice parapet trim
-            mb.addBeveledBox(b.x, baseY + b.height + 0.45f, b.z, b.width + 0.6f, 0.9f, b.depth + 0.6f, 0.15f, 0.18f, 0.21f, 0.26f)
             if (b.isSkyscraper) {
                 mb.addBoxUv(b.x, baseY + b.height + 2.2f, b.z, b.width * 0.64f, 3.0f, b.depth * 0.64f, uvX * 0.6f, 0.6f, 0.24f, 0.28f, 0.34f)
-                mb.addBox(b.x, baseY + b.height + 4.1f, b.z, b.width * 0.36f, 1.4f, b.depth * 0.36f, 0.19f, 0.22f, 0.27f)
-                mb.addBox(b.x - b.width * 0.22f, baseY + b.height + 1.15f, b.z + b.depth * 0.22f, 1.8f, 0.8f, 1.8f, 0.34f, 0.38f, 0.44f)
-                mb.addCylinderY(b.x, baseY + b.height + 4.8f, b.z, 0.20f, 7.8f, 10, 0.74f, 0.77f, 0.82f)
             }
         }
         return mb.build()
@@ -1191,21 +1241,45 @@ object WorldMeshFactory {
             addFractalMountain(mb, m.x + m.radius * 0.42f, my, m.z - m.radius * 0.25f, m.radius * 0.65f, m.height * 0.64f, seedPhase = idx * 2.11f + 0.9f)
         }
 
+        // Solid concrete city sidewalk plazas, lobby podiums, gravel roof caps, HVAC chillers & spires (whiteTex)
+        for (b in TruckWorld.buildings) {
+            val baseY = TruckWorld.terrainHeightAt(b.x, b.z)
+            mb.addBox(b.x, baseY + 0.22f, b.z, b.width + 4.4f, 0.45f, b.depth + 4.4f, 0.32f, 0.35f, 0.40f)
+            mb.addBox(b.x, baseY + 1.8f, b.z, b.width + 0.7f, 3.6f, b.depth + 0.7f, 0.17f, 0.20f, 0.25f)
+            // Concrete parapet & gravel roof slab covering 100% of tower roof
+            mb.addBeveledBox(b.x, baseY + b.height + 0.38f, b.z, b.width + 0.62f, 0.82f, b.depth + 0.62f, 0.15f, 0.20f, 0.23f, 0.28f)
+            mb.addBox(b.x, baseY + b.height + 0.82f, b.z, b.width * 0.90f, 0.12f, b.depth * 0.90f, 0.34f, 0.37f, 0.42f)
+            if (b.isSkyscraper) {
+                mb.addBeveledBox(b.x, baseY + b.height + 3.85f, b.z, b.width * 0.66f, 0.45f, b.depth * 0.66f, 0.12f, 0.20f, 0.24f, 0.29f)
+                mb.addBox(b.x, baseY + b.height + 4.45f, b.z, b.width * 0.36f, 1.3f, b.depth * 0.36f, 0.19f, 0.22f, 0.27f)
+                mb.addBox(b.x - b.width * 0.22f, baseY + b.height + 1.25f, b.z + b.depth * 0.22f, 1.8f, 0.85f, 1.8f, 0.36f, 0.40f, 0.46f)
+                mb.addCylinderY(b.x, baseY + b.height + 5.1f, b.z, 0.20f, 7.6f, 10, 0.74f, 0.77f, 0.82f)
+            } else {
+                mb.addBox(b.x + b.width * 0.22f, baseY + b.height + 1.22f, b.z - b.depth * 0.18f, 2.2f, 0.82f, 1.8f, 0.38f, 0.41f, 0.46f)
+                mb.addCylinderY(b.x + b.width * 0.22f, baseY + b.height + 1.63f, b.z - b.depth * 0.18f, 0.55f, 0.16f, 10, 0.16f, 0.18f, 0.22f)
+            }
+        }
+
         // Highway Overhead Steel Gantry Sign Arches at city exits
         for (gantryZ in listOf(-245f, 245f)) {
             val gy = TruckWorld.terrainHeightAt(0f, gantryZ)
-            mb.addCylinderY(-11.5f, gy, gantryZ, 0.30f, 7.6f, 8, 0.56f, 0.60f, 0.66f)
-            mb.addCylinderY(11.5f, gy, gantryZ, 0.30f, 7.6f, 8, 0.56f, 0.60f, 0.66f)
-            mb.addBox(0f, gy + 7.2f, gantryZ, 23.6f, 0.45f, 0.45f, 0.60f, 0.64f, 0.70f)
-            mb.addBox(0f, gy + 7.2f, gantryZ, 12.5f, 2.2f, 0.62f, 0.08f, 0.46f, 0.24f)
-            mb.addBox(0f, gy + 7.3f, gantryZ + 0.34f, 9.5f, 0.45f, 0.05f, 0.92f, 0.94f, 0.96f)
+            mb.addCylinderY(-11.5f, gy, gantryZ, 0.30f, 7.8f, 8, 0.56f, 0.60f, 0.66f)
+            mb.addCylinderY(11.5f, gy, gantryZ, 0.30f, 7.8f, 8, 0.56f, 0.60f, 0.66f)
+            mb.addBox(0f, gy + 7.45f, gantryZ, 23.8f, 0.35f, 0.35f, 0.60f, 0.64f, 0.70f)
+            mb.addBox(0f, gy + 6.75f, gantryZ, 23.6f, 0.32f, 0.32f, 0.56f, 0.60f, 0.66f)
+            mb.addBox(0f, gy + 7.1f, gantryZ, 12.8f, 2.3f, 0.56f, 0.08f, 0.44f, 0.23f)
+            mb.addBox(0f, gy + 7.75f, gantryZ + 0.31f, 9.6f, 0.28f, 0.06f, 0.94f, 0.95f, 0.97f)
+            mb.addBox(-4.2f, gy + 6.6f, gantryZ + 0.31f, 2.6f, 0.42f, 0.06f, 0.96f, 0.72f, 0.08f)
+            mb.addBox(3.4f, gy + 6.95f, gantryZ + 0.31f, 4.2f, 0.22f, 0.06f, 0.92f, 0.94f, 0.96f)
         }
         for (gantryX in listOf(-245f, 245f)) {
             val gy = TruckWorld.terrainHeightAt(gantryX, 0f)
-            mb.addCylinderY(gantryX, gy, -11.5f, 0.30f, 7.6f, 8, 0.56f, 0.60f, 0.66f)
-            mb.addCylinderY(gantryX, gy, 11.5f, 0.30f, 7.6f, 8, 0.56f, 0.60f, 0.66f)
-            mb.addBox(gantryX, gy + 7.2f, 0f, 0.45f, 0.45f, 23.6f, 0.60f, 0.64f, 0.70f)
-            mb.addBox(gantryX, gy + 7.2f, 0f, 0.62f, 2.2f, 12.5f, 0.08f, 0.46f, 0.24f)
+            mb.addCylinderY(gantryX, gy, -11.5f, 0.30f, 7.8f, 8, 0.56f, 0.60f, 0.66f)
+            mb.addCylinderY(gantryX, gy, 11.5f, 0.30f, 7.8f, 8, 0.56f, 0.60f, 0.66f)
+            mb.addBox(gantryX, gy + 7.45f, 0f, 0.35f, 0.35f, 23.8f, 0.60f, 0.64f, 0.70f)
+            mb.addBox(gantryX, gy + 6.75f, 0f, 0.32f, 0.32f, 23.6f, 0.56f, 0.60f, 0.66f)
+            mb.addBox(gantryX, gy + 7.1f, 0f, 0.56f, 2.3f, 12.8f, 0.08f, 0.44f, 0.23f)
+            mb.addBox(gantryX + 0.31f, gy + 7.75f, 0f, 0.06f, 0.28f, 9.6f, 0.94f, 0.95f, 0.97f)
         }
 
         for (zone in TruckWorld.zones) {
@@ -1218,19 +1292,40 @@ object WorldMeshFactory {
                     mb.addCylinderY(cx + 4.5f, zy, cz - 2f, 0.35f, 5.6f, 10, 0.85f, 0.85f, 0.88f)
                     mb.addBeveledBox(cx, zy + 5.8f, cz, 13.4f, 0.95f, 7.6f, 0.2f, 0.96f, 0.45f, 0.05f)
                     mb.addBox(cx, zy + 5.25f, cz, 13.5f, 0.25f, 7.7f, 0.95f, 0.95f, 0.98f)
-                    mb.addBox(cx - 2f, zy + 1.15f, cz - 2f, 1.3f, 2.3f, 0.85f, 0.92f, 0.94f, 0.96f)
-                    mb.addBox(cx + 2f, zy + 1.15f, cz - 2f, 1.3f, 2.3f, 0.85f, 0.92f, 0.94f, 0.96f)
-                    mb.addBox(cx - 2f, zy + 1.55f, cz - 2f, 1.34f, 0.55f, 0.88f, 0.12f, 0.65f, 0.38f)
-                    mb.addBox(cx + 2f, zy + 1.55f, cz - 2f, 1.34f, 0.55f, 0.88f, 0.95f, 0.45f, 0.05f)
+                    // Under-canopy recessed LED ceiling panels
+                    mb.addBox(cx - 2.6f, zy + 5.10f, cz, 2.4f, 0.08f, 2.4f, 0.96f, 0.98f, 1.0f)
+                    mb.addBox(cx + 2.6f, zy + 5.10f, cz, 2.4f, 0.08f, 2.4f, 0.96f, 0.98f, 1.0f)
+                    for (px in listOf(cx - 2f, cx + 2f)) {
+                        mb.addBox(px, zy + 0.25f, cz - 2f, 2.4f, 0.5f, 1.8f, 0.26f, 0.28f, 0.32f)
+                        mb.addBox(px, zy + 1.30f, cz - 2f, 1.3f, 2.1f, 0.85f, 0.92f, 0.94f, 0.96f)
+                        // Pump hoses & digital meter display
+                        mb.addBox(px, zy + 1.45f, cz - 1.56f, 0.62f, 0.34f, 0.06f, 0.06f, 0.14f, 0.22f)
+                        mb.addCylinderY(px + 0.72f, zy + 0.65f, cz - 2f, 0.045f, 1.35f, 6, 0.09f, 0.10f, 0.12f)
+                        // Yellow concrete safety bollards protecting pump island
+                        mb.addCylinderY(px - 1.05f, zy, cz - 2.95f, 0.12f, 1.05f, 8, 0.96f, 0.72f, 0.08f)
+                        mb.addCylinderY(px + 1.05f, zy, cz - 1.05f, 0.12f, 1.05f, 8, 0.96f, 0.72f, 0.08f)
+                    }
+                    mb.addBox(cx - 2f, zy + 1.65f, cz - 2f, 1.34f, 0.55f, 0.88f, 0.12f, 0.65f, 0.38f)
+                    mb.addBox(cx + 2f, zy + 1.65f, cz - 2f, 1.34f, 0.55f, 0.88f, 0.95f, 0.45f, 0.05f)
                     mb.addBox(cx - 9f, zy + 4.5f, cz - 5f, 2.4f, 9.0f, 0.7f, 0.14f, 0.16f, 0.20f)
                     mb.addBox(cx - 9f, zy + 7.2f, cz - 5f, 2.5f, 2.4f, 0.75f, 0.96f, 0.44f, 0.06f)
+                    mb.addBox(cx - 9f, zy + 4.6f, cz - 5f, 2.2f, 1.8f, 0.76f, 0.10f, 0.14f, 0.20f)
                 }
                 ZoneType.WORKSHOP -> {
                     val wx = zone.x + 10f
                     val wz = zone.z + 10f
                     mb.addBox(wx, zy + 3.2f, wz, 12.5f, 6.4f, 10.5f, 0.24f, 0.32f, 0.44f)
                     mb.addBeveledBox(wx, zy + 6.6f, wz, 13.1f, 0.7f, 11.1f, 0.15f, 0.14f, 0.56f, 0.88f)
-                    mb.addBox(wx, zy + 2.2f, wz - 5.3f, 6.2f, 4.4f, 0.2f, 0.16f, 0.18f, 0.22f)
+                    mb.addBox(wx, zy + 2.2f, wz - 5.3f, 6.4f, 4.4f, 0.22f, 0.15f, 0.17f, 0.21f)
+                    for (ry in listOf(0.8f, 1.6f, 2.4f, 3.2f)) {
+                        mb.addBox(wx, zy + ry, wz - 5.42f, 6.0f, 0.08f, 0.04f, 0.48f, 0.54f, 0.62f)
+                    }
+                    // Glazed upper bay door window lites + external vertical compressed-air tank
+                    for (gx in listOf(-2.0f, -0.7f, 0.7f, 2.0f)) {
+                        mb.addBox(wx + gx, zy + 2.8f, wz - 5.43f, 0.95f, 0.55f, 0.05f, 0.24f, 0.52f, 0.76f)
+                    }
+                    mb.addCylinderY(wx - 7.1f, zy + 0.2f, wz - 3.6f, 0.55f, 2.6f, 10, 0.14f, 0.52f, 0.84f)
+                    mb.addBox(wx, zy + 5.2f, wz - 5.32f, 7.2f, 0.85f, 0.18f, 0.14f, 0.56f, 0.88f)
                 }
                 ZoneType.CARGO_HUB -> {
                     val hx = zone.x + 14f
@@ -1239,6 +1334,11 @@ object WorldMeshFactory {
                     mb.addBeveledBox(hx, zy + 8.3f, hz, 16.8f, 0.6f, 12.8f, 0.2f, 0.16f, 0.54f, 0.38f)
                     mb.addBox(hx - 4f, zy + 1.8f, hz - 6.2f, 5.5f, 3.6f, 0.4f, 0.15f, 0.68f, 0.42f)
                     mb.addBox(hx + 3.5f, zy + 1.8f, hz - 6.2f, 5.5f, 3.6f, 0.4f, 0.22f, 0.26f, 0.30f)
+                    // Loading dock black rubber bumpers & yellow steel bollards
+                    for (dx in listOf(-6.8f, -1.2f, 0.7f, 6.3f)) {
+                        mb.addBox(hx + dx, zy + 0.9f, hz - 6.35f, 0.36f, 0.65f, 0.24f, 0.08f, 0.09f, 0.12f)
+                        mb.addCylinderY(hx + dx, zy, hz - 6.95f, 0.14f, 1.25f, 8, 0.96f, 0.72f, 0.08f)
+                    }
                     mb.addBox(hx - 14f, zy + 1.4f, hz + 1f, 2.5f, 2.8f, 6.4f, 0.82f, 0.26f, 0.16f)
                     mb.addBox(hx - 14f, zy + 4.2f, hz + 1f, 2.5f, 2.8f, 6.4f, 0.14f, 0.46f, 0.76f)
                     mb.addBox(hx - 11f, zy + 1.4f, hz + 1f, 2.5f, 2.8f, 6.4f, 0.16f, 0.58f, 0.36f)
@@ -1264,13 +1364,14 @@ object WorldMeshFactory {
         mb.addBox(920f, 9.4f, -438f, 5f, 3.0f, 36f, 0.14f, 0.52f, 0.78f)
         mb.addBox(928f, 9.4f, -442f, 5f, 3.0f, 28f, 0.18f, 0.62f, 0.42f)
 
-        // Organic 5-tier evergreen pine boughs & clustered deciduous crowns
+        // Organic 5-tier evergreen pine boughs & clustered deciduous crowns with flared roots
         TruckWorld.trees.forEachIndexed { idx, t ->
             val ty = TruckWorld.terrainHeightAt(t.x, t.z)
             val s = t.scale
             val jx = sin(idx * 2.3f) * 0.28f * s
             val jz = cos(idx * 1.9f) * 0.28f * s
-            mb.addTaperedCylinderY(t.x, ty, t.z, 0.40f * s, 0.20f * s, 4.2f * s, 8, 0.31f, 0.20f, 0.11f, capped = false)
+            mb.addTaperedCylinderY(t.x, ty, t.z, 0.54f * s, 0.34f * s, 1.1f * s, 8, 0.27f, 0.18f, 0.10f, capped = false)
+            mb.addTaperedCylinderY(t.x, ty + 0.9f * s, t.z, 0.35f * s, 0.18f * s, 3.5f * s, 8, 0.31f, 0.20f, 0.11f, capped = false)
             if (t.isPine) {
                 mb.addCone(t.x + jx * 0.3f, ty + 2.0f * s, t.z + jz * 0.3f, 2.75f * s, 3.1f * s, 10, 0.09f, 0.27f, 0.13f)
                 mb.addCone(t.x - jx * 0.3f, ty + 3.4f * s, t.z + jz * 0.2f, 2.35f * s, 2.9f * s, 10, 0.11f, 0.32f, 0.15f)
@@ -1278,10 +1379,10 @@ object WorldMeshFactory {
                 mb.addCone(t.x - jx * 0.2f, ty + 6.1f * s, t.z + jz * 0.2f, 1.42f * s, 2.4f * s, 9, 0.14f, 0.42f, 0.18f)
                 mb.addCone(t.x, ty + 7.4f * s, t.z, 0.90f * s, 2.1f * s, 8, 0.16f, 0.46f, 0.20f)
             } else {
-                mb.addEllipsoid(t.x, ty + 5.2f * s, t.z, 2.3f * s, 1.9f * s, 2.3f * s, 6, 9, 0.15f, 0.42f, 0.15f)
-                mb.addEllipsoid(t.x + 1.15f * s + jx, ty + 4.3f * s, t.z + 0.85f * s, 1.65f * s, 1.45f * s, 1.65f * s, 5, 7, 0.13f, 0.36f, 0.14f)
-                mb.addEllipsoid(t.x - 1.05f * s, ty + 4.5f * s, t.z - 0.85f * s + jz, 1.60f * s, 1.40f * s, 1.60f * s, 5, 7, 0.18f, 0.47f, 0.17f)
-                mb.addEllipsoid(t.x + 0.3f * s, ty + 6.2f * s, t.z - 0.3f * s, 1.35f * s, 1.15f * s, 1.35f * s, 5, 7, 0.20f, 0.51f, 0.18f)
+                mb.addEllipsoid(t.x, ty + 5.2f * s, t.z, 2.35f * s, 1.95f * s, 2.35f * s, 7, 10, 0.16f, 0.43f, 0.15f)
+                mb.addEllipsoid(t.x + 1.15f * s + jx, ty + 4.3f * s, t.z + 0.85f * s, 1.65f * s, 1.45f * s, 1.65f * s, 6, 8, 0.14f, 0.37f, 0.14f)
+                mb.addEllipsoid(t.x - 1.05f * s, ty + 4.5f * s, t.z - 0.85f * s + jz, 1.65f * s, 1.42f * s, 1.65f * s, 6, 8, 0.20f, 0.48f, 0.17f)
+                mb.addEllipsoid(t.x + 0.3f * s, ty + 6.3f * s, t.z - 0.3f * s, 1.38f * s, 1.15f * s, 1.38f * s, 6, 8, 0.24f, 0.54f, 0.18f)
             }
         }
 
@@ -1293,14 +1394,21 @@ object WorldMeshFactory {
 
         for (sign in TruckWorld.roadSigns) {
             val sy = TruckWorld.terrainHeightAt(sign.x, sign.z)
-            mb.addCylinderY(sign.x, sy, sign.z, 0.14f, 3.6f, 6, 0.72f, 0.74f, 0.78f)
+            mb.addCylinderY(sign.x, sy, sign.z, 0.13f, 3.6f, 8, 0.62f, 0.66f, 0.72f)
             val (sr, sg, sb) = when (sign.type) {
-                com.example.sim.SignType.STOP -> Triple(0.88f, 0.12f, 0.12f)
+                com.example.sim.SignType.STOP -> Triple(0.86f, 0.12f, 0.12f)
                 com.example.sim.SignType.FUEL_AHEAD -> Triple(0.12f, 0.48f, 0.88f)
                 com.example.sim.SignType.CURVE -> Triple(0.95f, 0.72f, 0.08f)
-                else -> Triple(0.95f, 0.95f, 0.95f)
+                else -> Triple(0.92f, 0.94f, 0.96f)
             }
-            mb.addBox(sign.x, sy + 3.5f, sign.z, 1.2f, 1.2f, 0.18f, sr, sg, sb)
+            // Reflective white/steel outer plate + inner colored sign face
+            mb.addBox(sign.x, sy + 3.5f, sign.z, 1.32f, 1.32f, 0.12f, 0.88f, 0.90f, 0.94f)
+            mb.addBox(sign.x, sy + 3.5f, sign.z, 1.12f, 1.12f, 0.16f, sr, sg, sb)
+            if (sign.type == com.example.sim.SignType.STOP) {
+                mb.addBox(sign.x, sy + 3.5f, sign.z, 0.74f, 0.22f, 0.19f, 0.96f, 0.97f, 0.99f)
+            } else {
+                mb.addBox(sign.x, sy + 3.5f, sign.z, 0.34f, 0.56f, 0.19f, 0.14f, 0.16f, 0.20f)
+            }
         }
 
         return mb.build()
@@ -1308,8 +1416,10 @@ object WorldMeshFactory {
 
     private fun addStreetlightPole(mb: DynamicMeshBuilder, x: Float, z: Float) {
         val y = TruckWorld.terrainHeightAt(x, z)
-        mb.addCylinderY(x, y, z, 0.16f, 7.2f, 6, 0.42f, 0.45f, 0.50f)
-        mb.addBox(x, y + 7.2f, z - 0.8f, 0.35f, 0.25f, 1.8f, 0.48f, 0.50f, 0.55f)
+        mb.addTaperedCylinderY(x, y, z, 0.24f, 0.14f, 0.55f, 8, 0.34f, 0.37f, 0.42f, capped = false)
+        mb.addTaperedCylinderY(x, y + 0.55f, z, 0.14f, 0.10f, 6.7f, 8, 0.46f, 0.49f, 0.55f, capped = false)
+        mb.addSlopedBox(x, y + 7.25f, z - 0.8f, 0.18f, 0.18f, 0.24f, 1.85f, 0.22f, -0.35f, 0.50f, 0.54f, 0.60f)
+        mb.addBeveledBox(x, y + 7.12f, z - 1.55f, 0.52f, 0.16f, 0.74f, 0.05f, 0.36f, 0.40f, 0.46f)
     }
 
     fun buildNightWindowsAndLightsMesh(): MeshBuffer {
@@ -1317,13 +1427,45 @@ object WorldMeshFactory {
         for ((idx, b) in TruckWorld.buildings.withIndex()) {
             val baseY = TruckWorld.terrainHeightAt(b.x, b.z)
             if (b.isSkyscraper) {
-                mb.addBox(b.x, baseY + b.height + 12.6f, b.z, 0.55f, 0.55f, 0.55f, 1.0f, 0.14f, 0.10f)
+                // Crisp aviation warning beacon on skyscraper spire tip
+                mb.addBox(b.x, baseY + b.height + 12.6f, b.z, 0.52f, 0.52f, 0.52f, 1.0f, 0.14f, 0.10f)
             }
-            if (idx % 2 == 0) {
-                val rows = (b.height / 7f).toInt().coerceIn(1, 6)
-                for (r in 1..rows) {
-                    val wy = baseY + r * 6.0f
-                    mb.addBox(b.x, wy, b.z, b.width + 0.08f, 0.42f, b.depth + 0.08f, 1.0f, 0.86f, 0.52f)
+            val rows = ((b.height - 5f) / 4.2f).toInt().coerceIn(1, 9)
+            val colsX = (b.width / 3.4f).toInt().coerceIn(2, 6)
+            val colsZ = (b.depth / 3.4f).toInt().coerceIn(2, 6)
+            val halfW = b.width * 0.5f + 0.05f
+            val halfD = b.depth * 0.5f + 0.05f
+
+            for (r in 1..rows) {
+                val wy = baseY + 3.4f + r * 3.8f
+                if (wy > baseY + b.height - 1.5f) continue
+                for (c in 0 until colsX) {
+                    val h = (idx * 31 + r * 17 + c * 13) and 0x7f
+                    if (h % 5 <= 1) {
+                        val wx = b.x - b.width * 0.36f + (c.toFloat() / (colsX - 1).coerceAtLeast(1)) * (b.width * 0.72f)
+                        val warm = h % 3 != 0
+                        val lr = if (warm) 1.0f else 0.72f
+                        val lg = if (warm) 0.86f else 0.88f
+                        val lb = if (warm) 0.58f else 1.0f
+                        mb.addBox(wx, wy, b.z + halfD, 1.35f, 1.15f, 0.06f, lr, lg, lb)
+                        if (h % 2 == 0) {
+                            mb.addBox(wx, wy, b.z - halfD, 1.35f, 1.15f, 0.06f, lr, lg, lb)
+                        }
+                    }
+                }
+                for (c in 0 until colsZ) {
+                    val h = (idx * 23 + r * 19 + c * 11) and 0x7f
+                    if (h % 5 <= 1) {
+                        val wz = b.z - b.depth * 0.36f + (c.toFloat() / (colsZ - 1).coerceAtLeast(1)) * (b.depth * 0.72f)
+                        val warm = h % 4 != 0
+                        val lr = if (warm) 1.0f else 0.72f
+                        val lg = if (warm) 0.86f else 0.88f
+                        val lb = if (warm) 0.58f else 1.0f
+                        mb.addBox(b.x + halfW, wy, wz, 0.06f, 1.15f, 1.35f, lr, lg, lb)
+                        if (h % 2 == 1) {
+                            mb.addBox(b.x - halfW, wy, wz, 0.06f, 1.15f, 1.35f, lr, lg, lb)
+                        }
+                    }
                 }
             }
         }

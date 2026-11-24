@@ -208,9 +208,18 @@ fun DrivingScreen(
                     )
                 }
 
+                val fuelWarn = !isOnFoot && telemetry.fuelPercent < 18f
+                val rpmWarn = !isOnFoot && telemetry.rpm > 2100f
+                val bannerBorderColor = when {
+                    fuelWarn -> CrimsonAlert.copy(alpha = 0.78f)
+                    rpmWarn -> AmberSignal.copy(alpha = 0.78f)
+                    isOnFoot && telemetry.isNearTruckDoor -> EmeraldGo.copy(alpha = 0.72f)
+                    activeMission != null -> AmberSignal.copy(alpha = 0.45f)
+                    else -> SkyCyan.copy(alpha = 0.42f)
+                }
                 Surface(
                     color = SimSurfaceGlass,
-                    border = BorderStroke(1.dp, SimOutline),
+                    border = BorderStroke(1.2.dp, bannerBorderColor),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Column(
@@ -226,7 +235,14 @@ fun DrivingScreen(
                             style = MaterialTheme.typography.labelSmall,
                             color = SkyCyan
                         )
-                        if (activeMission != null) {
+                        if (fuelWarn) {
+                            Text(
+                                text = "COMBUSTIBLE BAJO (${telemetry.fuelPercent.toInt()}%)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = CrimsonAlert,
+                                fontWeight = FontWeight.Bold
+                            )
+                        } else if (activeMission != null) {
                             val targetLabel = if (!missionLoaded) {
                                 "Recoger en: ${activeMission.originName}"
                             } else {
@@ -398,7 +414,10 @@ fun DrivingScreen(
                     ) {
                         Surface(
                             color = SimSurfaceGlass,
-                            border = BorderStroke(1.dp, SimOutline),
+                            border = BorderStroke(
+                                1.2.dp,
+                                if (telemetry.isNearTruckDoor) EmeraldGo.copy(alpha = 0.72f) else SkyCyan.copy(alpha = 0.35f)
+                            ),
                             shape = RoundedCornerShape(14.dp)
                         ) {
                             Column(

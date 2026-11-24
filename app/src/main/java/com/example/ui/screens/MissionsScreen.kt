@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -156,6 +157,20 @@ fun MissionsScreen(
                         ),
                         shape = RoundedCornerShape(16.dp)
                     ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(3.dp)
+                                .background(
+                                    Brush.horizontalGradient(
+                                        when {
+                                            isCurrent -> listOf(EmeraldGo, RacingOrange)
+                                            routeUnlocked -> listOf(RacingOrange, SkyCyan.copy(alpha = 0.6f))
+                                            else -> listOf(SimOutline, SimSurfaceElevated)
+                                        }
+                                    )
+                                )
+                        )
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -238,9 +253,15 @@ fun MissionsScreen(
                     .weight(0.85f)
                     .fillMaxHeight(),
                 colors = CardDefaults.cardColors(containerColor = SimSurfaceGlass),
-                border = BorderStroke(1.dp, SimOutline),
+                border = BorderStroke(1.dp, SkyCyan.copy(alpha = 0.35f)),
                 shape = RoundedCornerShape(18.dp)
             ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .background(Brush.horizontalGradient(listOf(SkyCyan, EmeraldGo)))
+                )
                 Column(modifier = Modifier.fillMaxSize().padding(14.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = EmeraldGo, modifier = Modifier.size(18.dp))

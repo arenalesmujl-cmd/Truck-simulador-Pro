@@ -40,9 +40,9 @@ object CharacterMeshFactory {
         val hairR = 0.11f; val hairG = 0.085f; val hairB = 0.068f
 
         val jacketR = 0.13f; val jacketG = 0.15f; val jacketB = 0.19f
-        val jacketTrimR = 0.18f; val jacketTrimG = 0.21f; val jacketTrimB = 0.26f
+        val jacketTrimR = 0.19f; val jacketTrimG = 0.22f; val jacketTrimB = 0.27f
         val suedeR = 0.50f; val suedeG = 0.31f; val suedeB = 0.17f
-        val henleyR = 0.90f; val henleyG = 0.91f; val henleyB = 0.93f
+        val henleyR = 0.76f; val henleyG = 0.79f; val henleyB = 0.83f
         val denimR = 0.14f; val denimG = 0.21f; val denimB = 0.35f
         val denimFadeR = 0.20f; val denimFadeG = 0.28f; val denimFadeB = 0.43f
         val leatherR = 0.32f; val leatherG = 0.18f; val leatherB = 0.10f
@@ -53,111 +53,135 @@ object CharacterMeshFactory {
         val headFace = buildSculptedUvHeadMesh()
 
         // =========================================================================
-        // 1B. ANATOMICAL ANGLED EARS, LAYERED HAIR & 5-PANEL PRO TRUCKER CAP
+        // 1B. ANATOMICAL ANGLED EARS, CLEAN BACK HAIR & SLEEK 5-PANEL TRUCKER CAP
         // =========================================================================
         val headAcc = DynamicMeshBuilder()
         for (side in listOf(-1f, 1f)) {
             // Outer helix + ear lobe + recessed concha shadow tucked neatly behind cheek
-            headAcc.addEllipsoid(side * 0.083f, 0.152f, -0.008f, 0.011f, 0.025f, 0.016f, 8, 12, skinWarmR, skinWarmG, skinWarmB)
-            headAcc.addEllipsoid(side * 0.081f, 0.128f, -0.005f, 0.009f, 0.011f, 0.011f, 6, 10, skinR, skinG, skinB)
-            headAcc.addEllipsoid(side * 0.085f, 0.150f, -0.003f, 0.006f, 0.014f, 0.009f, 6, 10, skinShadowR, skinShadowG, skinShadowB)
-            headAcc.addEllipsoid(side * 0.077f, 0.152f, -0.020f, 0.013f, 0.036f, 0.024f, 6, 10, hairR, hairG, hairB)
+            headAcc.addEllipsoid(side * 0.082f, 0.149f, -0.011f, 0.010f, 0.024f, 0.015f, 8, 12, skinWarmR, skinWarmG, skinWarmB)
+            headAcc.addEllipsoid(side * 0.080f, 0.126f, -0.008f, 0.0085f, 0.010f, 0.010f, 6, 10, skinR, skinG, skinB)
+            headAcc.addEllipsoid(side * 0.084f, 0.148f, -0.007f, 0.0055f, 0.013f, 0.0085f, 6, 10, skinShadowR, skinShadowG, skinShadowB)
+            // Tapered sideburn + temple hair + nape hair behind ears
+            headAcc.addEllipsoid(side * 0.076f, 0.156f, -0.022f, 0.012f, 0.036f, 0.025f, 6, 10, hairR, hairG, hairB)
+            headAcc.addEllipsoid(side * 0.068f, 0.118f, -0.042f, 0.016f, 0.030f, 0.024f, 6, 10, hairR, hairG, hairB)
         }
-        // Sculpted fuller hair volume at back & nape underneath cap band
-        headAcc.addEllipsoid(0f, 0.164f, -0.026f, 0.084f, 0.078f, 0.075f, 12, 18, hairR, hairG, hairB)
+        // Full back & nape hair cleanly wider than rear skull (zero pale skin peeking behind ears)
+        headAcc.addEllipsoid(0f, 0.154f, -0.033f, 0.086f, 0.074f, 0.071f, 14, 20, hairR, hairG, hairB)
+        headAcc.addEllipsoid(0f, 0.096f, -0.056f, 0.058f, 0.030f, 0.024f, 8, 14, hairR, hairG, hairB)
 
-        // Tailored 5-Panel Charcoal & Burnt-Amber Pro Trucker Cap
+        // Snug tailored 6-Panel Charcoal-Slate & Burnt-Amber Pro Trucker Cap (natural cranium fit)
         headAcc.addLoftedProfileY(
             cx = 0f,
-            sectors = 28,
+            sectors = 32,
             cappedBottom = true,
             cappedTop = true,
             rings = listOf(
-                LoftRingY(0.194f, -0.006f, 0.087f, 0.093f, 0.11f, 0.13f, 0.18f, roundness = 0.92f),
-                LoftRingY(0.220f, -0.006f, 0.088f, 0.094f, 0.14f, 0.17f, 0.22f, roundness = 0.94f),
-                LoftRingY(0.252f, -0.008f, 0.078f, 0.084f, 0.14f, 0.17f, 0.22f, roundness = 0.96f),
-                LoftRingY(0.274f, -0.010f, 0.044f, 0.048f, 0.12f, 0.15f, 0.19f, roundness = 1.0f)
+                LoftRingY(0.188f, 0.000f, 0.088f, 0.092f, 0.10f, 0.12f, 0.16f, roundness = 0.92f),
+                LoftRingY(0.214f, -0.003f, 0.089f, 0.093f, 0.13f, 0.16f, 0.21f, roundness = 0.94f),
+                LoftRingY(0.242f, -0.006f, 0.076f, 0.080f, 0.13f, 0.16f, 0.21f, roundness = 0.96f),
+                LoftRingY(0.258f, -0.008f, 0.042f, 0.046f, 0.11f, 0.14f, 0.18f, roundness = 1.0f)
             )
         )
-        headAcc.addEllipsoid(0f, 0.277f, -0.010f, 0.010f, 0.0045f, 0.010f, 6, 10, 0.95f, 0.44f, 0.08f)
-        // Embroidered front cap crest emblem + contrast piping
-        headAcc.addEllipsoid(0f, 0.228f, 0.089f, 0.022f, 0.013f, 0.005f, 6, 12, 0.95f, 0.44f, 0.08f)
-        headAcc.addEllipsoid(0f, 0.228f, 0.092f, 0.014f, 0.008f, 0.004f, 6, 10, 0.92f, 0.94f, 0.96f)
+        // Top cap squatcho button, rear snapback strap & front embroidered emblem
+        headAcc.addEllipsoid(0f, 0.261f, -0.008f, 0.009f, 0.004f, 0.009f, 6, 10, 0.95f, 0.44f, 0.08f)
+        headAcc.addBox(0f, 0.194f, -0.092f, 0.048f, 0.013f, 0.008f, 0.18f, 0.20f, 0.24f)
+        headAcc.addBox(0f, 0.194f, -0.094f, 0.020f, 0.009f, 0.006f, 0.94f, 0.43f, 0.07f)
+        headAcc.addEllipsoid(0f, 0.222f, 0.091f, 0.021f, 0.012f, 0.0045f, 6, 12, 0.95f, 0.44f, 0.08f)
+        headAcc.addEllipsoid(0f, 0.222f, 0.094f, 0.012f, 0.007f, 0.0035f, 6, 10, 0.92f, 0.94f, 0.96f)
+        // Sleek curved matte visor with subtle amber under-brim sandwich trim
         headAcc.addCurvedVisor(
-            cy = 0.200f,
-            cz = 0.081f,
-            width = 0.160f,
-            length = 0.090f,
-            thickness = 0.0075f,
-            archHeight = 0.021f,
-            segs = 16,
+            cy = 0.195f,
+            cz = 0.085f,
+            width = 0.154f,
+            length = 0.078f,
+            thickness = 0.0055f,
+            archHeight = 0.018f,
+            segs = 20,
+            r = 0.11f, g = 0.13f, b = 0.17f
+        )
+        headAcc.addCurvedVisor(
+            cy = 0.1925f,
+            cz = 0.086f,
+            width = 0.150f,
+            length = 0.080f,
+            thickness = 0.0025f,
+            archHeight = 0.018f,
+            segs = 20,
             r = 0.94f, g = 0.43f, b = 0.07f
         )
 
         // =========================================================================
-        // 2. ATHLETIC TORSO, TAILORED CANVAS/SUEDE TRUCKER JACKET, BELT & HENLEY TEE
+        // 2. ATHLETIC TORSO: SEAMLESS 360-DEGREE JACKET + OPEN-CHEST HENLEY LAYER
         // =========================================================================
         val torso = DynamicMeshBuilder()
+        // Lower selvedge denim hip/pelvis, saddle-leather belt & recessed base shirt core + trapezius neck taper
         torso.addLoftedProfileY(
             cx = 0f,
             sectors = 28,
             cappedBottom = true,
             cappedTop = true,
             rings = listOf(
-                LoftRingY(-0.025f, 0.000f, 0.170f, 0.118f, denimR, denimG, denimB, roundness = 0.85f),
+                LoftRingY(-0.028f, 0.000f, 0.170f, 0.118f, denimR, denimG, denimB, roundness = 0.85f),
                 LoftRingY(0.088f, 0.002f, 0.164f, 0.114f, denimR, denimG, denimB, roundness = 0.85f),
-                LoftRingY(0.092f, 0.003f, 0.172f, 0.121f, leatherR, leatherG, leatherB, roundness = 0.85f),
-                LoftRingY(0.132f, 0.004f, 0.172f, 0.121f, leatherR, leatherG, leatherB, roundness = 0.85f),
-                LoftRingY(0.138f, 0.006f, 0.160f, 0.114f, henleyR, henleyG, henleyB, roundness = 0.82f),
-                LoftRingY(0.240f, 0.010f, 0.168f, 0.122f, henleyR, henleyG, henleyB, roundness = 0.80f),
-                LoftRingY(0.365f, 0.014f, 0.188f, 0.134f, henleyR, henleyG, henleyB, roundness = 0.78f),
-                LoftRingY(0.475f, 0.010f, 0.204f, 0.126f, henleyR, henleyG, henleyB, roundness = 0.78f),
-                LoftRingY(0.545f, 0.002f, 0.126f, 0.088f, henleyR, henleyG, henleyB, roundness = 0.88f),
-                LoftRingY(0.576f, -0.002f, 0.064f, 0.060f, skinShadowR, skinShadowG, skinShadowB, roundness = 0.94f)
+                LoftRingY(0.092f, 0.003f, 0.171f, 0.120f, leatherR, leatherG, leatherB, roundness = 0.85f),
+                LoftRingY(0.132f, 0.004f, 0.171f, 0.120f, leatherR, leatherG, leatherB, roundness = 0.85f),
+                // Narrow recessed inner torso cylinder cleanly contained inside jacket shell & matched to warm neck skin
+                LoftRingY(0.138f, 0.004f, 0.146f, 0.104f, jacketR, jacketG, jacketB, roundness = 0.84f),
+                LoftRingY(0.525f, 0.002f, 0.130f, 0.090f, henleyR, henleyG, henleyB, roundness = 0.88f),
+                LoftRingY(0.554f, 0.000f, 0.086f, 0.068f, skinWarmR, skinWarmG, skinWarmB, roundness = 0.92f),
+                LoftRingY(0.585f, -0.002f, 0.061f, 0.056f, skinWarmR, skinWarmG, skinWarmB, roundness = 0.95f)
             )
         )
-        // Brushed steel belt buckle, belt keeper loop & henley placket buttons
-        torso.addEllipsoid(0f, 0.112f, 0.122f, 0.030f, 0.020f, 0.009f, 8, 14, 0.82f, 0.84f, 0.88f)
-        torso.addEllipsoid(0f, 0.112f, 0.127f, 0.016f, 0.010f, 0.006f, 6, 10, leatherR, leatherG, leatherB)
+        // Rib-knit Henley collar band framing the base of the neck cleanly
+        torso.addLoftedProfileY(
+            cx = 0f,
+            sectors = 24,
+            cappedBottom = true,
+            cappedTop = true,
+            rings = listOf(
+                LoftRingY(0.524f, 0.004f, 0.088f, 0.072f, henleyR * 0.92f, henleyG * 0.92f, henleyB * 0.92f, roundness = 0.90f),
+                LoftRingY(0.548f, 0.002f, 0.078f, 0.066f, henleyR * 0.88f, henleyG * 0.88f, henleyB * 0.88f, roundness = 0.92f)
+            )
+        )
+
+        // Fitted Heather Henley tee chest plate tucked neatly between front jacket lapels
+        torso.addLoftedProfileY(
+            cx = 0f,
+            sectors = 20,
+            cappedBottom = true,
+            cappedTop = true,
+            rings = listOf(
+                LoftRingY(0.136f, 0.044f, 0.066f, 0.072f, henleyR, henleyG, henleyB, roundness = 0.85f),
+                LoftRingY(0.250f, 0.052f, 0.068f, 0.074f, henleyR, henleyG, henleyB, roundness = 0.84f),
+                LoftRingY(0.380f, 0.058f, 0.074f, 0.078f, henleyR, henleyG, henleyB, roundness = 0.84f),
+                LoftRingY(0.490f, 0.048f, 0.076f, 0.074f, henleyR, henleyG, henleyB, roundness = 0.86f),
+                LoftRingY(0.546f, 0.015f, 0.068f, 0.064f, henleyR, henleyG, henleyB, roundness = 0.90f)
+            )
+        )
+        // Front Henley placket buttons + brushed steel belt buckle & leather keeper loop
+        torso.addEllipsoid(0f, 0.112f, 0.124f, 0.032f, 0.021f, 0.009f, 8, 14, 0.84f, 0.86f, 0.90f)
+        torso.addEllipsoid(0f, 0.112f, 0.129f, 0.016f, 0.010f, 0.006f, 6, 10, leatherR, leatherG, leatherB)
         torso.addBox(-0.048f, 0.112f, 0.120f, 0.012f, 0.044f, 0.012f, leatherR * 0.85f, leatherG * 0.85f, leatherB * 0.85f)
-        for (by in listOf(0.44f, 0.485f, 0.528f)) {
-            torso.addEllipsoid(0f, by, 0.132f, 0.006f, 0.006f, 0.004f, 6, 8, 0.26f, 0.28f, 0.32f)
+        for (by in listOf(0.43f, 0.478f, 0.522f)) {
+            torso.addEllipsoid(0f, by, 0.126f, 0.0055f, 0.0055f, 0.004f, 6, 8, 0.26f, 0.28f, 0.32f)
         }
 
-        // Open Charcoal Canvas Jacket Back/Shoulders + Suede Collar
-        torso.addLoftedProfileY(
-            cx = 0f,
-            sectors = 28,
-            cappedBottom = true,
-            cappedTop = true,
-            rings = listOf(
-                LoftRingY(0.134f, -0.024f, 0.174f, 0.100f, jacketTrimR, jacketTrimG, jacketTrimB, roundness = 0.78f),
-                LoftRingY(0.175f, -0.024f, 0.177f, 0.102f, jacketR, jacketG, jacketB, roundness = 0.78f),
-                LoftRingY(0.280f, -0.022f, 0.184f, 0.105f, jacketR, jacketG, jacketB, roundness = 0.77f),
-                LoftRingY(0.390f, -0.019f, 0.200f, 0.110f, jacketR, jacketG, jacketB, roundness = 0.75f),
-                LoftRingY(0.495f, -0.014f, 0.218f, 0.112f, jacketTrimR, jacketTrimG, jacketTrimB, roundness = 0.74f),
-                LoftRingY(0.552f, -0.008f, 0.136f, 0.088f, suedeR, suedeG, suedeB, roundness = 0.86f)
-            )
+        // Full 360-degree Tailored Canvas Trucker Jacket Shell wrapping back, ribs, shoulders & rolled collar
+        // With clean open front chest notch so zero shirt clips through back or sides!
+        torso.addOpenFrontJacketShell(
+            jacketR = jacketR, jacketG = jacketG, jacketB = jacketB,
+            trimR = jacketTrimR, trimG = jacketTrimG, trimB = jacketTrimB,
+            suedeR = suedeR, suedeG = suedeG, suedeB = suedeB
         )
-        // Left & right open front jacket lapels + rolled suede collar tips + chest pockets + deltoid caps
+        // Back saddle-suede shoulder yoke panel + raised twin front chest flap pockets, brass snap studs & shoulder deltoid caps
+        torso.addEllipsoid(0f, 0.492f, -0.066f, 0.185f, 0.056f, 0.068f, 8, 16, suedeR * 0.88f, suedeG * 0.88f, suedeB * 0.88f)
         for (side in listOf(-1f, 1f)) {
-            torso.addLoftedProfileY(
-                cx = side * 0.116f,
-                sectors = 18,
-                cappedBottom = true,
-                cappedTop = true,
-                rings = listOf(
-                    LoftRingY(0.136f, 0.036f, 0.062f, 0.076f, jacketTrimR, jacketTrimG, jacketTrimB, roundness = 0.78f),
-                    LoftRingY(0.175f, 0.038f, 0.064f, 0.078f, jacketR, jacketG, jacketB, roundness = 0.78f),
-                    LoftRingY(0.290f, 0.044f, 0.068f, 0.080f, jacketR, jacketG, jacketB, roundness = 0.77f),
-                    LoftRingY(0.410f, 0.052f, 0.074f, 0.076f, jacketR, jacketG, jacketB, roundness = 0.76f),
-                    LoftRingY(0.494f, 0.042f, 0.078f, 0.068f, suedeR, suedeG, suedeB, roundness = 0.76f)
-                )
-            )
-            torso.addEllipsoid(side * 0.056f, 0.310f, 0.112f, 0.005f, 0.155f, 0.008f, 6, 8, 0.78f, 0.64f, 0.36f)
-            torso.addEllipsoid(side * 0.114f, 0.402f, 0.128f, 0.032f, 0.036f, 0.010f, 6, 12, jacketTrimR, jacketTrimG, jacketTrimB)
-            torso.addEllipsoid(side * 0.114f, 0.420f, 0.135f, 0.0055f, 0.0055f, 0.005f, 4, 8, 0.82f, 0.68f, 0.38f)
-            torso.addEllipsoid(side * 0.194f, 0.495f, 0f, 0.058f, 0.062f, 0.090f, 10, 14, jacketR, jacketG, jacketB)
+            torso.addEllipsoid(side * 0.120f, 0.398f, 0.125f, 0.032f, 0.035f, 0.011f, 6, 12, jacketTrimR, jacketTrimG, jacketTrimB)
+            torso.addEllipsoid(side * 0.120f, 0.422f, 0.129f, 0.033f, 0.012f, 0.011f, 6, 10, jacketTrimR * 1.12f, jacketTrimG * 1.12f, jacketTrimB * 1.12f)
+            torso.addEllipsoid(side * 0.120f, 0.420f, 0.136f, 0.0055f, 0.0055f, 0.005f, 4, 8, 0.86f, 0.72f, 0.38f)
+            torso.addEllipsoid(side * 0.205f, 0.494f, -0.004f, 0.063f, 0.063f, 0.088f, 10, 14, jacketR, jacketG, jacketB)
+            // Subtle warm suede epaulet shoulder accent
+            torso.addEllipsoid(side * 0.152f, 0.526f, 0.002f, 0.044f, 0.018f, 0.042f, 6, 10, suedeR, suedeG, suedeB)
         }
 
         // =========================================================================
@@ -204,16 +228,16 @@ object CharacterMeshFactory {
             )
             if (isLeft) {
                 f.addTaperedCylinderY(0f, -0.242f, 0f, 0.035f, 0.035f, 0.017f, 16, 0.11f, 0.12f, 0.14f)
-                f.addCylinderZ(0f, -0.233f, 0.023f, 0.038f, 0.015f, 14, 0.80f, 0.83f, 0.88f)
-                f.addCylinderZ(0f, -0.233f, 0.036f, 0.040f, 0.011f, 14, 0.06f, 0.14f, 0.20f)
+                f.addCylinderZ(0f, -0.233f, 0.023f, 0.036f, 0.015f, 14, 0.82f, 0.85f, 0.90f)
+                f.addCylinderZ(0f, -0.233f, 0.035f, 0.039f, 0.0115f, 14, 0.06f, 0.16f, 0.24f)
+                f.addEllipsoid(0f, -0.233f, 0.0395f, 0.003f, 0.003f, 0.002f, 4, 6, 0.94f, 0.46f, 0.10f)
             }
 
             val inwardSign = if (isLeft) -1f else 1f
-            // Palm & fingerless leather driving glove
-            f.addEllipsoid(0f, -0.282f, 0.002f, 0.020f, 0.036f, 0.032f, 10, 14, leatherR, leatherG, leatherB)
-            f.addEllipsoid(0f, -0.295f, 0.003f, 0.016f, 0.013f, 0.031f, 6, 12, leatherR * 1.15f, leatherG * 1.15f, leatherB * 1.15f)
-            // Brushed knuckle stitching pad on glove back
-            f.addEllipsoid(-inwardSign * 0.016f, -0.282f, 0.002f, 0.006f, 0.020f, 0.026f, 6, 10, 0.22f, 0.14f, 0.09f)
+            // Palm, wrist tendon & fingerless saddle-leather driving glove with knuckle pad
+            f.addEllipsoid(0f, -0.278f, 0.002f, 0.019f, 0.035f, 0.031f, 10, 14, leatherR, leatherG, leatherB)
+            f.addEllipsoid(0f, -0.294f, 0.003f, 0.016f, 0.013f, 0.031f, 6, 12, leatherR * 1.15f, leatherG * 1.15f, leatherB * 1.15f)
+            f.addEllipsoid(-inwardSign * 0.016f, -0.281f, 0.002f, 0.006f, 0.021f, 0.026f, 6, 10, 0.22f, 0.14f, 0.09f)
 
             if (grippingWheel) {
                 // Thumb rests cleanly atop front (+Z) rim bolster pointing slightly inward
@@ -285,10 +309,11 @@ object CharacterMeshFactory {
             cappedTop = true,
             rings = listOf(
                 LoftRingY(-0.424f, 0.002f, 0.052f, 0.055f, leatherR, leatherG, leatherB),
-                LoftRingY(-0.352f, 0.000f, 0.051f, 0.053f, leatherR, leatherG, leatherB),
-                LoftRingY(-0.334f, 0.000f, 0.056f, 0.058f, 0.16f, 0.11f, 0.09f),
-                LoftRingY(-0.324f, 0.000f, 0.055f, 0.057f, denimFadeR, denimFadeG, denimFadeB),
-                LoftRingY(-0.240f, -0.002f, 0.054f, 0.056f, denimR, denimG, denimB),
+                LoftRingY(-0.354f, 0.000f, 0.051f, 0.053f, leatherR, leatherG, leatherB),
+                LoftRingY(-0.336f, 0.000f, 0.058f, 0.060f, 0.24f, 0.32f, 0.48f),
+                LoftRingY(-0.312f, 0.000f, 0.059f, 0.061f, 0.22f, 0.30f, 0.46f),
+                LoftRingY(-0.306f, 0.000f, 0.055f, 0.057f, denimFadeR, denimFadeG, denimFadeB),
+                LoftRingY(-0.230f, -0.002f, 0.054f, 0.056f, denimR, denimG, denimB),
                 LoftRingY(-0.125f, -0.004f, 0.060f, 0.061f, denimR, denimG, denimB),
                 LoftRingY(-0.005f, 0.001f, 0.057f, 0.058f, denimR, denimG, denimB)
             )
@@ -321,6 +346,9 @@ object CharacterMeshFactory {
         )
         for (ly in listOf(-0.368f, -0.386f, -0.402f)) {
             shin.addCylinderX(-0.019f, 0.019f, ly, 0.054f, 0.0038f, 8, 0.82f, 0.72f, 0.52f)
+            for (sx in listOf(-0.020f, 0.020f)) {
+                shin.addEllipsoid(sx, ly, 0.053f, 0.0042f, 0.0042f, 0.0035f, 4, 6, 0.86f, 0.72f, 0.36f)
+            }
         }
 
         return DriverMeshSet(
@@ -399,27 +427,46 @@ object CharacterMeshFactory {
                         z += alarX * alarY * 0.006f * frontMask
                     }
 
-                    // Orbital eye socket hollows & cheekbone zygomatic arches
+                    // Sculpted upper & lower eyelid crease pads, orbital hollows & zygomatic cheekbones
                     for (side in listOf(-1f, 1f)) {
                         val dxEye = x - side * 0.0285f
                         val dyEye = y - 0.156f
                         val eyeSocket = exp(-(dxEye * dxEye) / (2f * 0.012f * 0.012f) - (dyEye * dyEye) / (2f * 0.0085f * 0.0085f))
-                        z -= eyeSocket * 0.0046f * frontMask
+                        z -= eyeSocket * 0.0052f * frontMask
+
+                        val upperLid = exp(-(dxEye * dxEye) / (2f * 0.008f * 0.008f) - ((y - 0.163f) * (y - 0.163f)) / (2f * 0.0035f * 0.0035f))
+                        z += upperLid * 0.0032f * frontMask
 
                         val dxCheek = x - side * 0.042f
                         val dyCheek = y - 0.128f
                         val cheek = exp(-(dxCheek * dxCheek) / (2f * 0.016f * 0.016f) - (dyCheek * dyCheek) / (2f * 0.012f * 0.012f))
-                        z += cheek * 0.0045f * frontMask
+                        z += cheek * 0.0052f * frontMask
+
+                        // Angular masculine mandibular jaw corner
+                        val dxJaw = x - side * 0.056f
+                        val dyJaw = y - 0.072f
+                        val jaw = exp(-(dxJaw * dxJaw) / (2f * 0.011f * 0.011f) - (dyJaw * dyJaw) / (2f * 0.012f * 0.012f))
+                        z += jaw * 0.0044f * frontMask
                     }
+
+                    // Upper & lower lip protrusion + shallow philtrum indentation
+                    val lipX = exp(-(x * x) / (2f * 0.014f * 0.014f))
+                    val upperLipY = exp(-((y - 0.114f) * (y - 0.114f)) / (2f * 0.0045f * 0.0045f))
+                    val lowerLipY = exp(-((y - 0.104f) * (y - 0.104f)) / (2f * 0.0048f * 0.0048f))
+                    z += (upperLipY * 0.0045f + lowerLipY * 0.0040f) * lipX * frontMask
+
+                    val philtrumX = exp(-(x * x) / (2f * 0.004f * 0.004f))
+                    val philtrumY = exp(-((y - 0.123f) * (y - 0.123f)) / (2f * 0.0045f * 0.0045f))
+                    z -= philtrumX * philtrumY * 0.0022f * frontMask
 
                     // Gentle supraorbital brow ridge & strong masculine chin prominence
                     val browX = exp(-(x * x) / (2f * 0.039f * 0.039f))
                     val browY = exp(-((y - 0.174f) * (y - 0.174f)) / (2f * 0.008f * 0.008f))
-                    z += browX * browY * 0.0050f * frontMask
+                    z += browX * browY * 0.0056f * frontMask
 
-                    val chinX = exp(-(x * x) / (2f * 0.025f * 0.025f))
-                    val chinY = exp(-((y - 0.076f) * (y - 0.076f)) / (2f * 0.012f * 0.012f))
-                    z += chinX * chinY * 0.0062f * frontMask
+                    val chinX = exp(-(x * x) / (2f * 0.024f * 0.024f))
+                    val chinY = exp(-((y - 0.075f) * (y - 0.075f)) / (2f * 0.012f * 0.012f))
+                    z += chinX * chinY * 0.0070f * frontMask
                 }
 
                 posX[ri][s] = x
@@ -483,5 +530,132 @@ object CharacterMeshFactory {
             mb.addVertex(posX[0][s], bot.y, posZ[0][s], 0f, -1f, 0f, 0.25f, 0.02f, 0.85f, 0.85f, 0.85f)
         }
         return mb.build()
+    }
+
+    /**
+     * Generates a seamless tailored C-wrap open-front Trucker Jacket shell wrapping 320 degrees around
+     * the back, shoulders, and ribs while framing the inner Henley tee in front without any clipping.
+     */
+    private fun DynamicMeshBuilder.addOpenFrontJacketShell(
+        jacketR: Float, jacketG: Float, jacketB: Float,
+        trimR: Float, trimG: Float, trimB: Float,
+        suedeR: Float, suedeG: Float, suedeB: Float
+    ) {
+        data class ShellRing(
+            val y: Float,
+            val cz: Float,
+            val rx: Float,
+            val rz: Float,
+            val openRad: Float,
+            val roundness: Float,
+            val r: Float,
+            val g: Float,
+            val b: Float
+        )
+
+        val rings = listOf(
+            ShellRing(0.132f, 0.002f, 0.175f, 0.123f, 0.22f, 0.82f, trimR, trimG, trimB),
+            ShellRing(0.172f, 0.004f, 0.178f, 0.125f, 0.23f, 0.81f, jacketR, jacketG, jacketB),
+            ShellRing(0.285f, 0.008f, 0.184f, 0.129f, 0.27f, 0.79f, jacketR, jacketG, jacketB),
+            ShellRing(0.395f, 0.010f, 0.198f, 0.135f, 0.34f, 0.77f, jacketR, jacketG, jacketB),
+            ShellRing(0.492f, 0.006f, 0.214f, 0.130f, 0.44f, 0.76f, trimR, trimG, trimB),
+            ShellRing(0.556f, 0.000f, 0.132f, 0.095f, 0.54f, 0.86f, suedeR, suedeG, suedeB)
+        )
+
+        val nR = rings.size
+        val segs = 28
+        val px = Array(nR) { FloatArray(segs + 1) }
+        val py = Array(nR) { FloatArray(segs + 1) }
+        val pz = Array(nR) { FloatArray(segs + 1) }
+        val nx = Array(nR) { FloatArray(segs + 1) }
+        val ny = Array(nR) { FloatArray(segs + 1) }
+        val nz = Array(nR) { FloatArray(segs + 1) }
+
+        fun sPow(v: Float, p: Float): Float = sign(v) * abs(v).pow(p)
+
+        for (ri in 0 until nR) {
+            val ring = rings[ri]
+            val startA = (PI * 0.5).toFloat() + ring.openRad
+            val endA = (PI * 2.5).toFloat() - ring.openRad
+            for (s in 0..segs) {
+                val t = s.toFloat() / segs
+                val a = startA + (endA - startA) * t
+                val ca = sPow(cos(a), ring.roundness)
+                val sa = sPow(sin(a), ring.roundness)
+                px[ri][s] = ca * ring.rx
+                py[ri][s] = ring.y
+                pz[ri][s] = ring.cz + sa * ring.rz
+            }
+        }
+
+        for (ri in 0 until nR) {
+            val pR = (ri - 1).coerceAtLeast(0)
+            val nR2 = (ri + 1).coerceAtMost(nR - 1)
+            for (s in 0..segs) {
+                val pS = (s - 1).coerceAtLeast(0)
+                val nS = (s + 1).coerceAtMost(segs)
+                val tx = px[ri][nS] - px[ri][pS]
+                val ty = py[ri][nS] - py[ri][pS]
+                val tz = pz[ri][nS] - pz[ri][pS]
+                val bx = px[nR2][s] - px[pR][s]
+                val by = py[nR2][s] - py[pR][s]
+                val bz = pz[nR2][s] - pz[pR][s]
+                var vx = by * tz - bz * ty
+                var vy = bz * tx - bx * tz
+                var vz = bx * ty - by * tx
+                val len = sqrt(vx * vx + vy * vy + vz * vz).coerceAtLeast(0.0001f)
+                vx /= len; vy /= len; vz /= len
+                nx[ri][s] = vx; ny[ri][s] = vy; nz[ri][s] = vz
+            }
+        }
+
+        for (ri in 0 until nR - 1) {
+            val r0 = rings[ri]
+            val r1 = rings[ri + 1]
+            val v0 = ri.toFloat() / (nR - 1)
+            val v1 = (ri + 1).toFloat() / (nR - 1)
+            for (s in 0 until segs) {
+                val u0 = s.toFloat() / segs
+                val u1 = (s + 1).toFloat() / segs
+                addVertex(px[ri][s], py[ri][s], pz[ri][s], nx[ri][s], ny[ri][s], nz[ri][s], u0, v0, r0.r, r0.g, r0.b)
+                addVertex(px[ri][s + 1], py[ri][s + 1], pz[ri][s + 1], nx[ri][s + 1], ny[ri][s + 1], nz[ri][s + 1], u1, v0, r0.r, r0.g, r0.b)
+                addVertex(px[ri + 1][s + 1], py[ri + 1][s + 1], pz[ri + 1][s + 1], nx[ri + 1][s + 1], ny[ri + 1][s + 1], nz[ri + 1][s + 1], u1, v1, r1.r, r1.g, r1.b)
+
+                addVertex(px[ri][s], py[ri][s], pz[ri][s], nx[ri][s], ny[ri][s], nz[ri][s], u0, v0, r0.r, r0.g, r0.b)
+                addVertex(px[ri + 1][s + 1], py[ri + 1][s + 1], pz[ri + 1][s + 1], nx[ri + 1][s + 1], ny[ri + 1][s + 1], nz[ri + 1][s + 1], u1, v1, r1.r, r1.g, r1.b)
+                addVertex(px[ri + 1][s], py[ri + 1][s], pz[ri + 1][s], nx[ri + 1][s], ny[ri + 1][s], nz[ri + 1][s], u0, v1, r1.r, r1.g, r1.b)
+            }
+        }
+
+        // Solid tailored front placket edges + folded suede lapel piping along s=0 and s=segs
+        val edgeDepth = 0.016f
+        for (ri in 0 until nR - 1) {
+            val r0 = rings[ri]
+            val r1 = rings[ri + 1]
+            // Left lapel front thickness edge (s = 0, facing inward +X)
+            val lx0 = px[ri][0]; val ly0 = py[ri][0]; val lz0 = pz[ri][0]
+            val lx1 = px[ri + 1][0]; val ly1 = py[ri + 1][0]; val lz1 = pz[ri + 1][0]
+            addQuad(
+                lx0, ly0, lz0,
+                lx0, ly0, lz0 - edgeDepth,
+                lx1, ly1, lz1 - edgeDepth,
+                lx1, ly1, lz1,
+                1f, 0f, 0.25f, r0.r * 0.92f, r0.g * 0.92f, r0.b * 0.92f
+            )
+            // Brass zipper teeth strip along left & right front openings
+            addEllipsoid((lx0 + lx1) * 0.5f + 0.003f, (ly0 + ly1) * 0.5f, (lz0 + lz1) * 0.5f - 0.002f, 0.0045f, 0.032f, 0.006f, 5, 8, 0.78f, 0.64f, 0.36f)
+
+            // Right lapel front thickness edge (s = segs, facing inward -X)
+            val rx0 = px[ri][segs]; val ry0 = py[ri][segs]; val rz0 = pz[ri][segs]
+            val rx1 = px[ri + 1][segs]; val ry1 = py[ri + 1][segs]; val rz1 = pz[ri + 1][segs]
+            addQuad(
+                rx0, ry0, rz0 - edgeDepth,
+                rx0, ry0, rz0,
+                rx1, ry1, rz1,
+                rx1, ry1, rz1 - edgeDepth,
+                -1f, 0f, 0.25f, r0.r * 0.92f, r0.g * 0.92f, r0.b * 0.92f
+            )
+            addEllipsoid((rx0 + rx1) * 0.5f - 0.003f, (ry0 + ry1) * 0.5f, (rz0 + rz1) * 0.5f - 0.002f, 0.0045f, 0.032f, 0.006f, 5, 8, 0.78f, 0.64f, 0.36f)
+        }
     }
 }

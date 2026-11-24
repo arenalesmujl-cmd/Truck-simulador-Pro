@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -165,9 +166,15 @@ fun SettingsScreen(
                     .weight(1f)
                     .fillMaxHeight(),
                 colors = CardDefaults.cardColors(containerColor = SimSurface),
-                border = BorderStroke(1.dp, SimOutline),
+                border = BorderStroke(1.dp, RacingOrange.copy(alpha = 0.36f)),
                 shape = RoundedCornerShape(18.dp)
             ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .background(Brush.horizontalGradient(listOf(RacingOrange, SkyCyan)))
+                )
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -238,9 +245,15 @@ fun SettingsScreen(
                     .weight(1f)
                     .fillMaxHeight(),
                 colors = CardDefaults.cardColors(containerColor = SimSurface),
-                border = BorderStroke(1.dp, SimOutline),
+                border = BorderStroke(1.dp, SkyCyan.copy(alpha = 0.36f)),
                 shape = RoundedCornerShape(18.dp)
             ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .background(Brush.horizontalGradient(listOf(SkyCyan, EmeraldGo)))
+                )
                 Column(
                     modifier = Modifier
                         .fillMaxSize()

@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
@@ -237,10 +239,36 @@ fun MainMenuScreen(
                                     )
                                 }
                             }
+                            Surface(
+                                color = SimSurfaceGlass,
+                                border = BorderStroke(1.dp, EmeraldGo.copy(alpha = 0.45f)),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier
+                                    .align(Alignment.BottomStart)
+                                    .padding(6.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(6.dp)
+                                            .background(EmeraldGo, CircleShape)
+                                    )
+                                    Text(
+                                        text = "SHOWROOM 3D EN VIVO",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = EmeraldGo
+                                    )
+                                }
+                            }
                         }
 
                         Surface(
                             color = if (activeMission != null) AmberSignal.copy(alpha = 0.16f) else SimSurfaceElevated,
+                            border = BorderStroke(1.dp, if (activeMission != null) AmberSignal.copy(alpha = 0.42f) else SimOutline),
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -267,14 +295,21 @@ fun MainMenuScreen(
                         Button(
                             onClick = onPlayClicked,
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = RacingOrange,
+                                containerColor = Color.Transparent,
                                 contentColor = TextPrimary
                             ),
+                            contentPadding = PaddingValues(0.dp),
                             shape = RoundedCornerShape(14.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(52.dp)
                                 .minimumInteractiveComponentSize()
+                                .background(
+                                    Brush.horizontalGradient(
+                                        colors = listOf(RacingOrange, AmberSignal)
+                                    ),
+                                    RoundedCornerShape(14.dp)
+                                )
                                 .testTag("menu_play_button")
                         ) {
                             Icon(

@@ -32,6 +32,8 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
     private lateinit var groundQuad: MeshBuffer
     private lateinit var pedestalMesh: MeshBuffer
     private lateinit var pedestalTrimMesh: MeshBuffer
+    private lateinit var studioBayMesh: MeshBuffer
+    private lateinit var studioLightsMesh: MeshBuffer
     private lateinit var truckMeshes: Map<TruckStyle, TruckMeshSet>
     private lateinit var driverMeshes: DriverMeshSet
 
@@ -64,17 +66,69 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
         groundQuad = WorldMeshFactory.buildGroundQuad()
 
         val ped = DynamicMeshBuilder()
-        ped.addTaperedCylinderY(0f, -0.34f, 0f, 18.0f, 18.0f, 0.06f, 48, 0.045f, 0.058f, 0.082f)
-        ped.addTaperedCylinderY(0f, -0.28f, 0f, 5.45f, 5.15f, 0.28f, 48, 0.08f, 0.10f, 0.14f)
-        ped.addTaperedCylinderY(0f, -0.02f, 0f, 4.92f, 4.92f, 0.02f, 48, 0.13f, 0.16f, 0.21f)
+        // Expansive polished dark slate garage floor + stepped turntable pedestal
+        ped.addTaperedCylinderY(0f, -0.34f, 0f, 30.0f, 30.0f, 0.06f, 56, 0.055f, 0.070f, 0.098f)
+        ped.addTaperedCylinderY(0f, -0.28f, 0f, 5.65f, 5.25f, 0.28f, 56, 0.085f, 0.105f, 0.145f)
+        ped.addTaperedCylinderY(0f, -0.02f, 0f, 4.96f, 4.96f, 0.02f, 56, 0.14f, 0.17f, 0.22f)
         pedestalMesh = ped.build()
 
         val trim = DynamicMeshBuilder()
-        trim.addTaperedCylinderY(0f, -0.025f, 0f, 5.18f, 5.18f, 0.03f, 48, 0.98f, 0.46f, 0.08f, capped = false)
-        trim.addTaperedCylinderY(0f, -0.01f, 0f, 4.58f, 4.58f, 0.015f, 48, 0.16f, 0.78f, 0.96f, capped = false)
-        trim.addTaperedCylinderY(0f, -0.275f, 0f, 8.20f, 8.20f, 0.015f, 48, 0.10f, 0.36f, 0.56f, capped = false)
-        trim.addTaperedCylinderY(0f, 5.15f, 0f, 4.45f, 4.45f, 0.055f, 48, 0.85f, 0.91f, 1.0f, capped = false)
+        // Crisp turntable perimeter amber & cyan light rings (grounded on floor, zero floating artifacts)
+        trim.addTaperedCylinderY(0f, -0.025f, 0f, 5.22f, 5.22f, 0.03f, 56, 0.98f, 0.46f, 0.08f, capped = false)
+        trim.addTaperedCylinderY(0f, -0.01f, 0f, 4.58f, 4.58f, 0.015f, 56, 0.16f, 0.78f, 0.96f, capped = false)
+        trim.addTaperedCylinderY(0f, -0.275f, 0f, 8.60f, 8.60f, 0.015f, 56, 0.12f, 0.40f, 0.62f, capped = false)
         pedestalTrimMesh = trim.build()
+
+        // 3D Architectural Studio Garage Bay: dark cyclorama walls, steel columns & overhead truss ring
+        val bay = DynamicMeshBuilder()
+        val wallSegs = 40
+        val wallR = 26.5f
+        for (i in 0 until wallSegs) {
+            val a0 = (i.toFloat() / wallSegs) * 2f * Math.PI.toFloat()
+            val a1 = ((i + 1).toFloat() / wallSegs) * 2f * Math.PI.toFloat()
+            val x0 = cos(a0) * wallR; val z0 = sin(a0) * wallR
+            val x1 = cos(a1) * wallR; val z1 = sin(a1) * wallR
+            val nx = -cos((a0 + a1) * 0.5f); val nz = -sin((a0 + a1) * 0.5f)
+            bay.addQuad(x1, -0.35f, z1, x0, -0.35f, z0, x0, 12.5f, z0, x1, 12.5f, z1, nx, 0.15f, nz, 0.055f, 0.072f, 0.105f)
+            // Architectural steel wainscot dado band along lower studio wall
+            bay.addQuad(x1, -0.32f, z1, x0, -0.32f, z0, x0, 1.55f, z0, x1, 1.55f, z1, nx, 0.1f, nz, 0.082f, 0.102f, 0.138f)
+        }
+        for (k in 0 until 8) {
+            val a = (k.toFloat() / 8f) * 2f * Math.PI.toFloat() + 0.35f
+            val px = cos(a) * 19.5f
+            val pz = sin(a) * 19.5f
+            bay.addBox(px, 4.4f, pz, 0.58f, 9.6f, 0.58f, 0.11f, 0.14f, 0.19f)
+            bay.addBox(px, 0.25f, pz, 0.92f, 1.15f, 0.92f, 0.16f, 0.19f, 0.25f)
+        }
+        // Overhead octagonal steel gantry truss ring supporting softboxes
+        for (k in 0 until 12) {
+            val a0 = (k.toFloat() / 12f) * 2f * Math.PI.toFloat()
+            val a1 = ((k + 1).toFloat() / 12f) * 2f * Math.PI.toFloat()
+            val mx = cos((a0 + a1) * 0.5f) * 11.2f
+            val mz = sin((a0 + a1) * 0.5f) * 11.2f
+            bay.addBox(mx, 7.65f, mz, 0.42f, 0.36f, 6.1f, 0.12f, 0.15f, 0.20f)
+        }
+        studioBayMesh = bay.build()
+
+        // Overhead studio softbox LED light panels + crisp wall accent light strips
+        val lights = DynamicMeshBuilder()
+        for (lx in listOf(-4.2f, 0f, 4.2f)) {
+            lights.addBox(lx, 7.45f, 0f, 1.15f, 0.08f, 7.2f, 0.94f, 0.97f, 1.0f)
+        }
+        for (k in 0 until 8) {
+            val a = (k.toFloat() / 8f) * 2f * Math.PI.toFloat() + 0.35f
+            val px = cos(a) * 19.12f
+            val pz = sin(a) * 19.12f
+            val isAmber = k % 2 == 0
+            lights.addBox(
+                px, 3.4f, pz,
+                0.14f, 4.2f, 0.14f,
+                if (isAmber) 0.96f else 0.20f,
+                if (isAmber) 0.48f else 0.78f,
+                if (isAmber) 0.10f else 0.98f
+            )
+        }
+        studioLightsMesh = lights.build()
 
         truckMeshes = TruckStyle.entries.associateWith { TruckMeshFactory.buildTruckMesh(it) }
         driverMeshes = CharacterMeshFactory.buildDriverMeshes()
@@ -97,10 +151,10 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
 
         val style = truckStyle
         val meshSet = truckMeshes[style] ?: return
-        val driverX = 2.04f
-        val driverZ = 2.52f
-        val driverYaw = 30f
-        val breathBob = sin(idleTime * 2.0f) * 0.006f
+        val driverX = 1.92f
+        val driverZ = 2.68f
+        val driverYaw = 24f
+        val breathBob = sin(idleTime * 2.0f) * 0.0055f
         val pelvisY = 0.89f + breathBob
         val axles = when (style) {
             TruckStyle.EURO_CABOVER -> listOf(2.40f, -1.20f, -2.50f)
@@ -114,18 +168,18 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
         // 2. Main Beauty Pass
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
         GLES30.glViewport(0, 0, surfaceWidth, surfaceHeight)
-        GLES30.glClearColor(0.035f, 0.052f, 0.088f, 1f)
+        GLES30.glClearColor(0.036f, 0.054f, 0.092f, 1f)
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT or GLES30.GL_DEPTH_BUFFER_BIT)
 
         val aspect = surfaceWidth.toFloat() / surfaceHeight.toFloat()
-        Matrix.perspectiveM(projMatrix, 0, 38f, aspect, 0.3f, 65f)
+        Matrix.perspectiveM(projMatrix, 0, 36f, aspect, 0.3f, 75f)
 
         val camAngle = autoSpinRad + userOrbitOffsetRad
-        val camDist = 10.4f
+        val camDist = 9.2f
         val camX = sin(camAngle) * camDist
-        val camY = 2.55f
+        val camY = 2.24f
         val camZ = cos(camAngle) * camDist
-        Matrix.setLookAtM(viewMatrix, 0, camX, camY, camZ, 0.32f, 1.44f, 0.42f, 0f, 1f, 0f)
+        Matrix.setLookAtM(viewMatrix, 0, camX, camY, camZ, 0.28f, 1.38f, 0.45f, 0f, 1f, 0f)
         Matrix.multiplyMM(vpMatrix, 0, projMatrix, 0, viewMatrix, 0)
 
         worldShader.use()
@@ -138,24 +192,29 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
 
         bindTexture(textures.whiteTex)
         GLES30.glUniform1f(worldShader.uTimeLoc, idleTime)
-        GLES30.glUniform3f(worldShader.uLightDirLoc, 0.60f, 0.85f, 0.58f)
-        GLES30.glUniform3f(worldShader.uLightColorLoc, 1.02f, 0.97f, 0.91f)
-        GLES30.glUniform3f(worldShader.uAmbientColorLoc, 0.44f, 0.48f, 0.56f)
+        GLES30.glUniform3f(worldShader.uLightDirLoc, 0.58f, 0.86f, 0.62f)
+        GLES30.glUniform3f(worldShader.uLightColorLoc, 1.08f, 1.01f, 0.94f)
+        GLES30.glUniform3f(worldShader.uAmbientColorLoc, 0.44f, 0.49f, 0.57f)
         GLES30.glUniform3f(worldShader.uCameraPosLoc, camX, camY, camZ)
-        GLES30.glUniform3f(worldShader.uFogColorLoc, 0.04f, 0.06f, 0.10f)
-        GLES30.glUniform1f(worldShader.uFogDensityLoc, 0.011f)
-        GLES30.glUniform1f(worldShader.uWetnessLoc, 0.20f)
+        GLES30.glUniform3f(worldShader.uFogColorLoc, 0.042f, 0.062f, 0.105f)
+        GLES30.glUniform1f(worldShader.uFogDensityLoc, 0.014f)
+        GLES30.glUniform1f(worldShader.uWetnessLoc, 0.26f)
         GLES30.glUniform1f(worldShader.uHeadlightIntensityLoc, 0f)
 
-        // Studio turntable pedestal
+        // Studio Hangar Cyclorama Bay & Overhead Softbox Lighting
         Matrix.setIdentityM(modelMatrix, 0)
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
+        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
+        drawMesh(studioBayMesh, 1f, 1f, 1f, 1f)
+
+        // Studio turntable pedestal
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_CHROME)
         drawMesh(pedestalMesh, 1f, 1f, 1f, 1f)
 
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 1f)
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
         drawMesh(pedestalTrimMesh, 1f, 1f, 1f, 1f)
+        drawMesh(studioLightsMesh, 1f, 1f, 1f, 1f)
 
         // Soft studio ambient ground shadows beneath tires and boots
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, textures.softShadowTex)
@@ -203,7 +262,7 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
             }
         }
 
-        // Studio DRL Headlights, Fog Lamps & Amber Roof Marker LEDs
+        // Crisp Recessed Dual-Optic Projector Headlights, LED DRL Lightbars & Amber Roof Marker LEDs
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 1f)
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
         val noseZ = when (style) {
@@ -212,18 +271,22 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
             TruckStyle.HEAVY_TWIN_EXHAUST -> 3.50f
             TruckStyle.ARCTIC_EXPEDITION -> 3.58f
         }
-        drawBox(-0.88f, 0.98f, noseZ + 0.03f, 0.18f, 0.16f, 0.05f, 1f, 0.96f, 0.88f)
-        drawBox(0.88f, 0.98f, noseZ + 0.03f, 0.18f, 0.16f, 0.05f, 1f, 0.96f, 0.88f)
-        drawBox(-0.94f, 0.66f, noseZ + 0.22f, 0.19f, 0.075f, 0.03f, 0.95f, 0.92f, 0.82f)
-        drawBox(0.94f, 0.66f, noseZ + 0.22f, 0.19f, 0.075f, 0.03f, 0.95f, 0.92f, 0.82f)
+        for (sx in listOf(-1f, 1f)) {
+            drawBox(sx * 0.88f, 0.99f, noseZ + 0.036f, 0.14f, 0.075f, 0.025f, 1f, 0.97f, 0.90f)
+            drawBox(sx * 0.88f, 0.915f, noseZ + 0.040f, 0.21f, 0.024f, 0.020f, 0.90f, 0.96f, 1.0f)
+            drawBox(sx * 0.94f, 0.66f, noseZ + 0.222f, 0.18f, 0.048f, 0.022f, 0.96f, 0.94f, 0.86f)
+        }
         val roofZ = if (style == TruckStyle.EURO_CABOVER) 2.58f else 1.65f
         val roofY = if (style == TruckStyle.EURO_CABOVER) 3.44f else 3.30f
         for (lx in listOf(-0.75f, -0.35f, 0f, 0.35f, 0.75f)) {
-            drawBox(lx, roofY, roofZ, 0.12f, 0.07f, 0.08f, 1.0f, 0.62f, 0.06f)
+            drawBox(lx, roofY, roofZ, 0.12f, 0.065f, 0.07f, 1.0f, 0.62f, 0.06f)
         }
 
-        // Articulated UV-Textured 3D Realistic Human Driver standing in grounded hero stance
+        // Articulated UV-Textured 3D Realistic Human Driver standing in natural contrapposto hero stance
         if (showDriver) {
+            val headLook = sin(idleTime * 1.1f) * 6.5f
+            val torsoRoll = sin(idleTime * 1.4f) * 0.8f + 1.8f
+
             GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
             GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_SKIN_FABRIC)
 
@@ -231,11 +294,12 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
             Matrix.setIdentityM(modelMatrix, 0)
             Matrix.translateM(modelMatrix, 0, driverX, pelvisY, driverZ)
             Matrix.rotateM(modelMatrix, 0, driverYaw, 0f, 1f, 0f)
+            Matrix.rotateM(modelMatrix, 0, torsoRoll, 0f, 0f, 1f)
             drawMesh(driverMeshes.torsoMesh, 1f, 1f, 1f, 1f)
 
             // UV-textured sculpted head + ears/hair/cap accessories
             Matrix.translateM(modelMatrix, 0, 0f, 0.58f, 0f)
-            Matrix.rotateM(modelMatrix, 0, sin(idleTime * 1.1f) * 5.5f, 0f, 1f, 0f)
+            Matrix.rotateM(modelMatrix, 0, headLook, 0f, 1f, 0f)
             bindTexture(textures.driverFaceTex)
             drawMesh(driverMeshes.headFaceMesh, 1f, 1f, 1f, 1f)
             bindTexture(textures.whiteTex)
@@ -246,13 +310,14 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
                 Matrix.setIdentityM(modelMatrix, 0)
                 Matrix.translateM(modelMatrix, 0, driverX, pelvisY, driverZ)
                 Matrix.rotateM(modelMatrix, 0, driverYaw, 0f, 1f, 0f)
+                Matrix.rotateM(modelMatrix, 0, torsoRoll, 0f, 0f, 1f)
                 Matrix.translateM(modelMatrix, 0, side * 0.235f, 0.49f, 0f)
-                Matrix.rotateM(modelMatrix, 0, side * 8.5f, 0f, 0f, 1f)
-                Matrix.rotateM(modelMatrix, 0, if (side > 0) -6f else 5f, 1f, 0f, 0f)
+                Matrix.rotateM(modelMatrix, 0, side * 9.5f, 0f, 0f, 1f)
+                Matrix.rotateM(modelMatrix, 0, if (side > 0) -8f else 5f, 1f, 0f, 0f)
                 drawMesh(driverMeshes.upperArmMesh, 1f, 1f, 1f, 1f)
 
                 Matrix.translateM(modelMatrix, 0, 0f, -0.29f, 0f)
-                Matrix.rotateM(modelMatrix, 0, if (side > 0) -24f else -15f, 1f, 0f, 0f)
+                Matrix.rotateM(modelMatrix, 0, if (side > 0) -28f else -14f, 1f, 0f, 0f)
                 val forearmMesh = if (side > 0) driverMeshes.leftForearmHandMesh else driverMeshes.rightForearmHandMesh
                 drawMesh(forearmMesh, 1f, 1f, 1f, 1f)
             }
@@ -261,13 +326,13 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
                 Matrix.setIdentityM(modelMatrix, 0)
                 Matrix.translateM(modelMatrix, 0, driverX, pelvisY, driverZ)
                 Matrix.rotateM(modelMatrix, 0, driverYaw, 0f, 1f, 0f)
-                Matrix.translateM(modelMatrix, 0, side * 0.112f, 0.02f, 0f)
-                Matrix.rotateM(modelMatrix, 0, side * 4.5f, 0f, 0f, 1f)
-                Matrix.rotateM(modelMatrix, 0, side * 3.5f, 1f, 0f, 0f)
+                Matrix.translateM(modelMatrix, 0, side * 0.114f, 0.02f, 0f)
+                Matrix.rotateM(modelMatrix, 0, side * 5.0f, 0f, 0f, 1f)
+                Matrix.rotateM(modelMatrix, 0, if (side > 0) -4.5f else 3.0f, 1f, 0f, 0f)
                 drawMesh(driverMeshes.thighMesh, 1f, 1f, 1f, 1f)
 
                 Matrix.translateM(modelMatrix, 0, 0f, -0.42f, 0f)
-                Matrix.rotateM(modelMatrix, 0, if (side > 0) 4f else -2f, 1f, 0f, 0f)
+                Matrix.rotateM(modelMatrix, 0, if (side > 0) 7.5f else 2.5f, 1f, 0f, 0f)
                 drawMesh(driverMeshes.shinBootMesh, 1f, 1f, 1f, 1f)
             }
         }
@@ -310,13 +375,17 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
         }
 
         if (showDriver) {
+            val headLook = sin(idleTime * 1.1f) * 6.5f
+            val torsoRoll = sin(idleTime * 1.4f) * 0.8f + 1.8f
+
             Matrix.setIdentityM(modelMatrix, 0)
             Matrix.translateM(modelMatrix, 0, driverX, pelvisY, driverZ)
             Matrix.rotateM(modelMatrix, 0, driverYaw, 0f, 1f, 0f)
+            Matrix.rotateM(modelMatrix, 0, torsoRoll, 0f, 0f, 1f)
             drawShadowMesh(driverMeshes.torsoMesh)
 
             Matrix.translateM(modelMatrix, 0, 0f, 0.58f, 0f)
-            Matrix.rotateM(modelMatrix, 0, sin(idleTime * 1.1f) * 5.5f, 0f, 1f, 0f)
+            Matrix.rotateM(modelMatrix, 0, headLook, 0f, 1f, 0f)
             drawShadowMesh(driverMeshes.headFaceMesh)
             drawShadowMesh(driverMeshes.headAccMesh)
 
@@ -324,13 +393,14 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
                 Matrix.setIdentityM(modelMatrix, 0)
                 Matrix.translateM(modelMatrix, 0, driverX, pelvisY, driverZ)
                 Matrix.rotateM(modelMatrix, 0, driverYaw, 0f, 1f, 0f)
+                Matrix.rotateM(modelMatrix, 0, torsoRoll, 0f, 0f, 1f)
                 Matrix.translateM(modelMatrix, 0, side * 0.235f, 0.49f, 0f)
-                Matrix.rotateM(modelMatrix, 0, side * 8.5f, 0f, 0f, 1f)
-                Matrix.rotateM(modelMatrix, 0, if (side > 0) -6f else 5f, 1f, 0f, 0f)
+                Matrix.rotateM(modelMatrix, 0, side * 9.5f, 0f, 0f, 1f)
+                Matrix.rotateM(modelMatrix, 0, if (side > 0) -8f else 5f, 1f, 0f, 0f)
                 drawShadowMesh(driverMeshes.upperArmMesh)
 
                 Matrix.translateM(modelMatrix, 0, 0f, -0.29f, 0f)
-                Matrix.rotateM(modelMatrix, 0, if (side > 0) -24f else -15f, 1f, 0f, 0f)
+                Matrix.rotateM(modelMatrix, 0, if (side > 0) -28f else -14f, 1f, 0f, 0f)
                 val forearmMesh = if (side > 0) driverMeshes.leftForearmHandMesh else driverMeshes.rightForearmHandMesh
                 drawShadowMesh(forearmMesh)
             }
@@ -339,13 +409,13 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
                 Matrix.setIdentityM(modelMatrix, 0)
                 Matrix.translateM(modelMatrix, 0, driverX, pelvisY, driverZ)
                 Matrix.rotateM(modelMatrix, 0, driverYaw, 0f, 1f, 0f)
-                Matrix.translateM(modelMatrix, 0, side * 0.112f, 0.02f, 0f)
-                Matrix.rotateM(modelMatrix, 0, side * 4.5f, 0f, 0f, 1f)
-                Matrix.rotateM(modelMatrix, 0, side * 3.5f, 1f, 0f, 0f)
+                Matrix.translateM(modelMatrix, 0, side * 0.114f, 0.02f, 0f)
+                Matrix.rotateM(modelMatrix, 0, side * 5.0f, 0f, 0f, 1f)
+                Matrix.rotateM(modelMatrix, 0, if (side > 0) -4.5f else 3.0f, 1f, 0f, 0f)
                 drawShadowMesh(driverMeshes.thighMesh)
 
                 Matrix.translateM(modelMatrix, 0, 0f, -0.42f, 0f)
-                Matrix.rotateM(modelMatrix, 0, if (side > 0) 4f else -2f, 1f, 0f, 0f)
+                Matrix.rotateM(modelMatrix, 0, if (side > 0) 7.5f else 2.5f, 1f, 0f, 0f)
                 drawShadowMesh(driverMeshes.shinBootMesh)
             }
         }

@@ -302,10 +302,18 @@ class WorldShaderProgram {
                     float foamWave = smoothstep(0.58, 0.95, sin(shoreDist * 0.55 - uTime * 2.2) * 0.5 + 0.5);
                     float shoreMask = clamp(1.0 - shoreDist / 16.0, 0.0, 1.0);
                     albedo = mix(srgbToLinear(vec3(0.04, 0.28, 0.54)), srgbToLinear(vec3(0.88, 0.94, 0.99)), shoreMask * (0.45 + 0.48 * foamWave));
-                } else if (uMaterialMode < 0.5 && N.y > 0.45) {
+                } else if (uMaterialMode < 0.5 && N.y > 0.12) {
                     float macroPatch = sin(vWorldPos.x * 0.045) * cos(vWorldPos.z * 0.041)
                                      + 0.5 * sin(vWorldPos.x * 0.13 + vWorldPos.z * 0.11);
-                    albedo *= (1.0 + macroPatch * 0.09);
+                    float fineGrain = sin(vWorldPos.x * 0.42 - vWorldPos.z * 0.37) * 0.038;
+                    if (N.y < 0.78) {
+                        float rockFactor = smoothstep(0.78, 0.46, N.y);
+                        float strata = sin(vWorldPos.y * 1.45 + vWorldPos.x * 0.09 + vWorldPos.z * 0.07) * 0.14;
+                        vec3 granite = srgbToLinear(vec3(0.38, 0.37, 0.36)) * (1.0 + strata + fineGrain * 2.0);
+                        albedo = mix(albedo * (1.0 + macroPatch * 0.095 + fineGrain), granite, rockFactor * 0.72);
+                    } else {
+                        albedo *= (1.0 + macroPatch * 0.095 + fineGrain);
+                    }
                 }
 
                 float localWet = uWetness;
@@ -332,9 +340,9 @@ class WorldShaderProgram {
                 // Warm Subsurface Scattering (SSS) wrap fill on human skin & fabric
                 vec3 sssGlow = vec3(0.0);
                 if (uMaterialMode > 4.5) {
-                    diff = max((ndl + 0.46) / 1.46, 0.0);
-                    float wrapBand = smoothstep(-0.42, 0.30, ndl) * (1.0 - smoothstep(0.08, 0.74, ndl));
-                    sssGlow = vec3(0.28, 0.105, 0.048) * wrapBand * lightLin;
+                    diff = max((ndl + 0.50) / 1.50, 0.0);
+                    float wrapBand = smoothstep(-0.44, 0.34, ndl) * (1.0 - smoothstep(0.10, 0.78, ndl));
+                    sssGlow = vec3(0.30, 0.115, 0.052) * wrapBand * lightLin;
                 }
 
                 vec3 skyBounce = ambLin * 1.52;
@@ -357,12 +365,16 @@ class WorldShaderProgram {
                     vec3 skyEnv = mix(ambLin * 0.45, fogLin * 1.48 + lightLin * 0.48, smoothstep(-0.08, 0.45, R.y));
                     envReflect = skyEnv * (0.22 + fresnel * 0.70);
                 } else if (uMaterialMode > 0.5 && uMaterialMode < 1.5) {
-                    shininess = 112.0;
-                    specStrength = 0.76;
-                    float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.0);
+                    // Dual-lobe automotive clearcoat + subtle metallic base flake shimmer
+                    shininess = 88.0;
+                    specStrength = 0.62;
+                    float flake = hash21(floor(vWorldPos.xz * 260.0 + vWorldPos.y * 190.0));
+                    float flakeGlint = smoothstep(0.76, 0.99, flake) * 0.24 * max(ndl, 0.0);
+                    float clearcoat = pow(max(dot(N, H), 0.0), 210.0) * 0.78 * shadowFactor;
+                    float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.2);
                     vec3 R = reflect(-V, N);
-                    vec3 skyEnv = mix(groundBounce * 0.55, fogLin * 1.44 + lightLin * 0.42, smoothstep(-0.15, 0.45, R.y));
-                    envReflect = skyEnv * (0.08 + fresnel * 0.54);
+                    vec3 skyEnv = mix(groundBounce * 0.52, fogLin * 1.48 + lightLin * 0.48, smoothstep(-0.15, 0.44, R.y));
+                    envReflect = skyEnv * (0.09 + fresnel * 0.58) + lightLin * (clearcoat + flakeGlint);
                 } else if (uMaterialMode > 1.5 && uMaterialMode < 2.5) {
                     shininess = 175.0;
                     specStrength = 1.55;
@@ -378,10 +390,10 @@ class WorldShaderProgram {
                     vec3 skyEnv = mix(vec3(0.03, 0.05, 0.10), fogLin * 1.46 + lightLin * 0.36, smoothstep(-0.10, 0.42, R.y));
                     envReflect = skyEnv * (0.38 + fresnel * 0.62);
                 } else if (uMaterialMode > 4.5) {
-                    shininess = 26.0;
-                    specStrength = 0.095;
-                    float rim = pow(1.0 - max(dot(N, V), 0.0), 3.3);
-                    envReflect = (lightLin * 0.50 + skyBounce) * rim * 0.14;
+                    shininess = 24.0;
+                    specStrength = 0.085;
+                    float rim = pow(1.0 - max(dot(N, V), 0.0), 3.0);
+                    envReflect = (lightLin * 0.52 + skyBounce) * rim * 0.16;
                 } else if (uMaterialMode > 2.5 && uMaterialMode < 3.5 && localWet > 0.15) {
                     vec3 R = reflect(-V, N);
                     vec3 skyEnv = mix(ambLin * 0.3, fogLin * 1.28, clamp(R.y * 0.5 + 0.5, 0.0, 1.0));
@@ -412,7 +424,9 @@ class WorldShaderProgram {
 
                 float distCam = length(vWorldPos - uCameraPos);
                 float fogFactor = clamp(1.0 - exp(-pow(distCam * uFogDensity, 2.0)), 0.0, 1.0);
-                vec3 finalRgb = mix(litSrgb, uFogColor, fogFactor);
+                float sunFwd = max(dot(-V, L), 0.0);
+                vec3 aerialFog = mix(uFogColor, uLightColor * 0.92, pow(sunFwd, 5.0) * 0.32 * (1.0 - clamp(uWetness, 0.0, 1.0)));
+                vec3 finalRgb = mix(litSrgb, aerialFog, fogFactor);
 
                 fragColor = vec4(finalRgb, base.a);
             }
@@ -462,13 +476,16 @@ class MirrorQuadShaderProgram {
                     discard;
                 }
                 if (corner > 0.16 || p.x > 0.90 || p.y > 0.92) {
-                    fragColor = vec4(0.08, 0.10, 0.13, 1.0);
+                    float housingShade = 0.78 + 0.30 * (1.0 - vUv.y);
+                    fragColor = vec4(vec3(0.085, 0.105, 0.138) * housingShade, 1.0);
                 } else if (p.x > 0.86 || p.y > 0.88) {
-                    fragColor = vec4(0.58, 0.62, 0.68, 1.0);
+                    float chromeSpec = 0.86 + 0.24 * sin((vUv.x + vUv.y) * 3.14159);
+                    fragColor = vec4(vec3(0.56, 0.61, 0.68) * chromeSpec, 1.0);
                 } else {
                     vec4 mirrorSample = texture(uTexture, vUv);
                     float glassSheen = smoothstep(0.0, 1.0, (vUv.x + vUv.y) * 0.22);
-                    fragColor = vec4(mirrorSample.rgb * 0.94 + vec3(0.04, 0.06, 0.09) * glassSheen, 1.0);
+                    float vignette = 1.0 - smoothstep(0.55, 1.05, length(p * 0.55)) * 0.12;
+                    fragColor = vec4((mirrorSample.rgb * 0.95 + vec3(0.04, 0.06, 0.09) * glassSheen) * vignette, 1.0);
                 }
             }
         """

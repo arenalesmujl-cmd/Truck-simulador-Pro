@@ -33,7 +33,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -45,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -264,6 +264,18 @@ fun TruckSelectScreen(
                         ),
                         shape = RoundedCornerShape(14.dp)
                     ) {
+                        if (isSelected || isFocused) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(2.5.dp)
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            if (isSelected) listOf(RacingOrange, EmeraldGo) else listOf(SkyCyan, RacingOrange.copy(alpha = 0.5f))
+                                        )
+                                    )
+                            )
+                        }
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -376,14 +388,22 @@ private fun StatBarRow(
             Text(label, style = MaterialTheme.typography.labelSmall, color = TextSecondary)
             Text(value, style = MaterialTheme.typography.labelSmall, color = TextPrimary)
         }
-        Spacer(Modifier.height(3.dp))
-        LinearProgressIndicator(
-            progress = { fraction.coerceIn(0.1f, 1f) },
-            color = color,
-            trackColor = SimSurfaceElevated,
+        Spacer(Modifier.height(4.dp))
+        val clamped = fraction.coerceIn(0.1f, 1f)
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(6.dp)
-        )
+                .height(7.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(SimSurfaceElevated)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(clamped)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Brush.horizontalGradient(listOf(color.copy(alpha = 0.65f), color)))
+            )
+        }
     }
 }

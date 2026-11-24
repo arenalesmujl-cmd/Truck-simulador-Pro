@@ -248,14 +248,17 @@ object TruckMeshFactory {
         // Curved chrome drop sun visor
         chrome.addSlopedBox(0f, 3.04f, 1.98f, 2.24f, 0.32f, 2.18f, 0.24f, 0.16f, -0.05f, 0.86f, 0.88f, 0.92f)
 
-        // PROUD, CRISP PANORAMIC WINDSHIELD + RUBBER TRIM + SIDE WINDOWS
+        // PROUD, CRISP PANORAMIC WINDSHIELD + FLUSH DOOR/SLEEPER WINDOWS + CHROME SILL TRIM
         chassis.addSlopedBox(0f, 2.54f, 2.00f, 2.10f, 0.14f, 2.02f, 0.12f, 0.78f, -0.10f, 0.08f, 0.10f, 0.13f)
-        glass.addSlopedBox(0f, 2.54f, 2.02f, 2.00f, 0.14f, 1.92f, 0.12f, 0.68f, -0.10f, 0.06f, 0.13f, 0.21f, 0.85f)
-        chassis.addSlopedBox(0f, 2.54f, 2.07f, 0.06f, 0.04f, 0.06f, 0.04f, 0.72f, -0.10f, 0.12f, 0.14f, 0.18f)
-        chassis.addBox(0f, 2.52f, 1.24f, 2.52f, 0.68f, 0.98f, 0.08f, 0.10f, 0.13f)
-        glass.addBox(0f, 2.52f, 1.24f, 2.54f, 0.58f, 0.88f, 0.06f, 0.13f, 0.21f, 0.86f)
-        chassis.addBox(0f, 2.52f, 0.05f, 2.52f, 0.60f, 0.74f, 0.08f, 0.10f, 0.13f)
-        glass.addBox(0f, 2.52f, 0.05f, 2.54f, 0.50f, 0.64f, 0.06f, 0.13f, 0.21f, 0.86f)
+        glass.addSlopedBox(0f, 2.54f, 2.02f, 2.00f, 0.14f, 1.92f, 0.12f, 0.68f, -0.10f, 0.06f, 0.13f, 0.21f, 0.86f)
+        chassis.addSlopedBox(0f, 2.54f, 2.07f, 0.055f, 0.04f, 0.055f, 0.04f, 0.72f, -0.10f, 0.12f, 0.14f, 0.18f)
+        for (side in listOf(-1f, 1f)) {
+            chassis.addBox(side * 1.19f, 2.52f, 1.24f, 0.12f, 0.66f, 0.96f, 0.08f, 0.10f, 0.13f)
+            glass.addBox(side * 1.205f, 2.52f, 1.24f, 0.11f, 0.56f, 0.86f, 0.06f, 0.13f, 0.21f, 0.88f)
+            chrome.addBox(side * 1.245f, 2.19f, 1.24f, 0.045f, 0.038f, 0.98f, 0.88f, 0.91f, 0.95f)
+            chassis.addBox(side * 1.20f, 2.52f, 0.05f, 0.12f, 0.58f, 0.72f, 0.08f, 0.10f, 0.13f)
+            glass.addBox(side * 1.215f, 2.52f, 0.05f, 0.11f, 0.48f, 0.62f, 0.06f, 0.13f, 0.21f, 0.88f)
+        }
     }
 
     private fun buildEuroCabover(
@@ -304,9 +307,12 @@ object TruckMeshFactory {
         chrome.addBox(0f, 1.96f, 3.06f, 0.46f, 0.11f, 0.05f, 0.92f, 0.94f, 0.98f)
 
         chassis.addSlopedBox(0f, 2.68f, 2.94f, 2.20f, 0.16f, 2.08f, 0.14f, 0.96f, -0.10f, 0.08f, 0.10f, 0.13f)
-        glass.addSlopedBox(0f, 2.68f, 2.96f, 2.10f, 0.15f, 1.98f, 0.13f, 0.86f, -0.10f, 0.06f, 0.13f, 0.21f, 0.85f)
-        chassis.addBox(0f, 2.68f, 1.95f, 2.53f, 0.78f, 1.16f, 0.08f, 0.10f, 0.13f)
-        glass.addBox(0f, 2.68f, 1.95f, 2.55f, 0.68f, 1.06f, 0.06f, 0.13f, 0.21f, 0.86f)
+        glass.addSlopedBox(0f, 2.68f, 2.96f, 2.10f, 0.15f, 1.98f, 0.13f, 0.86f, -0.10f, 0.06f, 0.13f, 0.21f, 0.86f)
+        for (side in listOf(-1f, 1f)) {
+            chassis.addBox(side * 1.20f, 2.68f, 1.95f, 0.12f, 0.76f, 1.14f, 0.08f, 0.10f, 0.13f)
+            glass.addBox(side * 1.215f, 2.68f, 1.95f, 0.11f, 0.66f, 1.04f, 0.06f, 0.13f, 0.21f, 0.88f)
+            chrome.addBox(side * 1.255f, 2.30f, 1.95f, 0.045f, 0.038f, 1.16f, 0.88f, 0.91f, 0.95f)
+        }
         chassis.addSlopedBox(0f, 3.24f, 2.92f, 2.34f, 0.26f, 2.28f, 0.20f, 0.18f, -0.04f, 0.12f, 0.13f, 0.16f)
     }
 
@@ -367,9 +373,12 @@ object TruckMeshFactory {
             chrome.addCylinderY(side * 1.18f, 1.85f, 1.82f, 0.15f, 0.68f, 14, 0.85f, 0.88f, 0.92f)
         }
         chassis.addSlopedBox(0f, 2.60f, 2.10f, 2.16f, 0.14f, 2.06f, 0.12f, 0.80f, -0.10f, 0.08f, 0.10f, 0.13f)
-        glass.addSlopedBox(0f, 2.60f, 2.12f, 2.06f, 0.14f, 1.96f, 0.12f, 0.70f, -0.10f, 0.06f, 0.13f, 0.21f, 0.85f)
-        chassis.addBox(0f, 2.60f, 1.35f, 2.57f, 0.70f, 1.02f, 0.08f, 0.10f, 0.13f)
-        glass.addBox(0f, 2.60f, 1.35f, 2.59f, 0.60f, 0.92f, 0.06f, 0.13f, 0.21f, 0.86f)
+        glass.addSlopedBox(0f, 2.60f, 2.12f, 2.06f, 0.14f, 1.96f, 0.12f, 0.70f, -0.10f, 0.06f, 0.13f, 0.21f, 0.86f)
+        for (side in listOf(-1f, 1f)) {
+            chassis.addBox(side * 1.21f, 2.60f, 1.35f, 0.12f, 0.68f, 1.00f, 0.08f, 0.10f, 0.13f)
+            glass.addBox(side * 1.225f, 2.60f, 1.35f, 0.11f, 0.58f, 0.90f, 0.06f, 0.13f, 0.21f, 0.88f)
+            chrome.addBox(side * 1.265f, 2.26f, 1.35f, 0.045f, 0.038f, 1.02f, 0.88f, 0.91f, 0.95f)
+        }
     }
 
     private fun buildArcticExpedition(
@@ -422,9 +431,12 @@ object TruckMeshFactory {
         chassis.addCylinderY(1.32f, 1.25f, 2.05f, 0.11f, 2.45f, 12, 0.14f, 0.16f, 0.18f)
 
         chassis.addSlopedBox(0f, 2.66f, 2.24f, 2.20f, 0.14f, 2.10f, 0.12f, 0.78f, -0.10f, 0.08f, 0.10f, 0.13f)
-        glass.addSlopedBox(0f, 2.66f, 2.26f, 2.10f, 0.14f, 2.00f, 0.12f, 0.68f, -0.10f, 0.06f, 0.13f, 0.21f, 0.85f)
-        chassis.addBox(0f, 2.66f, 1.45f, 2.61f, 0.70f, 1.04f, 0.08f, 0.10f, 0.13f)
-        glass.addBox(0f, 2.66f, 1.45f, 2.63f, 0.60f, 0.94f, 0.06f, 0.13f, 0.21f, 0.86f)
+        glass.addSlopedBox(0f, 2.66f, 2.26f, 2.10f, 0.14f, 2.00f, 0.12f, 0.68f, -0.10f, 0.06f, 0.13f, 0.21f, 0.86f)
+        for (side in listOf(-1f, 1f)) {
+            chassis.addBox(side * 1.23f, 2.66f, 1.45f, 0.12f, 0.68f, 1.02f, 0.08f, 0.10f, 0.13f)
+            glass.addBox(side * 1.245f, 2.66f, 1.45f, 0.11f, 0.58f, 0.92f, 0.06f, 0.13f, 0.21f, 0.88f)
+            chrome.addBox(side * 1.285f, 2.32f, 1.45f, 0.045f, 0.038f, 1.04f, 0.88f, 0.91f, 0.95f)
+        }
     }
 
     fun buildTrailerMesh(): TrailerMeshSet {
@@ -446,6 +458,17 @@ object TruckMeshFactory {
             chassis.addBox(side * 0.96f, 1.12f, -5.62f, 0.22f, 0.28f, 0.12f, 0.08f, 0.09f, 0.11f)
         }
         chrome.addBox(0f, 0.76f, -5.60f, 2.46f, 0.18f, 0.16f, 0.82f, 0.85f, 0.90f)
+        // DOT red & white retro-reflective safety stripe along rear ICC underride bumper & lower side rails
+        for (ix in -9..9 step 2) {
+            val isRed = ((ix + 9) / 2) % 2 == 0
+            chassis.addBox(ix * 0.12f, 0.76f, -5.69f, 0.22f, 0.09f, 0.02f, if (isRed) 0.92f else 0.95f, if (isRed) 0.12f else 0.95f, if (isRed) 0.10f else 0.97f)
+        }
+        for (sz in -50..50 step 5) {
+            val isRed = ((sz + 50) / 5) % 2 == 0
+            for (side in listOf(-1f, 1f)) {
+                chassis.addBox(side * 1.285f, 1.24f, sz * 0.1f, 0.02f, 0.07f, 0.46f, if (isRed) 0.92f else 0.95f, if (isRed) 0.12f else 0.95f, if (isRed) 0.10f else 0.97f)
+            }
+        }
         // Front Thermo-King refrigeration unit + louver grille + indicator housing
         chassis.addBeveledBox(0f, 3.12f, 5.72f, 1.56f, 1.05f, 0.38f, 0.06f, 0.90f, 0.92f, 0.95f)
         chassis.addBox(0f, 3.12f, 5.92f, 1.08f, 0.62f, 0.04f, 0.14f, 0.16f, 0.19f)
@@ -457,11 +480,14 @@ object TruckMeshFactory {
             body.addBox(-1.27f, 2.52f, zPos, 0.03f, 2.56f, 0.14f, 0.92f, 0.92f, 0.92f)
             body.addBox(1.27f, 2.52f, zPos, 0.03f, 2.56f, 0.14f, 0.92f, 0.92f, 0.92f)
         }
-        chrome.addBox(0f, 3.88f, 0f, 2.55f, 0.11f, 11.24f, 0.86f, 0.88f, 0.92f)
+        // Clean brushed aluminum roof sheet & smooth rear cargo doors with rubber seal & cam lock hardware (prevents corrugated UVs on roof/doors!)
+        chrome.addBox(0f, 3.91f, 0f, 2.56f, 0.08f, 11.24f, 0.91f, 0.93f, 0.96f)
+        chassis.addBox(0f, 2.52f, -5.60f, 2.48f, 2.66f, 0.04f, 0.86f, 0.88f, 0.91f)
+        chassis.addBox(0f, 2.52f, -5.625f, 0.055f, 2.66f, 0.025f, 0.10f, 0.11f, 0.14f)
         chrome.addBox(-1.27f, 1.24f, 0f, 0.04f, 0.12f, 11.22f, 0.86f, 0.88f, 0.92f)
         chrome.addBox(1.27f, 1.24f, 0f, 0.04f, 0.12f, 11.22f, 0.86f, 0.88f, 0.92f)
         for (lx in listOf(-0.62f, -0.22f, 0.22f, 0.62f)) {
-            chrome.addCylinderY(lx, 1.25f, -5.62f, 0.028f, 2.48f, 8, 0.88f, 0.90f, 0.94f)
+            chrome.addCylinderY(lx, 1.25f, -5.64f, 0.028f, 2.48f, 8, 0.88f, 0.90f, 0.94f)
         }
 
         return TrailerMeshSet(
@@ -488,12 +514,17 @@ object TruckMeshFactory {
                 LoftRingZ(2.08f, 0.56f, 0.84f, 0.22f, 0.95f, 0.95f, 0.95f, roundness = 0.52f)
             )
         )
-        // Sedan bumper fascia, front radiator grille & side mirrors
-        sedanBody.addBox(0f, 0.54f, 2.09f, 0.86f, 0.22f, 0.06f, 0.14f, 0.16f, 0.19f)
+        // Sedan bumper fascia, grille, twin headlight housings, rear taillights & wheel arches
+        sedanBody.addBox(0f, 0.54f, 2.09f, 0.86f, 0.20f, 0.06f, 0.14f, 0.16f, 0.19f)
         sedanBody.addBox(0f, 0.36f, 2.10f, 1.56f, 0.14f, 0.08f, 0.12f, 0.14f, 0.17f)
         sedanBody.addBox(0f, 0.38f, -2.14f, 1.60f, 0.16f, 0.08f, 0.12f, 0.14f, 0.17f)
-        sedanBody.addBox(-0.96f, 0.96f, 0.45f, 0.18f, 0.10f, 0.10f, 0.92f, 0.92f, 0.92f)
-        sedanBody.addBox(0.96f, 0.96f, 0.45f, 0.18f, 0.10f, 0.10f, 0.92f, 0.92f, 0.92f)
+        for (side in listOf(-1f, 1f)) {
+            sedanBody.addWheelArch(side * 0.86f, 0.34f, 1.32f, 0.24f, 0.35f, 0.44f, 10, 0.12f, 0.13f, 0.16f)
+            sedanBody.addWheelArch(side * 0.86f, 0.34f, -1.28f, 0.24f, 0.35f, 0.44f, 10, 0.12f, 0.13f, 0.16f)
+            sedanBody.addBox(side * 0.62f, 0.62f, 2.07f, 0.28f, 0.11f, 0.06f, 0.94f, 0.96f, 0.98f)
+            sedanBody.addBox(side * 0.62f, 0.72f, -2.12f, 0.32f, 0.11f, 0.06f, 0.88f, 0.12f, 0.10f)
+            sedanBody.addBox(side * 0.96f, 0.96f, 0.45f, 0.18f, 0.09f, 0.10f, 0.92f, 0.92f, 0.92f)
+        }
         sedanGlass.addLoftedProfileZ(
             cx = 0f,
             sectors = 18,
@@ -524,8 +555,20 @@ object TruckMeshFactory {
         busBody.addBeveledBox(0f, 2.98f, 1.2f, 1.45f, 0.28f, 2.2f, 0.06f, 0.88f, 0.90f, 0.92f)
         busBody.addBeveledBox(0f, 2.98f, -2.0f, 1.45f, 0.28f, 2.2f, 0.06f, 0.88f, 0.90f, 0.92f)
         busBody.addBox(0f, 0.88f, 5.12f, 1.72f, 0.34f, 0.06f, 0.14f, 0.16f, 0.20f)
-        busGlass.addBox(0f, 2.02f, 0.2f, 2.52f, 0.92f, 8.8f, 0.07f, 0.14f, 0.22f, 0.85f)
-        busGlass.addSlopedBox(0f, 1.98f, 5.06f, 2.22f, 0.16f, 2.14f, 0.12f, 1.18f, -0.05f, 0.07f, 0.14f, 0.22f, 0.85f)
+        busBody.addBox(0f, 2.66f, 5.02f, 1.38f, 0.24f, 0.08f, 0.08f, 0.10f, 0.13f)
+        for (side in listOf(-1f, 1f)) {
+            busBody.addWheelArch(side * 1.16f, 0.46f, 3.2f, 0.34f, 0.48f, 0.58f, 10, 0.12f, 0.13f, 0.16f)
+            busBody.addWheelArch(side * 1.16f, 0.46f, -3.1f, 0.34f, 0.48f, 0.58f, 10, 0.12f, 0.13f, 0.16f)
+            busBody.addBox(side * 0.84f, 0.84f, 5.10f, 0.30f, 0.14f, 0.06f, 0.95f, 0.96f, 0.98f)
+            busBody.addBox(side * 0.90f, 1.02f, -5.08f, 0.26f, 0.28f, 0.06f, 0.88f, 0.12f, 0.10f)
+            // Flush passenger side window strip + dark window mullions
+            busBody.addBox(side * 1.21f, 2.02f, 0.15f, 0.12f, 0.96f, 8.85f, 0.10f, 0.12f, 0.16f)
+            busGlass.addBox(side * 1.225f, 2.02f, 0.15f, 0.11f, 0.84f, 8.70f, 0.07f, 0.14f, 0.22f, 0.86f)
+            for (pz in -4..4) {
+                busBody.addBox(side * 1.25f, 2.02f, pz * 1.05f, 0.07f, 0.90f, 0.09f, 0.12f, 0.14f, 0.18f)
+            }
+        }
+        busGlass.addSlopedBox(0f, 1.98f, 5.06f, 2.22f, 0.16f, 2.14f, 0.12f, 1.18f, -0.05f, 0.07f, 0.14f, 0.22f, 0.86f)
 
         val cargoCab = DynamicMeshBuilder()
         val cargoBox = DynamicMeshBuilder()
@@ -542,6 +585,11 @@ object TruckMeshFactory {
         )
         cargoCab.addBox(0f, 1.12f, 3.54f, 1.48f, 0.46f, 0.06f, 0.14f, 0.16f, 0.20f)
         cargoCab.addSlopedBox(0f, 1.95f, 3.54f, 2.08f, 0.14f, 2.00f, 0.12f, 0.78f, -0.06f, 0.08f, 0.14f, 0.22f)
+        for (side in listOf(-1f, 1f)) {
+            cargoCab.addBox(side * 1.18f, 1.95f, 2.42f, 0.08f, 0.58f, 0.94f, 0.08f, 0.14f, 0.22f)
+            cargoCab.addWheelArch(side * 1.10f, 0.46f, 2.25f, 0.32f, 0.46f, 0.56f, 10, 0.14f, 0.16f, 0.19f)
+            cargoCab.addBox(side * 0.90f, 0.86f, 3.54f, 0.26f, 0.14f, 0.06f, 0.95f, 0.96f, 0.98f)
+        }
         cargoBox.addBoxUv(0f, 1.78f, -1.25f, 2.44f, 2.55f, 5.25f, 2.0f, 1.0f, 1f, 1f, 1f)
 
         return TrafficMeshSet(
@@ -556,22 +604,49 @@ object TruckMeshFactory {
 
     fun buildCockpitMeshes(): CockpitMeshSet {
         val dash = DynamicMeshBuilder()
-        // Sculpted soft-touch leather dash cowl & aluminum accent trim bar
-        dash.addSlopedBox(-0.34f, -0.46f, 0.82f, 2.05f, 0.48f, 1.96f, 0.38f, 0.36f, 0.04f, 0.12f, 0.14f, 0.17f)
-        dash.addSlopedBox(-0.34f, -0.25f, 0.82f, 2.00f, 0.38f, 1.92f, 0.34f, 0.05f, 0.02f, 0.16f, 0.18f, 0.22f)
-        dash.addBox(-0.78f, -0.36f, 0.62f, 0.84f, 0.026f, 0.04f, 0.70f, 0.74f, 0.80f)
-        dash.addSlopedBox(0f, -0.22f, 0.72f, 0.56f, 0.24f, 0.50f, 0.18f, 0.20f, 0.02f, 0.09f, 0.10f, 0.13f)
-        dash.addTorusZ(-0.12f, -0.28f, 0.65f, 0.072f, 0.010f, 24, 8, 0.74f, 0.78f, 0.84f)
-        dash.addTorusZ(0.12f, -0.28f, 0.65f, 0.072f, 0.010f, 24, 8, 0.74f, 0.78f, 0.84f)
+        // Sculpted soft-touch leather dash cowl, instrument binnacle brow & brushed aluminum trim bar
+        dash.addSlopedBox(-0.34f, -0.46f, 0.82f, 2.05f, 0.48f, 1.96f, 0.38f, 0.36f, 0.04f, 0.11f, 0.13f, 0.16f)
+        dash.addSlopedBox(-0.34f, -0.25f, 0.82f, 2.00f, 0.38f, 1.92f, 0.34f, 0.05f, 0.02f, 0.15f, 0.17f, 0.21f)
+        // Lower knee-bolster & enclosed cabin footwell console skirt
+        dash.addBox(-0.34f, -0.68f, 0.68f, 2.18f, 0.32f, 0.52f, 0.08f, 0.09f, 0.12f)
+        // Brushed aluminum trim strip + ambient amber accent line
+        dash.addBox(-0.78f, -0.36f, 0.62f, 0.84f, 0.026f, 0.04f, 0.74f, 0.78f, 0.84f)
+        dash.addBox(0.32f, -0.36f, 0.62f, 0.40f, 0.022f, 0.04f, 0.74f, 0.78f, 0.84f)
+        dash.addBox(-0.34f, -0.38f, 0.618f, 1.65f, 0.008f, 0.02f, 0.96f, 0.46f, 0.08f)
+
+        dash.addSlopedBox(0f, -0.21f, 0.72f, 0.62f, 0.25f, 0.56f, 0.19f, 0.20f, 0.02f, 0.08f, 0.09f, 0.12f)
+        dash.addSlopedBox(0f, -0.145f, 0.635f, 0.58f, 0.54f, 0.030f, 0.16f, 0.16f, 0.0f, 0.13f, 0.15f, 0.18f)
+        dash.addTorusZ(-0.12f, -0.28f, 0.65f, 0.072f, 0.010f, 24, 8, 0.78f, 0.82f, 0.88f)
+        dash.addTorusZ(0.12f, -0.28f, 0.65f, 0.072f, 0.010f, 24, 8, 0.78f, 0.82f, 0.88f)
+        dash.addTorusZ(-0.235f, -0.295f, 0.652f, 0.032f, 0.006f, 16, 6, 0.70f, 0.74f, 0.80f)
+        dash.addTorusZ(0.235f, -0.295f, 0.652f, 0.032f, 0.006f, 16, 6, 0.70f, 0.74f, 0.80f)
+        dash.addBox(0f, -0.28f, 0.652f, 0.086f, 0.118f, 0.012f, 0.20f, 0.22f, 0.26f)
+
+        // Brushed-bezel HVAC air vent louvers
+        for (vx in listOf(-0.36f, 0.72f)) {
+            dash.addBox(vx, -0.27f, 0.64f, 0.12f, 0.068f, 0.022f, 0.18f, 0.20f, 0.24f)
+            for (vyOff in listOf(-0.018f, 0f, 0.018f)) {
+                dash.addBox(vx, -0.27f + vyOff, 0.628f, 0.10f, 0.006f, 0.008f, 0.06f, 0.07f, 0.09f)
+            }
+        }
 
         // Turn signal & wiper column stalks behind steering wheel
         dash.addCylinderX(-0.18f, -0.04f, -0.34f, 0.56f, 0.010f, 8, 0.16f, 0.18f, 0.21f)
         dash.addCylinderX(0.04f, 0.18f, -0.34f, 0.56f, 0.010f, 8, 0.16f, 0.18f, 0.21f)
 
+        // GPS Infotainment bezel + sculpted gearshift boot, chrome gate collar & ergonomic knob
         dash.addBox(-0.46f, -0.34f, 0.71f, 0.28f, 0.18f, 0.04f, 0.08f, 0.09f, 0.12f)
-        dash.addTaperedCylinderY(-0.34f, -0.68f, 0.42f, 0.068f, 0.025f, 0.14f, 12, 0.14f, 0.15f, 0.17f)
+        dash.addTaperedCylinderY(-0.34f, -0.68f, 0.42f, 0.072f, 0.026f, 0.14f, 14, 0.14f, 0.15f, 0.17f)
+        dash.addCylinderY(-0.34f, -0.675f, 0.42f, 0.078f, 0.014f, 14, 0.74f, 0.78f, 0.84f)
         dash.addCylinderY(-0.34f, -0.56f, 0.42f, 0.014f, 0.22f, 10, 0.72f, 0.75f, 0.80f)
         dash.addEllipsoid(-0.34f, -0.33f, 0.42f, 0.032f, 0.036f, 0.032f, 8, 12, 0.16f, 0.18f, 0.22f)
+
+        // Enclosed Left & Right Interior Door Cards, Armrests & Chrome Release Handles
+        dash.addBox(0.64f, -0.38f, 0.45f, 0.10f, 0.52f, 1.05f, 0.11f, 0.13f, 0.17f)
+        dash.addBox(0.58f, -0.26f, 0.42f, 0.08f, 0.07f, 0.62f, 0.17f, 0.19f, 0.24f)
+        dash.addBox(0.58f, -0.17f, 0.54f, 0.03f, 0.035f, 0.12f, 0.82f, 0.85f, 0.90f)
+        dash.addBox(-1.26f, -0.38f, 0.45f, 0.10f, 0.52f, 1.05f, 0.11f, 0.13f, 0.17f)
+        dash.addBox(-1.20f, -0.26f, 0.42f, 0.08f, 0.07f, 0.62f, 0.17f, 0.19f, 0.24f)
 
         // A-Pillars, Overhead Sun-Visor Shelf & Steering Column Boss
         dash.addBox(0.62f, 0.06f, 0.90f, 0.095f, 1.25f, 0.11f, 0.10f, 0.12f, 0.15f)
@@ -598,8 +673,8 @@ object TruckMeshFactory {
         val wheel = DynamicMeshBuilder()
         wheel.addTorusZ(0f, 0f, 0f, 0.20f, 0.022f, 32, 12, 0.13f, 0.14f, 0.16f)
         wheel.addBox(0f, 0.20f, 0f, 0.032f, 0.046f, 0.046f, 0.96f, 0.44f, 0.06f)
-        wheel.addCylinderX(-0.19f, 0.19f, 0f, 0f, 0.022f, 10, 0.62f, 0.66f, 0.72f)
-        wheel.addCylinderY(0f, -0.19f, 0f, 0.022f, 0.19f, 10, 0.62f, 0.66f, 0.72f)
+        wheel.addCylinderX(-0.19f, 0.19f, 0f, 0f, 0.022f, 10, 0.66f, 0.70f, 0.76f)
+        wheel.addCylinderY(0f, -0.19f, 0f, 0.022f, 0.19f, 10, 0.66f, 0.70f, 0.76f)
         wheel.addCylinderZ(0f, 0f, -0.02f, 0.03f, 0.068f, 18, 0.16f, 0.18f, 0.22f)
         wheel.addCylinderZ(0f, 0f, 0.025f, 0.036f, 0.026f, 16, 0.94f, 0.44f, 0.06f)
 

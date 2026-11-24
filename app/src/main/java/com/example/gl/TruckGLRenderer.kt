@@ -405,17 +405,21 @@ class TruckGLRenderer(
             val dz = physics.driverZ
             val yawDeg = Math.toDegrees(physics.driverYawRad.toDouble()).toFloat()
             val speedNorm = (physics.driverSpeedMs / 5.4f).coerceIn(0f, 1f)
-            val moving = physics.driverSpeedMs > 0.15f
+            val moveBlend = ((physics.driverSpeedMs - 0.08f) / 0.9f).coerceIn(0f, 1f)
             val phase = physics.driverWalkPhase
-            val strideSwing = if (moving) sin(phase) * (25f + 22f * speedNorm) else 3.5f
-            val armSwing = if (moving) sin(phase) * (22f + 20f * speedNorm) else -4f
-            val leftKneeFlex = if (moving) maxOf(0f, -cos(phase)) * (34f + 22f * speedNorm) else 3f
-            val rightKneeFlex = if (moving) maxOf(0f, cos(phase)) * (34f + 22f * speedNorm) else 5f
-            val leftElbowFlex = if (moving) 18f + maxOf(0f, sin(phase)) * 24f else 14f
-            val rightElbowFlex = if (moving) 18f + maxOf(0f, -sin(phase)) * 24f else 16f
-            val hipBob = if (moving) kotlin.math.abs(sin(phase)) * (0.045f + 0.035f * speedNorm) else sin(physics.simTimeSeconds * 2.1f) * 0.008f
-            val forwardLean = if (moving) 5f + 12f * speedNorm else 1.5f
-            val hipTwist = if (moving) sin(phase) * 5.5f else 2.5f
+            val strideSwing = (3.8f * (1f - moveBlend)) + sin(phase) * (26f + 22f * speedNorm) * moveBlend
+            val leftArmSwing = (-7f * (1f - moveBlend)) - sin(phase) * (23f + 20f * speedNorm) * moveBlend
+            val rightArmSwing = (5f * (1f - moveBlend)) + sin(phase) * (23f + 20f * speedNorm) * moveBlend
+            val leftKneeFlex = (6.5f * (1f - moveBlend)) + maxOf(0f, -cos(phase)) * (35f + 22f * speedNorm) * moveBlend
+            val rightKneeFlex = (2.0f * (1f - moveBlend)) + maxOf(0f, cos(phase)) * (35f + 22f * speedNorm) * moveBlend
+            val leftElbowFlex = (24f * (1f - moveBlend)) + (18f + maxOf(0f, sin(phase)) * 25f) * moveBlend
+            val rightElbowFlex = (13f * (1f - moveBlend)) + (18f + maxOf(0f, -sin(phase)) * 25f) * moveBlend
+            val hipBob = sin(physics.simTimeSeconds * 2.0f) * 0.0055f * (1f - moveBlend) +
+                kotlin.math.abs(sin(phase)) * (0.044f + 0.034f * speedNorm) * moveBlend
+            val forwardLean = 1.5f + (4f + 12f * speedNorm) * moveBlend
+            val hipTwist = (3.5f * (1f - moveBlend)) + sin(phase) * 5.8f * moveBlend
+            val torsoRoll = (1.6f + sin(physics.simTimeSeconds * 1.4f) * 0.7f) * (1f - moveBlend) +
+                cos(phase) * 2.2f * moveBlend
             val pelvisY = dy + 0.89f + hipBob
             val shoulderYaw = yawDeg - hipTwist * 0.45f
 
@@ -423,6 +427,7 @@ class TruckGLRenderer(
             Matrix.translateM(modelMatrix, 0, dx, pelvisY, dz)
             Matrix.rotateM(modelMatrix, 0, shoulderYaw, 0f, 1f, 0f)
             Matrix.rotateM(modelMatrix, 0, forwardLean, 1f, 0f, 0f)
+            Matrix.rotateM(modelMatrix, 0, torsoRoll, 0f, 0f, 1f)
             drawShadowMesh(driverMeshes.torsoMesh)
 
             Matrix.setIdentityM(modelMatrix, 0)
@@ -430,11 +435,12 @@ class TruckGLRenderer(
             Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
             Matrix.rotateM(modelMatrix, 0, forwardLean * 0.6f, 1f, 0f, 0f)
             Matrix.translateM(modelMatrix, 0, 0f, 0.58f, 0f)
+            Matrix.rotateM(modelMatrix, 0, sin(physics.simTimeSeconds * 1.3f) * 4.5f * (1f - moveBlend), 0f, 1f, 0f)
             drawShadowMesh(driverMeshes.headFaceMesh)
             drawShadowMesh(driverMeshes.headAccMesh)
 
-            drawShadowArm(dx, pelvisY, dz, shoulderYaw, forwardLean, 1f, -armSwing, leftElbowFlex)
-            drawShadowArm(dx, pelvisY, dz, shoulderYaw, forwardLean, -1f, armSwing, rightElbowFlex)
+            drawShadowArm(dx, pelvisY, dz, shoulderYaw, forwardLean, 1f, leftArmSwing, leftElbowFlex)
+            drawShadowArm(dx, pelvisY, dz, shoulderYaw, forwardLean, -1f, rightArmSwing, rightElbowFlex)
             drawShadowLeg(dx, pelvisY, dz, yawDeg + hipTwist * 0.35f, 1f, strideSwing, leftKneeFlex)
             drawShadowLeg(dx, pelvisY, dz, yawDeg + hipTwist * 0.35f, -1f, -strideSwing, rightKneeFlex)
         }
@@ -795,12 +801,12 @@ class TruckGLRenderer(
             drawWheel(px + fwdX * fwdOff - rightX * 1.18f, physics.y + 0.53f, pz + fwdZ * fwdOff - rightZ * 1.18f, yaw, st, spinDeg)
         }
 
-        // Emissive Headlights, DRLs, Roof Clearance Marker LEDs, Tail & Turn Signals
+        // Crisp Dual-Optic Projector Headlights, Slim LED DRL Lightbars & Fog Lamps
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 1f)
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
         val hlOn = physics.headlightMode != HeadlightMode.OFF
         val hlBrightness = when (physics.headlightMode) {
-            HeadlightMode.OFF -> 0.25f
+            HeadlightMode.OFF -> 0.28f
             HeadlightMode.LOW -> 0.96f
             HeadlightMode.HIGH -> 1.0f
         }
@@ -810,19 +816,20 @@ class TruckGLRenderer(
             TruckStyle.HEAVY_TWIN_EXHAUST -> 3.50f
             TruckStyle.ARCTIC_EXPEDITION -> 3.58f
         }
-        drawBox(px + fwdX * (noseZ + 0.03f) + rightX * 0.88f, py + 0.98f, pz + fwdZ * (noseZ + 0.03f) + rightZ * 0.88f, yaw, 0.18f, 0.16f, 0.05f, hlBrightness, hlBrightness * 0.95f, if (hlOn) 0.84f else 0.28f)
-        drawBox(px + fwdX * (noseZ + 0.03f) - rightX * 0.88f, py + 0.98f, pz + fwdZ * (noseZ + 0.03f) - rightZ * 0.88f, yaw, 0.18f, 0.16f, 0.05f, hlBrightness, hlBrightness * 0.95f, if (hlOn) 0.84f else 0.28f)
-        val fogB = if (hlOn) 0.92f else 0.20f
-        drawBox(px + fwdX * (noseZ + 0.22f) + rightX * 0.94f, py + 0.66f, pz + fwdZ * (noseZ + 0.22f) + rightZ * 0.94f, yaw, 0.19f, 0.075f, 0.03f, fogB, fogB * 0.95f, if (hlOn) 0.82f else 0.2f)
-        drawBox(px + fwdX * (noseZ + 0.22f) - rightX * 0.94f, py + 0.66f, pz + fwdZ * (noseZ + 0.22f) - rightZ * 0.94f, yaw, 0.19f, 0.075f, 0.03f, fogB, fogB * 0.95f, if (hlOn) 0.82f else 0.2f)
+        for (sx in listOf(-1f, 1f)) {
+            drawBox(px + fwdX * (noseZ + 0.036f) + rightX * (sx * 0.88f), py + 0.99f, pz + fwdZ * (noseZ + 0.036f) + rightZ * (sx * 0.88f), yaw, 0.14f, 0.075f, 0.025f, hlBrightness, hlBrightness * 0.97f, if (hlOn) 0.90f else 0.34f)
+            drawBox(px + fwdX * (noseZ + 0.040f) + rightX * (sx * 0.88f), py + 0.915f, pz + fwdZ * (noseZ + 0.040f) + rightZ * (sx * 0.88f), yaw, 0.21f, 0.024f, 0.020f, 0.90f, 0.96f, 1.0f)
+            val fogB = if (hlOn) 0.94f else 0.24f
+            drawBox(px + fwdX * (noseZ + 0.222f) + rightX * (sx * 0.94f), py + 0.66f, pz + fwdZ * (noseZ + 0.222f) + rightZ * (sx * 0.94f), yaw, 0.18f, 0.048f, 0.022f, fogB, fogB * 0.96f, if (hlOn) 0.86f else 0.24f)
+        }
 
         if (hlOn) {
             bindTexture(textures.glowDiscTex)
             GLES30.glUniform1f(worldShader.uEmissiveLoc, 3f)
             GLES30.glDepthMask(false)
-            val haloSize = if (physics.headlightMode == HeadlightMode.HIGH) 2.2f else 1.45f
-            drawBillboard(px + fwdX * (noseZ + 0.14f) + rightX * 0.88f, py + 0.98f, pz + fwdZ * (noseZ + 0.14f) + rightZ * 0.88f, camPos, haloSize, 1f, 0.96f, 0.84f, 0.55f)
-            drawBillboard(px + fwdX * (noseZ + 0.14f) - rightX * 0.88f, py + 0.98f, pz + fwdZ * (noseZ + 0.14f) - rightZ * 0.88f, camPos, haloSize, 1f, 0.96f, 0.84f, 0.55f)
+            val haloSize = if (physics.headlightMode == HeadlightMode.HIGH) 2.0f else 1.32f
+            drawBillboard(px + fwdX * (noseZ + 0.14f) + rightX * 0.88f, py + 0.99f, pz + fwdZ * (noseZ + 0.14f) + rightZ * 0.88f, camPos, haloSize, 1f, 0.96f, 0.86f, 0.50f)
+            drawBillboard(px + fwdX * (noseZ + 0.14f) - rightX * 0.88f, py + 0.99f, pz + fwdZ * (noseZ + 0.14f) - rightZ * 0.88f, camPos, haloSize, 1f, 0.96f, 0.86f, 0.50f)
             GLES30.glDepthMask(true)
             bindTexture(textures.whiteTex)
             GLES30.glUniform1f(worldShader.uEmissiveLoc, 1f)
@@ -839,11 +846,11 @@ class TruckGLRenderer(
             }
         }
 
-        val brBright = if (currentInputs.brake > 0.08f && physics.controlMode == PlayerControlMode.IN_TRUCK) 1.0f else if (isNight) 0.58f else 0.40f
-        drawBox(px - fwdX * 3.75f + rightX * 0.85f, py + 0.76f, pz - fwdZ * 3.75f + rightZ * 0.85f, yaw, 0.38f, 0.18f, 0.10f, brBright, 0.06f, 0.06f)
-        drawBox(px - fwdX * 3.75f - rightX * 0.85f, py + 0.76f, pz - fwdZ * 3.75f - rightZ * 0.85f, yaw, 0.38f, 0.18f, 0.10f, brBright, 0.06f, 0.06f)
+        val brBright = if (currentInputs.brake > 0.08f && physics.controlMode == PlayerControlMode.IN_TRUCK) 1.0f else if (isNight) 0.60f else 0.42f
+        drawBox(px - fwdX * 3.75f + rightX * 0.85f, py + 0.77f, pz - fwdZ * 3.75f + rightZ * 0.85f, yaw, 0.36f, 0.085f, 0.06f, brBright, 0.06f, 0.06f)
+        drawBox(px - fwdX * 3.75f - rightX * 0.85f, py + 0.77f, pz - fwdZ * 3.75f - rightZ * 0.85f, yaw, 0.36f, 0.085f, 0.06f, brBright, 0.06f, 0.06f)
         if (physics.gear == -1) {
-            drawBox(px - fwdX * 3.75f, py + 0.76f, pz - fwdZ * 3.75f, yaw, 0.32f, 0.16f, 0.10f, 1f, 1f, 1f)
+            drawBox(px - fwdX * 3.75f, py + 0.77f, pz - fwdZ * 3.75f, yaw, 0.30f, 0.08f, 0.06f, 1f, 1f, 1f)
         }
 
         val blinkOn = ((physics.simTimeSeconds * 2.6f).toInt() % 2) == 0
@@ -902,12 +909,13 @@ class TruckGLRenderer(
 
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 1f)
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
-        val brBright = if (currentInputs.brake > 0.08f && physics.controlMode == PlayerControlMode.IN_TRUCK) 1.0f else if (isNight) 0.58f else 0.35f
-        drawBox(tx - fwdX * 5.62f + rightX * 0.95f, ty + 1.05f, tz - fwdZ * 5.62f + rightZ * 0.95f, yaw, 0.42f, 0.20f, 0.08f, brBright, 0.06f, 0.06f)
-        drawBox(tx - fwdX * 5.62f - rightX * 0.95f, ty + 1.05f, tz - fwdZ * 5.62f - rightZ * 0.95f, yaw, 0.42f, 0.20f, 0.08f, brBright, 0.06f, 0.06f)
+        val brBright = if (currentInputs.brake > 0.08f && physics.controlMode == PlayerControlMode.IN_TRUCK) 1.0f else if (isNight) 0.62f else 0.38f
+        drawBox(tx - fwdX * 5.62f + rightX * 0.94f, ty + 1.05f, tz - fwdZ * 5.62f + rightZ * 0.94f, yaw, 0.42f, 0.095f, 0.05f, brBright, 0.06f, 0.06f)
+        drawBox(tx - fwdX * 5.62f - rightX * 0.94f, ty + 1.05f, tz - fwdZ * 5.62f - rightZ * 0.94f, yaw, 0.42f, 0.095f, 0.05f, brBright, 0.06f, 0.06f)
+        drawBox(tx - fwdX * 5.62f, ty + 3.92f, tz - fwdZ * 5.62f, yaw, 0.68f, 0.055f, 0.05f, brBright, 0.08f, 0.06f)
         for (sz in listOf(-4.2f, -1.2f, 1.8f, 4.5f)) {
-            drawBox(tx + fwdX * sz + rightX * 1.29f, ty + 1.18f, tz + fwdZ * sz + rightZ * 1.29f, yaw, 0.06f, 0.08f, 0.22f, 1.0f, 0.64f, 0.06f)
-            drawBox(tx + fwdX * sz - rightX * 1.29f, ty + 1.18f, tz + fwdZ * sz - rightZ * 1.29f, yaw, 0.06f, 0.08f, 0.22f, 1.0f, 0.64f, 0.06f)
+            drawBox(tx + fwdX * sz + rightX * 1.29f, ty + 1.18f, tz + fwdZ * sz + rightZ * 1.29f, yaw, 0.05f, 0.06f, 0.20f, 1.0f, 0.64f, 0.06f)
+            drawBox(tx + fwdX * sz - rightX * 1.29f, ty + 1.18f, tz + fwdZ * sz - rightZ * 1.29f, yaw, 0.05f, 0.06f, 0.20f, 1.0f, 0.64f, 0.06f)
         }
     }
 
@@ -918,18 +926,22 @@ class TruckGLRenderer(
         val yawDeg = Math.toDegrees(physics.driverYawRad.toDouble()).toFloat()
 
         val speedNorm = (physics.driverSpeedMs / 5.4f).coerceIn(0f, 1f)
-        val moving = physics.driverSpeedMs > 0.15f
+        val moveBlend = ((physics.driverSpeedMs - 0.08f) / 0.9f).coerceIn(0f, 1f)
         val phase = physics.driverWalkPhase
 
-        val strideSwing = if (moving) sin(phase) * (25f + 22f * speedNorm) else 3.5f
-        val armSwing = if (moving) sin(phase) * (22f + 20f * speedNorm) else -4f
-        val leftKneeFlex = if (moving) maxOf(0f, -cos(phase)) * (34f + 22f * speedNorm) else 3f
-        val rightKneeFlex = if (moving) maxOf(0f, cos(phase)) * (34f + 22f * speedNorm) else 5f
-        val leftElbowFlex = if (moving) 18f + maxOf(0f, sin(phase)) * 24f else 14f
-        val rightElbowFlex = if (moving) 18f + maxOf(0f, -sin(phase)) * 24f else 16f
-        val hipBob = if (moving) kotlin.math.abs(sin(phase)) * (0.045f + 0.035f * speedNorm) else sin(physics.simTimeSeconds * 2.1f) * 0.008f
-        val forwardLean = if (moving) 5f + 12f * speedNorm else 1.5f
-        val hipTwist = if (moving) sin(phase) * 5.5f else 2.5f
+        val strideSwing = (3.8f * (1f - moveBlend)) + sin(phase) * (26f + 22f * speedNorm) * moveBlend
+        val leftArmSwing = (-7f * (1f - moveBlend)) - sin(phase) * (23f + 20f * speedNorm) * moveBlend
+        val rightArmSwing = (5f * (1f - moveBlend)) + sin(phase) * (23f + 20f * speedNorm) * moveBlend
+        val leftKneeFlex = (6.5f * (1f - moveBlend)) + maxOf(0f, -cos(phase)) * (35f + 22f * speedNorm) * moveBlend
+        val rightKneeFlex = (2.0f * (1f - moveBlend)) + maxOf(0f, cos(phase)) * (35f + 22f * speedNorm) * moveBlend
+        val leftElbowFlex = (24f * (1f - moveBlend)) + (18f + maxOf(0f, sin(phase)) * 25f) * moveBlend
+        val rightElbowFlex = (13f * (1f - moveBlend)) + (18f + maxOf(0f, -sin(phase)) * 25f) * moveBlend
+        val hipBob = sin(physics.simTimeSeconds * 2.0f) * 0.0055f * (1f - moveBlend) +
+            kotlin.math.abs(sin(phase)) * (0.044f + 0.034f * speedNorm) * moveBlend
+        val forwardLean = 1.5f + (4f + 12f * speedNorm) * moveBlend
+        val hipTwist = (3.5f * (1f - moveBlend)) + sin(phase) * 5.8f * moveBlend
+        val torsoRoll = (1.6f + sin(physics.simTimeSeconds * 1.4f) * 0.7f) * (1f - moveBlend) +
+            cos(phase) * 2.2f * moveBlend
 
         bindTexture(textures.softShadowTex)
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 3f)
@@ -948,6 +960,7 @@ class TruckGLRenderer(
         Matrix.translateM(modelMatrix, 0, dx, pelvisY, dz)
         Matrix.rotateM(modelMatrix, 0, shoulderYaw, 0f, 1f, 0f)
         Matrix.rotateM(modelMatrix, 0, forwardLean, 1f, 0f, 0f)
+        Matrix.rotateM(modelMatrix, 0, torsoRoll, 0f, 0f, 1f)
         drawMeshWithModelMatrix(driverMeshes.torsoMesh, 1f, 1f, 1f, 1f)
 
         Matrix.setIdentityM(modelMatrix, 0)
@@ -955,15 +968,15 @@ class TruckGLRenderer(
         Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
         Matrix.rotateM(modelMatrix, 0, forwardLean * 0.6f, 1f, 0f, 0f)
         Matrix.translateM(modelMatrix, 0, 0f, 0.58f, 0f)
-        Matrix.rotateM(modelMatrix, 0, sin(physics.simTimeSeconds * 1.4f) * 4f, 0f, 1f, 0f)
+        Matrix.rotateM(modelMatrix, 0, sin(physics.simTimeSeconds * 1.3f) * 4.5f * (1f - moveBlend), 0f, 1f, 0f)
         bindTexture(textures.driverFaceTex)
         drawMeshWithModelMatrix(driverMeshes.headFaceMesh, 1f, 1f, 1f, 1f)
         bindTexture(textures.whiteTex)
         drawMeshWithModelMatrix(driverMeshes.headAccMesh, 1f, 1f, 1f, 1f)
 
         bindTexture(textures.driverClothTex)
-        drawArticulatedArm(dx, pelvisY, dz, shoulderYaw, forwardLean, side = 1f, upperRotX = -armSwing, elbowFlex = leftElbowFlex)
-        drawArticulatedArm(dx, pelvisY, dz, shoulderYaw, forwardLean, side = -1f, upperRotX = armSwing, elbowFlex = rightElbowFlex)
+        drawArticulatedArm(dx, pelvisY, dz, shoulderYaw, forwardLean, side = 1f, upperRotX = leftArmSwing, elbowFlex = leftElbowFlex)
+        drawArticulatedArm(dx, pelvisY, dz, shoulderYaw, forwardLean, side = -1f, upperRotX = rightArmSwing, elbowFlex = rightElbowFlex)
 
         drawArticulatedLeg(dx, pelvisY, dz, yawDeg + hipTwist * 0.35f, side = 1f, hipRotX = strideSwing, kneeFlex = leftKneeFlex)
         drawArticulatedLeg(dx, pelvisY, dz, yawDeg + hipTwist * 0.35f, side = -1f, hipRotX = -strideSwing, kneeFlex = rightKneeFlex)
@@ -1017,6 +1030,8 @@ class TruckGLRenderer(
         val seatY = physics.y + physics.bounceOffset + 1.82f
         val seatZ = physics.z + fwdZ * seatFwd - rightZ * 0.56f
         val yawDeg = Math.toDegrees(physics.yawRad.toDouble()).toFloat()
+        val cabPitchDeg = Math.toDegrees(physics.cabPitchRad.toDouble()).toFloat() * 0.85f
+        val cabRollDeg = Math.toDegrees(physics.cabRollRad.toDouble()).toFloat() * 0.85f
 
         bindTexture(textures.driverClothTex)
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
@@ -1025,6 +1040,8 @@ class TruckGLRenderer(
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, seatX, seatY, seatZ)
         Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
+        Matrix.rotateM(modelMatrix, 0, cabPitchDeg, 1f, 0f, 0f)
+        Matrix.rotateM(modelMatrix, 0, cabRollDeg, 0f, 0f, 1f)
         drawMeshWithModelMatrix(driverMeshes.torsoMesh, 1f, 1f, 1f, 1f)
 
         Matrix.translateM(modelMatrix, 0, 0f, 0.58f, 0f)
@@ -1035,8 +1052,18 @@ class TruckGLRenderer(
         drawMeshWithModelMatrix(driverMeshes.headAccMesh, 1f, 1f, 1f, 1f)
 
         bindTexture(textures.driverClothTex)
-        drawArticulatedArm(seatX, seatY, seatZ, yawDeg, 0f, side = 1f, upperRotX = -42f, elbowFlex = 46f)
-        drawArticulatedArm(seatX, seatY, seatZ, yawDeg, 0f, side = -1f, upperRotX = -42f, elbowFlex = 46f)
+        for (side in listOf(-1f, 1f)) {
+            Matrix.setIdentityM(modelMatrix, 0)
+            Matrix.translateM(modelMatrix, 0, seatX, seatY, seatZ)
+            Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
+            Matrix.rotateM(modelMatrix, 0, cabPitchDeg, 1f, 0f, 0f)
+            Matrix.rotateM(modelMatrix, 0, cabRollDeg, 0f, 0f, 1f)
+            Matrix.translateM(modelMatrix, 0, side * 0.11f, 0.03f, 0.04f)
+            Matrix.rotateM(modelMatrix, 0, -86f, 1f, 0f, 0f)
+            drawMeshWithModelMatrix(driverMeshes.thighMesh, 1f, 1f, 1f, 1f)
+        }
+        drawArticulatedArm(seatX, seatY, seatZ, yawDeg, cabPitchDeg, side = 1f, upperRotX = -42f, elbowFlex = 46f)
+        drawArticulatedArm(seatX, seatY, seatZ, yawDeg, cabPitchDeg, side = -1f, upperRotX = -42f, elbowFlex = 46f)
     }
 
     private fun renderInteriorCockpit(camPos: FloatArray, inputs: DrivingInputs) {
@@ -1085,19 +1112,30 @@ class TruckGLRenderer(
         drawBox(cx + fwdX * 0.86f - rightX * 0.88f, cy + 0.14f, cz + fwdZ * 0.86f - rightZ * 0.88f, yaw, 0.42f, 0.032f, 0.032f, 0.18f, 0.20f, 0.24f)
         drawBox(cx + fwdX * 0.86f + rightX * 0.98f, cy + 0.14f, cz + fwdZ * 0.86f + rightZ * 0.98f, yaw, 0.42f, 0.032f, 0.032f, 0.18f, 0.20f, 0.24f)
 
-        // Compact Digital Trip Computer Strip between Round Chrome Analog Gauges
+        // Compact Digital Trip Computer Strip & True Pivot-Rotated Radial Needles
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 1f)
-        drawBox(cx + fwdX * 0.66f, cy - 0.28f, cz + fwdZ * 0.66f, yaw, 0.075f, 0.105f, 0.02f, 0.06f, 0.16f, 0.26f)
+        drawBox(cx + fwdX * 0.658f, cy - 0.28f, cz + fwdZ * 0.658f, yaw, 0.072f, 0.102f, 0.014f, 0.05f, 0.13f, 0.22f)
+        val fuelFill = (physics.fuelLiters / physics.maxFuelLiters.coerceAtLeast(1f)).coerceIn(0.05f, 1f)
+        val fuelBarR = if (fuelFill < 0.20f) 0.96f else 0.16f
+        val fuelBarG = if (fuelFill < 0.20f) 0.34f else 0.88f
+        drawBox(cx + fwdX * 0.650f, cy - 0.312f, cz + fwdZ * 0.650f, yaw, 0.054f * fuelFill, 0.011f, 0.010f, fuelBarR, fuelBarG, 0.42f)
+        val rpmBarFrac = (physics.rpm / 2450f).coerceIn(0.08f, 1f)
+        drawBox(cx + fwdX * 0.650f, cy - 0.278f, cz + fwdZ * 0.650f, yaw, 0.054f * rpmBarFrac, 0.011f, 0.010f, 0.98f, 0.68f, 0.12f)
+        drawBox(cx + fwdX * 0.650f, cy - 0.246f, cz + fwdZ * 0.650f, yaw, 0.048f, 0.014f, 0.010f, 0.22f, 0.84f, 0.98f)
+        // Auxiliary fuel & coolant micro-gauge faces
+        drawBox(cx + fwdX * 0.653f - rightX * 0.235f, cy - 0.295f, cz + fwdZ * 0.653f - rightZ * 0.235f, yaw, 0.046f, 0.046f, 0.010f, 0.05f, 0.11f, 0.18f)
+        drawBox(cx + fwdX * 0.653f + rightX * 0.235f, cy - 0.295f, cz + fwdZ * 0.653f + rightZ * 0.235f, yaw, 0.046f, 0.046f, 0.010f, 0.05f, 0.11f, 0.18f)
+
         val speedFrac = (abs(physics.speedMs) * 3.6f / 130f).coerceIn(0f, 1f)
         val rpmFrac = (physics.rpm / 2450f).coerceIn(0f, 1f)
 
-        val speedNeedleRoll = 120f - speedFrac * 240f
-        drawTiltedBox(cx + fwdX * 0.648f - rightX * 0.12f, cy - 0.28f, cz + fwdZ * 0.648f - rightZ * 0.12f, yaw, 0f, speedNeedleRoll, 0.009f, 0.056f, 0.010f, 1.0f, 0.45f, 0.05f)
-        drawBox(cx + fwdX * 0.644f - rightX * 0.12f, cy - 0.28f, cz + fwdZ * 0.644f - rightZ * 0.12f, yaw, 0.022f, 0.022f, 0.012f, 0.85f, 0.88f, 0.94f)
+        val speedNeedleRoll = -135f + speedFrac * 270f
+        drawGaugeNeedle(cx + fwdX * 0.648f - rightX * 0.12f, cy - 0.28f, cz + fwdZ * 0.648f - rightZ * 0.12f, yaw, speedNeedleRoll, 0.052f, 1.0f, 0.45f, 0.05f)
+        drawBox(cx + fwdX * 0.644f - rightX * 0.12f, cy - 0.28f, cz + fwdZ * 0.644f - rightZ * 0.12f, yaw, 0.020f, 0.020f, 0.012f, 0.85f, 0.88f, 0.94f)
 
-        val rpmNeedleRoll = 120f - rpmFrac * 240f
-        drawTiltedBox(cx + fwdX * 0.648f + rightX * 0.12f, cy - 0.28f, cz + fwdZ * 0.648f + rightZ * 0.12f, yaw, 0f, rpmNeedleRoll, 0.009f, 0.056f, 0.010f, 0.18f, 0.86f, 1.0f)
-        drawBox(cx + fwdX * 0.644f + rightX * 0.12f, cy - 0.28f, cz + fwdZ * 0.644f + rightZ * 0.12f, yaw, 0.022f, 0.022f, 0.012f, 0.85f, 0.88f, 0.94f)
+        val rpmNeedleRoll = -135f + rpmFrac * 270f
+        drawGaugeNeedle(cx + fwdX * 0.648f + rightX * 0.12f, cy - 0.28f, cz + fwdZ * 0.648f + rightZ * 0.12f, yaw, rpmNeedleRoll, 0.052f, 0.18f, 0.86f, 1.0f)
+        drawBox(cx + fwdX * 0.644f + rightX * 0.12f, cy - 0.28f, cz + fwdZ * 0.644f + rightZ * 0.12f, yaw, 0.020f, 0.020f, 0.012f, 0.85f, 0.88f, 0.94f)
 
         // Multi-layer Center Console GPS Navigation Screen
         drawBox(cx + fwdX * 0.695f + rightX * 0.46f, cy - 0.34f, cz + fwdZ * 0.695f + rightZ * 0.46f, yaw, 0.24f, 0.14f, 0.02f, 0.05f, 0.10f, 0.16f)
@@ -1105,7 +1143,7 @@ class TruckGLRenderer(
         drawBox(cx + fwdX * 0.682f + rightX * 0.46f, cy - 0.34f, cz + fwdZ * 0.682f + rightZ * 0.46f, yaw, 0.022f, 0.095f, 0.016f, 0.14f, 0.84f, 0.98f)
         drawBox(cx + fwdX * 0.680f + rightX * 0.46f, cy - 0.36f, cz + fwdZ * 0.680f + rightZ * 0.46f, yaw, 0.036f, 0.026f, 0.016f, 0.98f, 0.46f, 0.08f)
 
-        // Real 3D Torus Steering Wheel + Rim-Hugging Gloved Driver Hands at 9-and-3
+        // Real 3D Torus Steering Wheel + Rim-Hugging Gloved Driver Hands + Connected Upper-Arm Jacket Sleeves
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
         val steerRollDeg = -inputs.steering * 155f
         val wheelX = cx + fwdX * 0.50f
@@ -1134,6 +1172,11 @@ class TruckGLRenderer(
             Matrix.translateM(modelMatrix, 0, 0f, 0.285f, 0f)
             val handMesh = if (side > 0f) driverMeshes.cockpitLeftHandMesh else driverMeshes.cockpitRightHandMesh
             drawMeshWithModelMatrix(handMesh, 1f, 1f, 1f, 1f)
+
+            Matrix.rotateM(modelMatrix, 0, 38f, 1f, 0f, 0f)
+            Matrix.rotateM(modelMatrix, 0, -side * 16f, 0f, 0f, 1f)
+            Matrix.translateM(modelMatrix, 0, 0f, 0.290f, 0f)
+            drawMeshWithModelMatrix(driverMeshes.upperArmMesh, 1f, 1f, 1f, 1f)
         }
 
         // Animated Windshield Wipers
@@ -1310,6 +1353,20 @@ class TruckGLRenderer(
         Matrix.rotateM(modelMatrix, 0, rollDeg, 0f, 0f, 1f)
         Matrix.scaleM(modelMatrix, 0, sx, sy, sz)
         drawMeshWithModelMatrix(unitCube, r, g, b, a)
+    }
+
+    private fun drawGaugeNeedle(
+        pivotX: Float, pivotY: Float, pivotZ: Float,
+        yawRad: Float, rollDeg: Float, length: Float,
+        r: Float, g: Float, b: Float
+    ) {
+        Matrix.setIdentityM(modelMatrix, 0)
+        Matrix.translateM(modelMatrix, 0, pivotX, pivotY, pivotZ)
+        Matrix.rotateM(modelMatrix, 0, Math.toDegrees(yawRad.toDouble()).toFloat(), 0f, 1f, 0f)
+        Matrix.rotateM(modelMatrix, 0, rollDeg, 0f, 0f, 1f)
+        Matrix.translateM(modelMatrix, 0, 0f, length * 0.38f, 0f)
+        Matrix.scaleM(modelMatrix, 0, 0.007f, length, 0.008f)
+        drawMeshWithModelMatrix(unitCube, r, g, b, 1f)
     }
 
     private fun bindTexture(texId: Int) {

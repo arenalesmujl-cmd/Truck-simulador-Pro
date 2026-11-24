@@ -99,12 +99,30 @@ fun SpeedometerArcCluster(
                     val center = Offset(size.width / 2f, size.height / 2f)
                     val outerR = size.minDimension * 0.45f
 
-                    // Outer brushed bezel ring
+                    // Subtle radial instrument backdrop & outer brushed bezel ring
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(Color(0xFF0F172A).copy(alpha = 0.72f), Color(0xFF020617).copy(alpha = 0.25f)),
+                            center = center,
+                            radius = outerR
+                        ),
+                        radius = outerR,
+                        center = center
+                    )
                     drawCircle(
                         color = Color(0xFF475569).copy(alpha = 0.55f),
                         radius = outerR + 3.5f,
                         center = center,
                         style = Stroke(width = 1.5f)
+                    )
+                    drawArc(
+                        color = Color.White.copy(alpha = 0.08f),
+                        startAngle = 210f,
+                        sweepAngle = 120f,
+                        useCenter = false,
+                        topLeft = topLeft,
+                        size = arcSize,
+                        style = Stroke(width = 2.5f, cap = StrokeCap.Round)
                     )
 
                     // Precision speedometer dial ticks
@@ -485,11 +503,21 @@ fun HoldButtonPad(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        color = if (held) accent.copy(alpha = 0.88f) else SimSurfaceGlass,
-        border = BorderStroke(2.dp, if (held) accent else accent.copy(alpha = 0.62f)),
+        color = Color.Transparent,
+        border = BorderStroke(2.dp, if (held) accent else accent.copy(alpha = 0.68f)),
         shape = RoundedCornerShape(14.dp),
         modifier = modifier
             .minimumInteractiveComponentSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = if (held) {
+                        listOf(accent.copy(alpha = 0.96f), accent.copy(alpha = 0.76f))
+                    } else {
+                        listOf(Color(0xFF1E293B).copy(alpha = 0.88f), Color(0xFF0B1220).copy(alpha = 0.92f))
+                    }
+                ),
+                RoundedCornerShape(14.dp)
+            )
             .testTag(testTag)
             .pointerInput(Unit) {
                 awaitPointerEventScope {
@@ -505,7 +533,7 @@ fun HoldButtonPad(
             Canvas(modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 8.dp)) {
                 val barCount = 5
                 val step = size.height / (barCount + 1)
-                val barColor = if (held) Color.Black.copy(alpha = 0.22f) else accent.copy(alpha = 0.14f)
+                val barColor = if (held) Color.Black.copy(alpha = 0.24f) else accent.copy(alpha = 0.16f)
                 for (i in 1..barCount) {
                     val y = step * i
                     drawLine(
@@ -579,13 +607,22 @@ fun MiniMapRadar(
         val cy = h * 0.5f
         val scale = w / 460f
 
-        // Concentric radar range rings & cardinal crosshair ticks
-        drawCircle(Color(0xFF1E293B), radius = w * 0.44f, center = Offset(cx, cy), style = Stroke(1.5f))
-        drawCircle(Color(0xFF1E293B), radius = w * 0.23f, center = Offset(cx, cy), style = Stroke(1f))
-        drawLine(Color(0xFF1E293B), Offset(cx, 4f), Offset(cx, 12f), strokeWidth = 2f)
-        drawLine(Color(0xFF1E293B), Offset(cx, h - 12f), Offset(cx, h - 4f), strokeWidth = 2f)
-        drawLine(Color(0xFF1E293B), Offset(4f, cy), Offset(12f, cy), strokeWidth = 2f)
-        drawLine(Color(0xFF1E293B), Offset(w - 12f, cy), Offset(w - 4f, cy), strokeWidth = 2f)
+        // Dark radial GPS backdrop, concentric radar range rings & cardinal ticks
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(Color(0xFF0F172A).copy(alpha = 0.78f), Color(0xFF020617).copy(alpha = 0.45f)),
+                center = Offset(cx, cy),
+                radius = w * 0.48f
+            ),
+            radius = w * 0.46f,
+            center = Offset(cx, cy)
+        )
+        drawCircle(Color(0xFF334155).copy(alpha = 0.72f), radius = w * 0.45f, center = Offset(cx, cy), style = Stroke(1.5f))
+        drawCircle(Color(0xFF1E293B), radius = w * 0.24f, center = Offset(cx, cy), style = Stroke(1f))
+        drawLine(Color(0xFF334155), Offset(cx, 4f), Offset(cx, 12f), strokeWidth = 2f)
+        drawLine(Color(0xFF334155), Offset(cx, h - 12f), Offset(cx, h - 4f), strokeWidth = 2f)
+        drawLine(Color(0xFF334155), Offset(4f, cy), Offset(12f, cy), strokeWidth = 2f)
+        drawLine(Color(0xFF334155), Offset(w - 12f, cy), Offset(w - 4f, cy), strokeWidth = 2f)
 
         val refX = if (telemetry.controlMode == PlayerControlMode.ON_FOOT) telemetry.driverX else telemetry.truckX
         val refZ = if (telemetry.controlMode == PlayerControlMode.ON_FOOT) telemetry.driverZ else telemetry.truckZ
@@ -623,7 +660,8 @@ fun MiniMapRadar(
                 val clamped = Offset(raw.x.coerceIn(6f, w - 6f), raw.y.coerceIn(6f, h - 6f))
                 val targetCol = if (missionLoaded) EmeraldGo else AmberSignal
                 drawLine(targetCol.copy(alpha = 0.55f), Offset(cx, cy), clamped, strokeWidth = 2.5f)
-                drawCircle(targetCol, radius = 6f, center = clamped)
+                drawCircle(targetCol.copy(alpha = 0.25f), radius = 10f, center = clamped)
+                drawCircle(targetCol, radius = 5.5f, center = clamped)
             }
         }
 
