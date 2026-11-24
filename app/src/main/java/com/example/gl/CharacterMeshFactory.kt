@@ -12,6 +12,8 @@ import kotlin.math.sqrt
 data class DriverMeshSet(
     val headFaceMesh: MeshBuffer,
     val headAccMesh: MeshBuffer,
+    val headGlassesFrameMesh: MeshBuffer,
+    val headGlassesLensMesh: MeshBuffer,
     val torsoMesh: MeshBuffer,
     val upperArmMesh: MeshBuffer,
     val leftForearmHandMesh: MeshBuffer,
@@ -83,31 +85,10 @@ object CharacterMeshFactory {
                 )
             )
             // Tapered sideburn & temple hair flush with ear & cheekbone
-            headAcc.addLoftedProfileY(
-                cx = side * 0.073f,
-                sectors = 14,
-                cappedBottom = true,
-                cappedTop = true,
-                rings = listOf(
-                    LoftRingY(0.114f, -0.018f, 0.0052f, 0.0095f, hairR, hairG, hairB),
-                    LoftRingY(0.146f, -0.023f, 0.0095f, 0.020f, hairR, hairG, hairB),
-                    LoftRingY(0.180f, -0.025f, 0.0130f, 0.026f, hairR, hairG, hairB)
-                )
-            )
+            // Sculpted subtle temple hair tuft & frontal hairline bangs peeking cleanly beneath the cap visor
+            headAcc.addEllipsoid(side * 0.046f, 0.187f, 0.075f, 0.028f, 0.0085f, 0.011f, 6, 10, hairR, hairG, hairB)
         }
-        // Sculpted smooth occipital & tapered nape hair cleanly contoured to skull
-        headAcc.addLoftedProfileY(
-            cx = 0f,
-            sectors = 28,
-            cappedBottom = true,
-            cappedTop = true,
-            rings = listOf(
-                LoftRingY(0.082f, -0.052f, 0.048f, 0.024f, hairR, hairG, hairB, roundness = 0.92f),
-                LoftRingY(0.110f, -0.045f, 0.066f, 0.044f, hairR, hairG, hairB, roundness = 0.94f),
-                LoftRingY(0.144f, -0.036f, 0.078f, 0.060f, hairR, hairG, hairB, roundness = 0.95f),
-                LoftRingY(0.186f, -0.028f, 0.083f, 0.068f, hairR, hairG, hairB, roundness = 0.97f)
-            )
-        )
+        headAcc.addEllipsoid(0f, 0.189f, 0.083f, 0.024f, 0.0075f, 0.009f, 6, 10, hairR, hairG, hairB)
 
         // Tailored 6-Panel Charcoal-Slate & Burnt-Amber Pro Trucker Cap (natural cranium fit)
         headAcc.addLoftedProfileY(
@@ -122,7 +103,21 @@ object CharacterMeshFactory {
                 LoftRingY(0.258f, -0.008f, 0.042f, 0.046f, 0.18f, 0.22f, 0.28f, roundness = 1.0f)
             )
         )
-        // Curved rear snapback strap & buckle arch + top squatcho button & stitched crest badge
+        // Stitched 6-panel crown seam ribs radiating cleanly from squatcho button
+        for (pIdx in 0 until 6) {
+            val pa = (pIdx / 6f) * 2f * PI.toFloat() + 0.5236f
+            val ca = cos(pa); val sa = sin(pa)
+            headAcc.addCurvedFingerChain(
+                nodes = listOf(
+                    FingerNode(ca * 0.010f, 0.259f, -0.008f + sa * 0.010f, 0.0022f, 0.14f, 0.17f, 0.22f),
+                    FingerNode(ca * 0.052f, 0.250f, -0.007f + sa * 0.055f, 0.0022f, 0.14f, 0.17f, 0.22f),
+                    FingerNode(ca * 0.084f, 0.226f, -0.004f + sa * 0.088f, 0.0022f, 0.14f, 0.17f, 0.22f),
+                    FingerNode(ca * 0.088f, 0.193f, 0.000f + sa * 0.092f, 0.0022f, 0.14f, 0.17f, 0.22f)
+                ),
+                sectors = 6
+            )
+        }
+        // Curved rear snapback strap & buckle arch + top squatcho button & layered pro crest emblem
         headAcc.addEllipsoid(0f, 0.261f, -0.008f, 0.0085f, 0.004f, 0.0085f, 8, 12, 0.95f, 0.44f, 0.08f)
         headAcc.addLoftedProfileY(
             cx = 0f,
@@ -135,8 +130,9 @@ object CharacterMeshFactory {
             )
         )
         headAcc.addBeveledBox(0f, 0.194f, -0.095f, 0.024f, 0.011f, 0.007f, 0.002f, 0.94f, 0.43f, 0.07f)
-        headAcc.addBeveledBox(0f, 0.222f, 0.091f, 0.038f, 0.022f, 0.008f, 0.004f, 0.95f, 0.44f, 0.08f)
-        headAcc.addBeveledBox(0f, 0.222f, 0.094f, 0.022f, 0.011f, 0.005f, 0.002f, 0.92f, 0.94f, 0.96f)
+        headAcc.addBeveledBox(0f, 0.222f, 0.091f, 0.042f, 0.024f, 0.008f, 0.004f, 0.10f, 0.12f, 0.16f)
+        headAcc.addBeveledBox(0f, 0.222f, 0.093f, 0.034f, 0.018f, 0.007f, 0.003f, 0.95f, 0.44f, 0.08f)
+        headAcc.addBeveledBox(0f, 0.222f, 0.0955f, 0.020f, 0.007f, 0.004f, 0.0015f, 0.94f, 0.96f, 0.98f)
         // Sleek curved matte visor with subtle amber under-brim sandwich trim
         headAcc.addCurvedVisor(
             cy = 0.195f,
@@ -158,6 +154,72 @@ object CharacterMeshFactory {
             segs = 24,
             r = 0.94f, g = 0.43f, b = 0.07f
         )
+
+        // =========================================================================
+        // 1C. PRO POLARIZED WRAP-AROUND TRUCKER SUNGLASSES (CHROME FRAME + DARK LENS)
+        // =========================================================================
+        val glassesFrame = DynamicMeshBuilder()
+        val glassesLens = DynamicMeshBuilder()
+        val fR = 0.34f; val fG = 0.38f; val fB = 0.44f
+        // Sculpted upper brow bridge bar & inner nose bridge
+        glassesFrame.addCurvedFingerChain(
+            nodes = listOf(
+                FingerNode(-0.068f, 0.166f, 0.092f, 0.0028f, fR, fG, fB),
+                FingerNode(-0.036f, 0.171f, 0.111f, 0.0030f, fR, fG, fB),
+                FingerNode(0.000f, 0.172f, 0.115f, 0.0032f, fR, fG, fB),
+                FingerNode(0.036f, 0.171f, 0.111f, 0.0030f, fR, fG, fB),
+                FingerNode(0.068f, 0.166f, 0.092f, 0.0028f, fR, fG, fB)
+            ),
+            sectors = 8
+        )
+        glassesFrame.addCurvedFingerChain(
+            nodes = listOf(
+                FingerNode(-0.015f, 0.160f, 0.112f, 0.0024f, fR, fG, fB),
+                FingerNode(0.000f, 0.163f, 0.115f, 0.0025f, fR, fG, fB),
+                FingerNode(0.015f, 0.160f, 0.112f, 0.0024f, fR, fG, fB)
+            ),
+            sectors = 8
+        )
+        for (side in listOf(-1f, 1f)) {
+            // Sleek wrap-around temple arms resting smoothly over ear helices
+            glassesFrame.addCurvedFingerChain(
+                nodes = listOf(
+                    FingerNode(side * 0.068f, 0.165f, 0.091f, 0.0030f, fR, fG, fB),
+                    FingerNode(side * 0.079f, 0.166f, 0.042f, 0.0026f, fR, fG, fB),
+                    FingerNode(side * 0.083f, 0.167f, -0.006f, 0.0025f, 0.14f, 0.16f, 0.20f),
+                    FingerNode(side * 0.081f, 0.151f, -0.024f, 0.0022f, 0.14f, 0.16f, 0.20f)
+                ),
+                sectors = 8
+            )
+            // Nose pad rests + subtle rim wire framing outer & lower lens
+            glassesFrame.addEllipsoid(side * 0.0115f, 0.153f, 0.105f, 0.0024f, 0.0042f, 0.0020f, 4, 6, 0.72f, 0.76f, 0.82f)
+            glassesFrame.addCurvedFingerChain(
+                nodes = listOf(
+                    FingerNode(side * 0.014f, 0.158f, 0.111f, 0.0022f, fR, fG, fB),
+                    FingerNode(side * 0.018f, 0.144f, 0.109f, 0.0022f, fR, fG, fB),
+                    FingerNode(side * 0.038f, 0.141f, 0.106f, 0.0022f, fR, fG, fB),
+                    FingerNode(side * 0.060f, 0.146f, 0.097f, 0.0022f, fR, fG, fB),
+                    FingerNode(side * 0.068f, 0.162f, 0.091f, 0.0024f, fR, fG, fB)
+                ),
+                sectors = 8
+            )
+
+            // Gently wrapped polarized dark-smoke aviator/sport lens
+            val nxSign = side * 0.26f
+            val nzLens = 0.965f
+            val innerX = side * 0.014f; val midX = side * 0.039f; val outerX = side * 0.065f
+            val topY = 0.170f; val midY = 0.157f; val botY = 0.142f
+            val zIn = 0.110f; val zMid = 0.108f; val zOut = 0.093f
+            if (side > 0f) {
+                glassesLens.addQuad(innerX, botY + 0.003f, zIn, midX, botY, zMid, midX, topY, zMid, innerX, topY - 0.002f, zIn, nxSign, 0f, nzLens, 0.04f, 0.08f, 0.14f, 0.88f)
+                glassesLens.addQuad(midX, botY, zMid, outerX, botY + 0.005f, zOut, outerX, topY - 0.004f, zOut, midX, topY, zMid, nxSign, 0f, nzLens, 0.04f, 0.08f, 0.14f, 0.88f)
+            } else {
+                glassesLens.addQuad(midX, botY, zMid, innerX, botY + 0.003f, zIn, innerX, topY - 0.002f, zIn, midX, topY, zMid, nxSign, 0f, nzLens, 0.04f, 0.08f, 0.14f, 0.88f)
+                glassesLens.addQuad(outerX, botY + 0.005f, zOut, midX, botY, zMid, midX, topY, zMid, outerX, topY - 0.004f, zOut, nxSign, 0f, nzLens, 0.04f, 0.08f, 0.14f, 0.88f)
+            }
+            // Subtle orange-amber hinge accent dot
+            glassesFrame.addBox(side * 0.070f, 0.165f, 0.089f, 0.004f, 0.005f, 0.008f, 0.94f, 0.44f, 0.08f)
+        }
 
         // =========================================================================
         // 2. ATHLETIC TORSO: SEAMLESS 360-DEGREE JACKET + OPEN-CHEST HENLEY LAYER
@@ -226,14 +288,17 @@ object CharacterMeshFactory {
         )
         // Sculpted folded suede collar band framing neck + saddle-suede back yoke + tailored chest pockets
         torso.addFoldedJacketCollar(suedeR = suedeR, suedeG = suedeG, suedeB = suedeB)
-        torso.addBeveledBox(0f, 0.494f, -0.095f, 0.34f, 0.092f, 0.068f, 0.018f, suedeR * 0.88f, suedeG * 0.88f, suedeB * 0.88f)
+        torso.addBeveledBox(0f, 0.494f, -0.095f, 0.35f, 0.096f, 0.068f, 0.018f, suedeR * 0.88f, suedeG * 0.88f, suedeB * 0.88f)
         for (side in listOf(-1f, 1f)) {
             torso.addBeveledBox(side * 0.118f, 0.388f, 0.123f, 0.064f, 0.068f, 0.016f, 0.006f, jacketTrimR, jacketTrimG, jacketTrimB)
             torso.addBeveledBox(side * 0.118f, 0.418f, 0.126f, 0.068f, 0.022f, 0.018f, 0.005f, jacketTrimR * 1.10f, jacketTrimG * 1.10f, jacketTrimB * 1.10f)
             torso.addCylinderZ(side * 0.118f, 0.417f, 0.132f, 0.137f, 0.0052f, 10, 0.88f, 0.74f, 0.38f)
-            torso.addEllipsoid(side * 0.205f, 0.494f, -0.004f, 0.062f, 0.062f, 0.086f, 10, 14, jacketR, jacketG, jacketB)
-            // Tailored suede shoulder yoke strap
-            torso.addBeveledBox(side * 0.148f, 0.526f, 0.002f, 0.082f, 0.026f, 0.072f, 0.008f, suedeR, suedeG, suedeB)
+            // Lower welt hand-warmer pockets + brushed brass zipper tab
+            torso.addBeveledBox(side * 0.126f, 0.228f, 0.116f, 0.056f, 0.072f, 0.016f, 0.005f, jacketTrimR * 0.95f, jacketTrimG * 0.95f, jacketTrimB * 0.95f)
+            torso.addBox(side * 0.104f, 0.228f, 0.126f, 0.008f, 0.054f, 0.006f, 0.80f, 0.66f, 0.36f)
+            torso.addEllipsoid(side * 0.212f, 0.494f, -0.004f, 0.064f, 0.063f, 0.088f, 10, 14, jacketR, jacketG, jacketB)
+            // Tailored quilted suede shoulder yoke strap
+            torso.addBeveledBox(side * 0.152f, 0.526f, 0.002f, 0.086f, 0.028f, 0.074f, 0.008f, suedeR, suedeG, suedeB)
         }
 
         // =========================================================================
@@ -446,6 +511,8 @@ object CharacterMeshFactory {
         return DriverMeshSet(
             headFaceMesh = headFace,
             headAccMesh = headAcc.build(),
+            headGlassesFrameMesh = glassesFrame.build(),
+            headGlassesLensMesh = glassesLens.build(),
             torsoMesh = torso.build(),
             upperArmMesh = upperArm.build(),
             leftForearmHandMesh = buildForearmHand(isLeft = true, grippingWheel = false),
@@ -466,9 +533,10 @@ object CharacterMeshFactory {
         val mb = DynamicMeshBuilder()
         // Pair each ring with exact UV-v matching TextureFactory.buildDriverFaceTexture() anchors
         val ringSpecs = listOf(
-            Pair(LoftRingY(-0.028f, -0.004f, 0.063f, 0.057f, 1f, 1f, 1f, roundness = 0.95f), 0.000f),
-            Pair(LoftRingY(-0.004f, -0.004f, 0.059f, 0.054f, 1f, 1f, 1f, roundness = 0.96f), 0.067f),
-            Pair(LoftRingY(0.020f, -0.003f, 0.056f, 0.053f, 1f, 1f, 1f, roundness = 0.96f), 0.133f),
+            // Tapered lower neck base seats cleanly inside torso collar & rib-knit neckline with zero ring flange seam
+            Pair(LoftRingY(-0.028f, -0.003f, 0.055f, 0.050f, 1f, 1f, 1f, roundness = 0.95f), 0.000f),
+            Pair(LoftRingY(-0.004f, -0.003f, 0.056f, 0.051f, 1f, 1f, 1f, roundness = 0.96f), 0.067f),
+            Pair(LoftRingY(0.020f, -0.002f, 0.056f, 0.053f, 1f, 1f, 1f, roundness = 0.96f), 0.133f),
             Pair(LoftRingY(0.045f, 0.006f, 0.057f, 0.061f, 1f, 1f, 1f, roundness = 0.92f), 0.200f),
             Pair(LoftRingY(0.064f, 0.012f, 0.060f, 0.070f, 1f, 1f, 1f, roundness = 0.85f), 0.267f), // chin bottom
             Pair(LoftRingY(0.075f, 0.013f, 0.064f, 0.073f, 1f, 1f, 1f, roundness = 0.83f), 0.302f), // chin cleft
@@ -514,62 +582,72 @@ object CharacterMeshFactory {
                 val y = ring.y
                 var z = ring.centerZ + sa * ring.rz
 
-                // Sculpted facial reliefs on the front hemisphere (sin(a) > 0)
-                if (sa > 0.22f) {
-                    val frontMask = ((sa - 0.22f) / 0.78f).coerceIn(0f, 1f)
+                // Sculpted masculine facial reliefs on the front hemisphere (sin(a) > 0)
+                if (sa > 0.20f) {
+                    val frontMask = ((sa - 0.20f) / 0.80f).coerceIn(0f, 1f)
                     // Anatomical nose ridge, bulb & lateral alar flare centered at x = 0, y = 0.128..0.172
-                    val noseX = exp(-(x * x) / (2f * 0.0105f * 0.0105f))
+                    val noseX = exp(-(x * x) / (2f * 0.0102f * 0.0102f))
                     val noseY = exp(-((y - 0.132f) * (y - 0.132f)) / (2f * 0.0155f * 0.0155f))
-                    val bridgeY = exp(-((y - 0.156f) * (y - 0.156f)) / (2f * 0.016f * 0.016f)) * 0.58f
-                    z += (noseY * 0.0235f + bridgeY * 0.0135f) * noseX * frontMask
+                    val bridgeY = exp(-((y - 0.156f) * (y - 0.156f)) / (2f * 0.016f * 0.016f)) * 0.62f
+                    z += (noseY * 0.0265f + bridgeY * 0.0160f) * noseX * frontMask
 
                     val alarY = exp(-((y - 0.130f) * (y - 0.130f)) / (2f * 0.0065f * 0.0065f))
                     for (side in listOf(-1f, 1f)) {
                         val dxAlar = x - side * 0.0118f
                         val alarX = exp(-(dxAlar * dxAlar) / (2f * 0.0048f * 0.0048f))
-                        z += alarX * alarY * 0.0062f * frontMask
+                        z += alarX * alarY * 0.0068f * frontMask
                     }
 
-                    // Deeper orbital sockets, defined upper/lower eyelid creases & zygomatic cheekbones
+                    // Deepened orbital sockets, defined upper eyelid creases, cheekbones & buccal hollow
                     for (side in listOf(-1f, 1f)) {
                         val dxEye = x - side * 0.0285f
                         val dyEye = y - 0.156f
-                        val eyeSocket = exp(-(dxEye * dxEye) / (2f * 0.012f * 0.012f) - (dyEye * dyEye) / (2f * 0.0085f * 0.0085f))
-                        z -= eyeSocket * 0.0058f * frontMask
+                        val eyeSocket = exp(-(dxEye * dxEye) / (2f * 0.0125f * 0.0125f) - (dyEye * dyEye) / (2f * 0.0085f * 0.0085f))
+                        z -= eyeSocket * 0.0084f * frontMask
 
                         val upperLid = exp(-(dxEye * dxEye) / (2f * 0.008f * 0.008f) - ((y - 0.163f) * (y - 0.163f)) / (2f * 0.0032f * 0.0032f))
-                        z += upperLid * 0.0035f * frontMask
+                        z += upperLid * 0.0038f * frontMask
 
                         val dxCheek = x - side * 0.042f
-                        val dyCheek = y - 0.128f
-                        val cheek = exp(-(dxCheek * dxCheek) / (2f * 0.016f * 0.016f) - (dyCheek * dyCheek) / (2f * 0.012f * 0.012f))
-                        z += cheek * 0.0058f * frontMask
+                        val dyCheek = y - 0.130f
+                        val cheek = exp(-(dxCheek * dxCheek) / (2f * 0.0155f * 0.0155f) - (dyCheek * dyCheek) / (2f * 0.0115f * 0.0115f))
+                        z += cheek * 0.0072f * frontMask
+
+                        // Subtle buccal hollow below zygomatic arch for athletic masculine cheek cut
+                        val dxHollow = x - side * 0.043f
+                        val dyHollow = y - 0.106f
+                        val buccal = exp(-(dxHollow * dxHollow) / (2f * 0.012f * 0.012f) - (dyHollow * dyHollow) / (2f * 0.010f * 0.010f))
+                        z -= buccal * 0.0038f * frontMask
 
                         // Strong masculine mandibular jaw angle
                         val dxJaw = x - side * 0.056f
                         val dyJaw = y - 0.072f
-                        val jaw = exp(-(dxJaw * dxJaw) / (2f * 0.011f * 0.011f) - (dyJaw * dyJaw) / (2f * 0.012f * 0.012f))
-                        z += jaw * 0.0050f * frontMask
+                        val jaw = exp(-(dxJaw * dxJaw) / (2f * 0.0115f * 0.0115f) - (dyJaw * dyJaw) / (2f * 0.012f * 0.012f))
+                        z += jaw * 0.0072f * frontMask
                     }
 
                     // Upper & lower lip protrusion + clean philtrum recess
                     val lipX = exp(-(x * x) / (2f * 0.014f * 0.014f))
                     val upperLipY = exp(-((y - 0.114f) * (y - 0.114f)) / (2f * 0.0042f * 0.0042f))
                     val lowerLipY = exp(-((y - 0.104f) * (y - 0.104f)) / (2f * 0.0045f * 0.0045f))
-                    z += (upperLipY * 0.0048f + lowerLipY * 0.0042f) * lipX * frontMask
+                    z += (upperLipY * 0.0052f + lowerLipY * 0.0045f) * lipX * frontMask
 
                     val philtrumX = exp(-(x * x) / (2f * 0.0038f * 0.0038f))
                     val philtrumY = exp(-((y - 0.123f) * (y - 0.123f)) / (2f * 0.0042f * 0.0042f))
-                    z -= philtrumX * philtrumY * 0.0024f * frontMask
+                    z -= philtrumX * philtrumY * 0.0028f * frontMask
 
-                    // Gentle supraorbital brow ridge & masculine chin prominence
-                    val browX = exp(-(x * x) / (2f * 0.039f * 0.039f))
+                    // Prominent supraorbital brow ridge, squared masculine chin & subtle Adam's apple
+                    val browX = exp(-(x * x) / (2f * 0.041f * 0.041f))
                     val browY = exp(-((y - 0.174f) * (y - 0.174f)) / (2f * 0.0075f * 0.0075f))
-                    z += browX * browY * 0.0060f * frontMask
+                    z += browX * browY * 0.0092f * frontMask
 
-                    val chinX = exp(-(x * x) / (2f * 0.024f * 0.024f))
-                    val chinY = exp(-((y - 0.075f) * (y - 0.075f)) / (2f * 0.012f * 0.012f))
-                    z += chinX * chinY * 0.0076f * frontMask
+                    val chinX = exp(-(x * x) / (2f * 0.025f * 0.025f))
+                    val chinY = exp(-((y - 0.074f) * (y - 0.074f)) / (2f * 0.012f * 0.012f))
+                    z += chinX * chinY * 0.0102f * frontMask
+
+                    val larynxX = exp(-(x * x) / (2f * 0.009f * 0.009f))
+                    val larynxY = exp(-((y - 0.022f) * (y - 0.022f)) / (2f * 0.008f * 0.008f))
+                    z += larynxX * larynxY * 0.0042f * frontMask
                 }
 
                 posX[ri][s] = x
@@ -628,9 +706,9 @@ object CharacterMeshFactory {
         val bot = rings.first()
         for (s in 0 until sectors) {
             val sNext = (s + 1) % sectors
-            mb.addVertex(0f, bot.y, bot.centerZ, 0f, -1f, 0f, 0.25f, 0.02f, 0.85f, 0.85f, 0.85f)
-            mb.addVertex(posX[0][sNext], bot.y, posZ[0][sNext], 0f, -1f, 0f, 0.25f, 0.02f, 0.85f, 0.85f, 0.85f)
-            mb.addVertex(posX[0][s], bot.y, posZ[0][s], 0f, -1f, 0f, 0.25f, 0.02f, 0.85f, 0.85f, 0.85f)
+            mb.addVertex(0f, bot.y, bot.centerZ, 0f, -1f, 0f, 0.25f, 0.02f, 1f, 1f, 1f)
+            mb.addVertex(posX[0][sNext], bot.y, posZ[0][sNext], 0f, -1f, 0f, 0.25f, 0.02f, 1f, 1f, 1f)
+            mb.addVertex(posX[0][s], bot.y, posZ[0][s], 0f, -1f, 0f, 0.25f, 0.02f, 1f, 1f, 1f)
         }
         return mb.build()
     }
@@ -657,11 +735,11 @@ object CharacterMeshFactory {
         )
 
         val rings = listOf(
-            ShellRing(0.132f, 0.002f, 0.175f, 0.123f, 0.22f, 0.82f, trimR, trimG, trimB),
-            ShellRing(0.172f, 0.004f, 0.178f, 0.125f, 0.23f, 0.81f, jacketR, jacketG, jacketB),
+            ShellRing(0.132f, 0.002f, 0.173f, 0.121f, 0.22f, 0.82f, trimR, trimG, trimB),
+            ShellRing(0.172f, 0.004f, 0.176f, 0.123f, 0.23f, 0.81f, jacketR, jacketG, jacketB),
             ShellRing(0.285f, 0.008f, 0.184f, 0.129f, 0.27f, 0.79f, jacketR, jacketG, jacketB),
-            ShellRing(0.395f, 0.010f, 0.198f, 0.135f, 0.34f, 0.77f, jacketR, jacketG, jacketB),
-            ShellRing(0.492f, 0.006f, 0.214f, 0.130f, 0.44f, 0.76f, trimR, trimG, trimB),
+            ShellRing(0.395f, 0.010f, 0.202f, 0.136f, 0.34f, 0.77f, jacketR, jacketG, jacketB),
+            ShellRing(0.492f, 0.006f, 0.222f, 0.132f, 0.44f, 0.76f, trimR, trimG, trimB),
             ShellRing(0.556f, 0.000f, 0.132f, 0.095f, 0.54f, 0.86f, suedeR, suedeG, suedeB)
         )
 

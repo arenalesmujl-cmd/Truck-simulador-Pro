@@ -83,14 +83,14 @@ object TextureFactory {
                 val u = x.toFloat() / size
                 val distTrack1 = abs(u - 0.27f)
                 val distTrack2 = abs(u - 0.73f)
-                val wear = (1f - (minOf(distTrack1, distTrack2) * 7.2f).coerceIn(0f, 1f)) * 0.13f
-                val tarSeam = if (y % 256 in 0..1 || (abs(x - size / 2) <= 1 && (y % 48) < 20)) -0.11f else 0f
-                val crack = if ((x + y * 3) % 211 == 0 && rand() > 0.62f) -0.07f else 0f
-                val pebble = (rand() - 0.5f) * 0.10f + (if (rand() > 0.92f) 0.055f else 0f)
-                val macro = sin(x * 0.045f) * cos(y * 0.038f) * 0.028f
-                val base = (0.64f - wear + pebble + macro + crack + tarSeam).coerceIn(0.28f, 0.90f)
+                val wear = (1f - (minOf(distTrack1, distTrack2) * 7.2f).coerceIn(0f, 1f)) * 0.14f
+                val tarSeam = if (y % 256 in 0..2 || (abs(x - size / 2) <= 1 && (y % 48) < 22)) -0.13f else 0f
+                val crack = if ((x + y * 3) % 197 == 0 && rand() > 0.56f) -0.085f else 0f
+                val grit = (rand() - 0.5f) * 0.115f + (if (rand() > 0.90f) 0.065f else if (rand() < 0.08f) -0.055f else 0f)
+                val macro = sin(x * 0.045f) * cos(y * 0.038f) * 0.032f + sin(x * 0.11f - y * 0.07f) * 0.016f
+                val base = (0.62f - wear + grit + macro + crack + tarSeam).coerceIn(0.24f, 0.92f)
                 val c = (base * 255f).toInt()
-                pixels[y * size + x] = Color.argb(255, c, c, (c + 6).coerceAtMost(255))
+                pixels[y * size + x] = Color.argb(255, c, (c + 1).coerceAtMost(255), (c + 7).coerceAtMost(255))
             }
         }
         bmp.setPixels(pixels, 0, size, 0, 0, size, size)
@@ -276,10 +276,10 @@ object TextureFactory {
             shader = LinearGradient(
                 0f, 0f, 0f, s.toFloat(),
                 intArrayOf(
-                    Color.rgb(212, 158, 126), // warm sunlit neck base matching torso collar
+                    Color.rgb(214, 160, 128), // warm sunlit neck base matching torso collar
                     Color.rgb(220, 166, 134), // jaw & chin
-                    Color.rgb(238, 188, 154), // mid-face / cheekbones
-                    Color.rgb(230, 178, 144)  // forehead
+                    Color.rgb(236, 185, 151), // mid-face / cheekbones
+                    Color.rgb(224, 172, 139)  // forehead
                 ),
                 floatArrayOf(0.0f, 0.25f, 0.56f, 0.88f),
                 Shader.TileMode.CLAMP
@@ -287,14 +287,23 @@ object TextureFactory {
         }
         canvas.drawRect(0f, 0f, s.toFloat(), s.toFloat(), skinBg)
 
-        // Soft anatomical under-jaw contour strictly confined near chin (v=0.22..0.28) so lower neck stays clean
+        // Subtle anatomical under-jaw contour strictly near chin (v=0.22..0.28) so neck join stays clean
         val jawShadow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             shader = RadialGradient(
-                s * 0.25f, s * 0.250f, 64f * k,
-                Color.argb(38, 124, 76, 56), Color.TRANSPARENT, Shader.TileMode.CLAMP
+                s * 0.25f, s * 0.248f, 64f * k,
+                Color.argb(48, 118, 70, 50), Color.TRANSPARENT, Shader.TileMode.CLAMP
             )
         }
         canvas.drawOval(RectF(s * 0.25f - 62f * k, s * 0.205f, s * 0.25f + 62f * k, s * 0.295f), jawShadow)
+
+        // Soft brow-shadow gradient across upper forehead under cap visor
+        val visorShadow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = LinearGradient(
+                0f, s * 0.74f, 0f, s * 0.61f,
+                Color.argb(72, 92, 54, 38), Color.TRANSPARENT, Shader.TileMode.CLAMP
+            )
+        }
+        canvas.drawRect(s * 0.08f, s * 0.61f, s * 0.42f, s * 0.74f, visorShadow)
 
         // Subtle trapezius & sternocleidomastoid neck warmth along front/sides without hard edges
         val neckShade = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -322,24 +331,36 @@ object TextureFactory {
         // Front face center X = 0.25 * 1024 = 256f
         val cx = s * 0.25f
 
-        // Warm cheekbone vascular flush, subtle temple shadow & natural nasolabial contour
+        // Warm cheekbone highlight, subtle buccal hollow shade & nasolabial crease
         val cheekPaint = Paint(Paint.ANTI_ALIAS_FLAG)
         for (side in listOf(-1f, 1f)) {
             cheekPaint.shader = RadialGradient(
-                cx + side * 34f * k, s * 0.525f, 24f * k,
-                Color.argb(34, 214, 110, 86), Color.TRANSPARENT, Shader.TileMode.CLAMP
+                cx + side * 34f * k, s * 0.532f, 24f * k,
+                Color.argb(40, 212, 108, 82), Color.TRANSPARENT, Shader.TileMode.CLAMP
             )
             canvas.drawOval(
                 RectF(
-                    cx + side * 34f * k - 24f * k, s * 0.525f - 24f * k * 1.35f,
-                    cx + side * 34f * k + 24f * k, s * 0.525f + 24f * k * 1.35f
+                    cx + side * 34f * k - 24f * k, s * 0.532f - 24f * k * 1.35f,
+                    cx + side * 34f * k + 24f * k, s * 0.532f + 24f * k * 1.35f
+                ),
+                cheekPaint
+            )
+            // Subtle chiseled buccal cheek hollow beneath zygomatic arch
+            cheekPaint.shader = RadialGradient(
+                cx + side * 37f * k, s * 0.445f, 18f * k,
+                Color.argb(38, 122, 74, 56), Color.TRANSPARENT, Shader.TileMode.CLAMP
+            )
+            canvas.drawOval(
+                RectF(
+                    cx + side * 37f * k - 18f * k, s * 0.445f - 18f * k * 1.4f,
+                    cx + side * 37f * k + 18f * k, s * 0.445f + 18f * k * 1.4f
                 ),
                 cheekPaint
             )
             cheekPaint.shader = null
             cheekPaint.style = Paint.Style.STROKE
-            cheekPaint.strokeWidth = 1.7f * k
-            cheekPaint.color = Color.argb(20, 128, 74, 56)
+            cheekPaint.strokeWidth = 1.9f * k
+            cheekPaint.color = Color.argb(28, 122, 70, 52)
             canvas.drawArc(
                 RectF(cx + side * 12f * k - 12f * k, s * 0.410f, cx + side * 12f * k + 18f * k, s * 0.515f),
                 if (side > 0f) 115f else 25f, 45f, false, cheekPaint
@@ -347,22 +368,22 @@ object TextureFactory {
             cheekPaint.style = Paint.Style.FILL
         }
 
-        // Sculpted nose dorsal highlight, soft bridge shadow, alar crease & anatomical nostrils
+        // Sculpted nose dorsal highlight, defined alar creases & anatomical nostrils
         val nosePaint = Paint(Paint.ANTI_ALIAS_FLAG)
         nosePaint.shader = LinearGradient(
             cx, s * 0.495f, cx, s * 0.614f,
-            Color.argb(54, 255, 240, 224), Color.argb(12, 255, 240, 224), Shader.TileMode.CLAMP
+            Color.argb(62, 255, 240, 224), Color.argb(14, 255, 240, 224), Shader.TileMode.CLAMP
         )
-        canvas.drawRoundRect(RectF(cx - 3.8f * k, s * 0.496f, cx + 3.8f * k, s * 0.612f), 3.8f * k, 9f * k, nosePaint)
-        nosePaint.shader = RadialGradient(cx, s * 0.494f, 14f * k, Color.argb(56, 132, 78, 58), Color.TRANSPARENT, Shader.TileMode.CLAMP)
-        canvas.drawOval(RectF(cx - 12.5f * k, s * 0.475f, cx + 12.5f * k, s * 0.512f), nosePaint)
+        canvas.drawRoundRect(RectF(cx - 3.6f * k, s * 0.496f, cx + 3.6f * k, s * 0.612f), 3.6f * k, 9f * k, nosePaint)
+        nosePaint.shader = RadialGradient(cx, s * 0.492f, 15f * k, Color.argb(70, 126, 74, 54), Color.TRANSPARENT, Shader.TileMode.CLAMP)
+        canvas.drawOval(RectF(cx - 13f * k, s * 0.474f, cx + 13f * k, s * 0.514f), nosePaint)
         nosePaint.shader = null
-        nosePaint.color = Color.argb(148, 72, 38, 30)
+        nosePaint.color = Color.argb(165, 68, 34, 26)
         canvas.drawOval(RectF(cx - 7.8f * k, s * 0.483f, cx - 2.8f * k, s * 0.497f), nosePaint)
         canvas.drawOval(RectF(cx + 2.8f * k, s * 0.483f, cx + 7.8f * k, s * 0.497f), nosePaint)
 
         // Subtle philtrum groove
-        nosePaint.color = Color.argb(28, 144, 86, 66)
+        nosePaint.color = Color.argb(34, 138, 82, 62)
         canvas.drawRoundRect(RectF(cx - 2.8f * k, s * 0.448f, cx + 2.8f * k, s * 0.482f), 2.8f * k, 6f * k, nosePaint)
 
         // Tailored short-boxed beard with feathered cheek & jawline transition (clean neck!)
@@ -437,9 +458,9 @@ object TextureFactory {
             val eyeRx = 10.6f * k
             val eyeRy = 4.9f * k * yScale
 
-            // Deep orbital socket AO shade & subtle lower-lid warm highlight
-            p.shader = RadialGradient(ex, ey, 21f * k, Color.argb(66, 116, 70, 50), Color.TRANSPARENT, Shader.TileMode.CLAMP)
-            canvas.drawOval(RectF(ex - 19f * k, ey - 19f * k * yScale * 0.65f, ex + 19f * k, ey + 19f * k * yScale * 0.65f), p)
+            // Deep orbital socket AO shade & subtle lower-lid warm contour
+            p.shader = RadialGradient(ex, ey, 22f * k, Color.argb(82, 108, 62, 44), Color.TRANSPARENT, Shader.TileMode.CLAMP)
+            canvas.drawOval(RectF(ex - 20f * k, ey - 20f * k * yScale * 0.65f, ex + 20f * k, ey + 20f * k * yScale * 0.65f), p)
             p.shader = null
 
             // True almond eye contour path clipping sclera + iris neatly behind upper & lower eyelids
@@ -453,69 +474,69 @@ object TextureFactory {
             canvas.save()
             canvas.clipPath(almondPath)
 
-            // Natural sclera shading & warm inner caruncle
-            p.color = Color.rgb(232, 229, 226)
+            // Shaded natural sclera (eliminates bright mannequin glare!) + warm inner caruncle
+            p.color = Color.rgb(206, 202, 198)
             canvas.drawRect(ex - eyeRx - 2f, ey - eyeRy - 2f, ex + eyeRx + 2f, ey + eyeRy + 2f, p)
-            p.color = Color.argb(95, 194, 116, 104)
+            p.color = Color.argb(105, 186, 108, 96)
             drawTrueCircle(ex - side * 8.6f * k, ey, 1.85f * k, p)
 
             // Multi-layered hazel-steel iris + limbal ring + radial stroma + pupil
-            p.color = Color.rgb(18, 32, 44)
+            p.color = Color.rgb(16, 28, 40)
             drawTrueCircle(ex, ey, 4.75f * k, p)
-            p.color = Color.rgb(44, 92, 120)
+            p.color = Color.rgb(42, 88, 116)
             drawTrueCircle(ex, ey, 4.05f * k, p)
-            p.color = Color.rgb(86, 142, 170)
+            p.color = Color.rgb(82, 136, 164)
             drawTrueCircle(ex, ey - 0.5f * k * yScale, 2.75f * k, p)
             p.strokeWidth = 1.0f * k
             for (fi in 0 until 22) {
                 val fa = (fi / 22f) * Math.PI.toFloat() * 2f
-                p.color = if (fi % 2 == 0) Color.argb(120, 152, 202, 224) else Color.argb(92, 30, 62, 86)
+                p.color = if (fi % 2 == 0) Color.argb(115, 148, 196, 218) else Color.argb(95, 28, 58, 82)
                 canvas.drawLine(
                     ex + cos(fa) * 1.9f * k, ey + sin(fa) * 1.9f * k * yScale,
                     ex + cos(fa) * 3.9f * k, ey + sin(fa) * 3.9f * k * yScale,
                     p
                 )
             }
-            p.color = Color.rgb(7, 9, 14)
+            p.color = Color.rgb(6, 8, 12)
             drawTrueCircle(ex, ey, 1.90f * k, p)
 
-            // Soft upper-eyelid cast shadow across top of sclera & iris (eliminates wide-eyed stare)
+            // Stronger upper-eyelid cast shadow across top of sclera & iris
             p.shader = LinearGradient(
-                ex, ey + eyeRy * 0.1f, ex, ey + eyeRy * 0.95f,
-                Color.argb(0, 34, 22, 18), Color.argb(108, 28, 18, 14), Shader.TileMode.CLAMP
+                ex, ey + eyeRy * 0.05f, ex, ey + eyeRy * 0.95f,
+                Color.argb(0, 34, 22, 18), Color.argb(132, 24, 15, 12), Shader.TileMode.CLAMP
             )
             canvas.drawRect(ex - eyeRx, ey, ex + eyeRx, ey + eyeRy, p)
             p.shader = null
 
-            // Crisp corneal specular catchlights
-            p.color = Color.argb(248, 255, 255, 255)
-            drawTrueCircle(ex + 1.35f * k, ey + 1.05f * k * yScale, 0.92f * k, p)
-            p.color = Color.argb(140, 255, 255, 255)
-            drawTrueCircle(ex - 1.15f * k, ey - 1.10f * k * yScale, 0.46f * k, p)
+            // Subtle natural corneal catchlights
+            p.color = Color.argb(232, 248, 250, 255)
+            drawTrueCircle(ex + 1.35f * k, ey + 1.05f * k * yScale, 0.86f * k, p)
+            p.color = Color.argb(128, 255, 255, 255)
+            drawTrueCircle(ex - 1.15f * k, ey - 1.10f * k * yScale, 0.44f * k, p)
 
             canvas.restore()
 
             // Crisp upper lash rim, eyelid crease & subtle lower lid outline
             p.style = Paint.Style.STROKE
             p.strokeCap = Paint.Cap.ROUND
-            p.strokeWidth = 2.8f * k
-            p.color = Color.rgb(24, 17, 13)
+            p.strokeWidth = 3.1f * k
+            p.color = Color.rgb(22, 15, 11)
             val upperLash = android.graphics.Path().apply {
                 moveTo(ex - eyeRx, ey - 0.2f * k * yScale)
                 quadTo(ex, ey + eyeRy * 1.15f, ex + eyeRx, ey - 0.2f * k * yScale)
             }
             canvas.drawPath(upperLash, p)
 
-            p.strokeWidth = 1.25f * k
-            p.color = Color.argb(130, 102, 62, 44)
+            p.strokeWidth = 1.4f * k
+            p.color = Color.argb(145, 96, 58, 40)
             val lidCrease = android.graphics.Path().apply {
                 moveTo(ex - eyeRx * 0.96f, ey + 1.4f * k * yScale)
                 quadTo(ex, ey + eyeRy * 1.72f, ex + eyeRx * 0.96f, ey + 1.4f * k * yScale)
             }
             canvas.drawPath(lidCrease, p)
 
-            p.strokeWidth = 1.0f * k
-            p.color = Color.argb(74, 92, 56, 40)
+            p.strokeWidth = 1.1f * k
+            p.color = Color.argb(86, 86, 52, 36)
             val lowerLid = android.graphics.Path().apply {
                 moveTo(ex - eyeRx * 0.90f, ey - 0.6f * k * yScale)
                 quadTo(ex, ey - eyeRy * 1.05f, ex + eyeRx * 0.90f, ey - 0.6f * k * yScale)
@@ -523,23 +544,37 @@ object TextureFactory {
             canvas.drawPath(lowerLid, p)
             p.style = Paint.Style.FILL
 
-            // Natural feathered eyebrow hairs following supraorbital ridge
-            p.strokeWidth = 1.4f * k
-            for (b in 0..48) {
-                val frac = b / 48f
-                val bx = ex - side * 12.6f * k + side * frac * 26.0f * k
-                val arch = sin(frac * Math.PI).toFloat() * 6.0f * k
-                val taper = 0.55f + 0.45f * sin(frac * Math.PI).toFloat()
-                val by = s * 0.652f + arch
-                p.color = if (b % 3 == 0) Color.argb(190, 48, 34, 24) else Color.argb(220, 28, 19, 14)
-                canvas.drawLine(bx, by - 3.4f * k * taper, bx + side * 2.1f * k, by + 3.4f * k * taper, p)
+            // Bold masculine feathered eyebrow ridge following supraorbital arch
+            p.strokeWidth = 1.85f * k
+            for (b in 0..56) {
+                val frac = b / 56f
+                val bx = ex - side * 13.4f * k + side * frac * 27.6f * k
+                val arch = sin(frac * Math.PI).toFloat() * 5.6f * k
+                val taper = 0.60f + 0.45f * sin(frac * Math.PI).toFloat()
+                val by = s * 0.654f + arch
+                p.color = if (b % 3 == 0) Color.argb(205, 42, 30, 21) else Color.argb(232, 24, 16, 12)
+                canvas.drawLine(bx, by - 4.0f * k * taper, bx + side * 2.2f * k, by + 3.8f * k * taper, p)
             }
         }
 
-        // Contoured natural hairline & feathered nape/sideburns (keeps v < 0.36 warm clean skin!)
+        // Contoured natural hairline & feathered nape/sideburns + subtle front bangs under cap
         val hairPaint = Paint(Paint.ANTI_ALIAS_FLAG)
         hairPaint.color = Color.rgb(24, 18, 14)
         canvas.drawRect(0f, s * 0.742f, s.toFloat(), s.toFloat(), hairPaint)
+
+        // Feathered front hairline fringe at temples & brow peak right under the cap rim
+        hairPaint.strokeWidth = 1.9f * k
+        hairPaint.strokeCap = Paint.Cap.ROUND
+        for (i in 0 until 210) {
+            val frac = i / 210f
+            val bx = cx + (frac - 0.5f) * 145f * k
+            val archDrop = (1f - abs(frac - 0.5f) * 1.6f).coerceAtLeast(0f) * 0.015f
+            val byTop = s * 0.752f
+            val byBot = s * (0.722f - archDrop - (rand() * 0.014f))
+            hairPaint.color = if (i % 3 == 0) Color.argb(175, 46, 34, 26) else Color.argb(205, 22, 16, 12)
+            canvas.drawLine(bx, byTop, bx + (bx - cx) * 0.05f, byBot, hairPaint)
+        }
+        hairPaint.strokeWidth = 1f
 
         // Smooth curved occipital hairline from above ears (v=0.58) down to tapered nape (v=0.38)
         val backHairPath = android.graphics.Path().apply {
@@ -606,11 +641,12 @@ object TextureFactory {
         }
         for (y in 0 until size) {
             for (x in 0 until size) {
-                val twill = sin((x + y) * 1.15f) * 0.018f
-                val weave = cos((x - y) * 1.15f) * 0.012f
-                val fold = sin(y * 0.065f + sin(x * 0.030f) * 1.1f) * 0.012f
-                val fiber = (rand() - 0.5f) * 0.016f
-                val v = ((0.972f + twill + weave + fold + fiber) * 255f).toInt().coerceIn(234, 255)
+                val twill = sin((x + y) * 1.15f) * 0.024f
+                val weave = cos((x - y) * 1.15f) * 0.016f
+                val fold = sin(y * 0.065f + sin(x * 0.030f) * 1.1f) * 0.015f
+                val stitch = if (y % 64 in 0..1 && (x % 12) < 7) 0.022f else 0f
+                val fiber = (rand() - 0.5f) * 0.020f
+                val v = ((0.968f + twill + weave + fold + fiber + stitch) * 255f).toInt().coerceIn(228, 255)
                 pixels[y * size + x] = Color.argb(255, v, v, v)
             }
         }
@@ -655,17 +691,20 @@ object TextureFactory {
             )
         }
 
-        // Crisp illuminated cyan accent arc & inner hub bezel
+        // Crisp illuminated cyan accent arc, inner telemetry band & machined hub bezel
         val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = 4.5f
-            color = Color.argb(175, 56, 189, 248)
+            strokeWidth = 5.5f
+            color = Color.argb(195, 56, 189, 248)
         }
         canvas.drawArc(RectF(size * 0.12f, size * 0.12f, size * 0.88f, size * 0.88f), 135f, 225f, false, ringPaint)
-        ringPaint.color = Color.argb(210, 244, 63, 94)
+        ringPaint.color = Color.argb(225, 244, 63, 94)
         canvas.drawArc(RectF(size * 0.12f, size * 0.12f, size * 0.88f, size * 0.88f), 360f, 45f, false, ringPaint)
+        ringPaint.strokeWidth = 2.0f
+        ringPaint.color = Color.argb(95, 251, 146, 60)
+        canvas.drawArc(RectF(size * 0.25f, size * 0.25f, size * 0.75f, size * 0.75f), 135f, 270f, false, ringPaint)
         ringPaint.strokeWidth = 2.5f
-        ringPaint.color = Color.argb(90, 148, 163, 184)
+        ringPaint.color = Color.argb(110, 148, 163, 184)
         canvas.drawCircle(cx, cy, size * 0.21f, ringPaint)
 
         return uploadTexture(bmp, repeat = false, mipmap = true)

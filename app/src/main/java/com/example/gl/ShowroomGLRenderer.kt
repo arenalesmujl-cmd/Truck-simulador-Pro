@@ -180,11 +180,11 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
         Matrix.perspectiveM(projMatrix, 0, 36f, aspect, 0.3f, 75f)
 
         val camAngle = autoSpinRad + userOrbitOffsetRad
-        val camDist = 8.9f
+        val camDist = 8.45f
         val camX = sin(camAngle) * camDist
-        val camY = 2.16f
+        val camY = 2.02f
         val camZ = cos(camAngle) * camDist
-        Matrix.setLookAtM(viewMatrix, 0, camX, camY, camZ, 0.28f, 1.38f, 0.45f, 0f, 1f, 0f)
+        Matrix.setLookAtM(viewMatrix, 0, camX, camY, camZ, 0.26f, 1.42f, 0.45f, 0f, 1f, 0f)
         Matrix.multiplyMM(vpMatrix, 0, projMatrix, 0, viewMatrix, 0)
 
         worldShader.use()
@@ -306,13 +306,20 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
             Matrix.rotateM(modelMatrix, 0, torsoRoll, 0f, 0f, 1f)
             drawMesh(driverMeshes.torsoMesh, 1f, 1f, 1f, 1f)
 
-            // UV-textured sculpted head + ears/hair/cap accessories
+            // UV-textured sculpted head + ears/hair/cap + sport-aviator sunglasses
             Matrix.translateM(modelMatrix, 0, 0f, 0.58f, 0f)
             Matrix.rotateM(modelMatrix, 0, headLook, 0f, 1f, 0f)
             bindTexture(textures.driverFaceTex)
             drawMesh(driverMeshes.headFaceMesh, 1f, 1f, 1f, 1f)
             bindTexture(textures.whiteTex)
             drawMesh(driverMeshes.headAccMesh, 1f, 1f, 1f, 1f)
+            GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_CHROME)
+            drawMesh(driverMeshes.headGlassesFrameMesh, 1f, 1f, 1f, 1f)
+            GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_GLASS)
+            GLES30.glDepthMask(false)
+            drawMesh(driverMeshes.headGlassesLensMesh, 1f, 1f, 1f, 1f)
+            GLES30.glDepthMask(true)
+            GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_SKIN_FABRIC)
 
             bindTexture(textures.driverClothTex)
             for (side in listOf(-1f, 1f)) {
@@ -397,6 +404,7 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
             Matrix.rotateM(modelMatrix, 0, headLook, 0f, 1f, 0f)
             drawShadowMesh(driverMeshes.headFaceMesh)
             drawShadowMesh(driverMeshes.headAccMesh)
+            drawShadowMesh(driverMeshes.headGlassesFrameMesh)
 
             for (side in listOf(-1f, 1f)) {
                 Matrix.setIdentityM(modelMatrix, 0)

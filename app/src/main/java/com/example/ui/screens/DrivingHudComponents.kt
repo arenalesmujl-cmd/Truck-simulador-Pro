@@ -160,13 +160,20 @@ fun SpeedometerArcCluster(
                         style = Stroke(width = stroke, cap = StrokeCap.Round)
                     )
 
-                    // Glowing Analog Speed Needle
+                    // Glowing Analog Speed Needle + Brushed Pivot Pin
                     val needleRad = Math.toRadians((135f + speedSweep).toDouble()).toFloat()
+                    drawLine(
+                        color = RacingOrange.copy(alpha = 0.35f),
+                        start = Offset(center.x + cos(needleRad) * (outerR * 0.34f), center.y + sin(needleRad) * (outerR * 0.34f)),
+                        end = Offset(center.x + cos(needleRad) * (outerR * 0.96f), center.y + sin(needleRad) * (outerR * 0.96f)),
+                        strokeWidth = 7f,
+                        cap = StrokeCap.Round
+                    )
                     drawLine(
                         color = RacingOrange,
                         start = Offset(center.x + cos(needleRad) * (outerR * 0.36f), center.y + sin(needleRad) * (outerR * 0.36f)),
                         end = Offset(center.x + cos(needleRad) * (outerR * 0.94f), center.y + sin(needleRad) * (outerR * 0.94f)),
-                        strokeWidth = 3.5f,
+                        strokeWidth = 3.2f,
                         cap = StrokeCap.Round
                     )
 
@@ -681,13 +688,17 @@ fun MiniMapRadar(
             radius = w * 0.46f,
             center = Offset(cx, cy)
         )
-        drawCircle(Color(0xFF475569).copy(alpha = 0.80f), radius = w * 0.45f, center = Offset(cx, cy), style = Stroke(2f))
-        drawCircle(Color(0xFF1E293B), radius = w * 0.24f, center = Offset(cx, cy), style = Stroke(1f))
-        drawLine(SkyCyan.copy(alpha = 0.72f), Offset(cx, 3f), Offset(cx, 13f), strokeWidth = 2.5f, cap = StrokeCap.Round)
-        drawCircle(SkyCyan.copy(alpha = 0.85f), radius = 2.5f, center = Offset(cx, 3f))
-        drawLine(Color(0xFF334155), Offset(cx, h - 12f), Offset(cx, h - 4f), strokeWidth = 2f)
-        drawLine(Color(0xFF334155), Offset(4f, cy), Offset(12f, cy), strokeWidth = 2f)
-        drawLine(Color(0xFF334155), Offset(w - 12f, cy), Offset(w - 4f, cy), strokeWidth = 2f)
+        drawCircle(Color(0xFF0F172A).copy(alpha = 0.85f), radius = w * 0.475f, center = Offset(cx, cy), style = Stroke(3.5f))
+        drawCircle(Color(0xFF64748B).copy(alpha = 0.82f), radius = w * 0.45f, center = Offset(cx, cy), style = Stroke(1.8f))
+        drawCircle(Color(0xFF1E293B), radius = w * 0.34f, center = Offset(cx, cy), style = Stroke(1f))
+        drawCircle(Color(0xFF1E293B), radius = w * 0.19f, center = Offset(cx, cy), style = Stroke(1f))
+        drawLine(Color(0xFF1E293B).copy(alpha = 0.55f), Offset(cx - w * 0.44f, cy), Offset(cx + w * 0.44f, cy), strokeWidth = 1f)
+        drawLine(Color(0xFF1E293B).copy(alpha = 0.55f), Offset(cx, cy - h * 0.44f), Offset(cx, cy + h * 0.44f), strokeWidth = 1f)
+        drawLine(SkyCyan.copy(alpha = 0.78f), Offset(cx, 3f), Offset(cx, 13f), strokeWidth = 2.5f, cap = StrokeCap.Round)
+        drawCircle(SkyCyan.copy(alpha = 0.90f), radius = 2.5f, center = Offset(cx, 3f))
+        drawLine(Color(0xFF475569), Offset(cx, h - 12f), Offset(cx, h - 4f), strokeWidth = 2f)
+        drawLine(Color(0xFF475569), Offset(4f, cy), Offset(12f, cy), strokeWidth = 2f)
+        drawLine(Color(0xFF475569), Offset(w - 12f, cy), Offset(w - 4f, cy), strokeWidth = 2f)
 
         val refX = if (telemetry.controlMode == PlayerControlMode.ON_FOOT) telemetry.driverX else telemetry.truckX
         val refZ = if (telemetry.controlMode == PlayerControlMode.ON_FOOT) telemetry.driverZ else telemetry.truckZ

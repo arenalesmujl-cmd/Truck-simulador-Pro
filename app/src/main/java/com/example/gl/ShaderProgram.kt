@@ -207,14 +207,19 @@ class WorldShaderProgram {
                 float edge = max(abs(proj.x - 0.5), abs(proj.y - 0.5));
                 if (edge >= 0.495) return 1.0;
 
-                float bias = max(0.0022 * (1.0 - max(dot(N, L), 0.0)), 0.00075);
-                float texel = 1.0 / 1024.0;
+                float bias = max(0.0020 * (1.0 - max(dot(N, L), 0.0)), 0.00070);
+                float texel = 1.45 / 1024.0;
+                vec2 o1 = vec2( texel,  texel * 0.45);
+                vec2 o2 = vec2(-texel, -texel * 0.45);
+                vec2 o3 = vec2(-texel * 0.45,  texel);
+                vec2 o4 = vec2( texel * 0.45, -texel);
                 float occ = 0.0;
-                occ += (proj.z - bias > texture(uShadowMap, proj.xy + vec2(-texel, -texel)).r) ? 1.0 : 0.0;
-                occ += (proj.z - bias > texture(uShadowMap, proj.xy + vec2( texel, -texel)).r) ? 1.0 : 0.0;
-                occ += (proj.z - bias > texture(uShadowMap, proj.xy + vec2(-texel,  texel)).r) ? 1.0 : 0.0;
-                occ += (proj.z - bias > texture(uShadowMap, proj.xy + vec2( texel,  texel)).r) ? 1.0 : 0.0;
-                float rawShadow = 1.0 - (occ * 0.25) * 0.68;
+                occ += (proj.z - bias > texture(uShadowMap, proj.xy).r) ? 1.0 : 0.0;
+                occ += (proj.z - bias > texture(uShadowMap, proj.xy + o1).r) ? 1.0 : 0.0;
+                occ += (proj.z - bias > texture(uShadowMap, proj.xy + o2).r) ? 1.0 : 0.0;
+                occ += (proj.z - bias > texture(uShadowMap, proj.xy + o3).r) ? 1.0 : 0.0;
+                occ += (proj.z - bias > texture(uShadowMap, proj.xy + o4).r) ? 1.0 : 0.0;
+                float rawShadow = 1.0 - (occ * 0.20) * 0.70;
                 float fade = 1.0 - smoothstep(0.36, 0.49, edge);
                 return mix(1.0, rawShadow, fade);
             }
@@ -234,13 +239,13 @@ class WorldShaderProgram {
                 if (uEmissive > 1.5) {
                     vec3 viewDir = normalize(vWorldPos - uCameraPos);
                     float h = clamp(viewDir.y * 1.18 + 0.04, 0.0, 1.0);
-                    vec3 zenith = uFogColor * vec3(0.30, 0.52, 1.08);
-                    vec3 horizon = mix(uFogColor * 1.12, uLightColor * 0.64 + uFogColor * 0.60, 0.46);
-                    vec3 skyGrad = mix(horizon, zenith, pow(h, 0.55));
+                    vec3 zenith = uFogColor * vec3(0.24, 0.48, 1.12);
+                    vec3 horizon = mix(uFogColor * 1.16, uLightColor * 0.72 + uFogColor * 0.56, 0.50);
+                    vec3 skyGrad = mix(horizon, zenith, pow(h, 0.50));
                     vec3 L = normalize(uLightDir);
                     float sunDot = max(dot(viewDir, L), 0.0);
-                    float sunDisc = smoothstep(0.9968, 0.9994, sunDot) * 1.50;
-                    float sunHalo = pow(sunDot, 22.0) * 0.48 + pow(sunDot, 4.5) * 0.16;
+                    float sunDisc = smoothstep(0.9966, 0.9994, sunDot) * 1.60;
+                    float sunHalo = pow(sunDot, 24.0) * 0.52 + pow(sunDot, 5.0) * 0.22;
                     skyGrad += uLightColor * (sunDisc + sunHalo);
 
                     // Crisp twinkling starfield & faint Milky Way band at night
@@ -257,18 +262,19 @@ class WorldShaderProgram {
                         }
                     }
 
-                    // Multi-octave drifting procedural cumulus cloud deck
-                    if (viewDir.y > 0.025) {
+                    // Multi-octave drifting procedural cumulus cloud deck with sunlit silver lining
+                    if (viewDir.y > 0.022) {
                         vec2 cloudProj = viewDir.xz / (viewDir.y + 0.16) * 1.85 + vec2(uTime * 0.012, uTime * 0.005);
                         float density = fbmClouds(cloudProj);
                         float detail = fbmClouds(cloudProj * 2.35 - vec2(uTime * 0.008, 0.0));
-                        float coverage = mix(0.46, 0.30, clamp(uWetness * 0.85, 0.0, 1.0));
-                        float cloudAlpha = smoothstep(coverage, coverage + 0.34, density * 0.78 + detail * 0.22);
-                        cloudAlpha *= smoothstep(0.025, 0.16, viewDir.y);
-                        vec3 cloudUnder = mix(uFogColor * 0.62, uAmbientColor * 1.15, 0.45);
-                        vec3 cloudLit = mix(uFogColor * 1.18, uLightColor * 1.12, 0.55 + 0.40 * pow(sunDot, 3.0));
-                        vec3 cloudColor = mix(cloudUnder, cloudLit, smoothstep(0.25, 0.78, detail));
-                        skyGrad = mix(skyGrad, cloudColor, cloudAlpha * 0.88);
+                        float coverage = mix(0.45, 0.28, clamp(uWetness * 0.85, 0.0, 1.0));
+                        float cloudAlpha = smoothstep(coverage, coverage + 0.32, density * 0.78 + detail * 0.22);
+                        cloudAlpha *= smoothstep(0.022, 0.15, viewDir.y);
+                        float silverLining = pow(sunDot, 5.0) * (1.0 - smoothstep(0.45, 0.85, density));
+                        vec3 cloudUnder = mix(uFogColor * 0.56, uAmbientColor * 1.10, 0.42);
+                        vec3 cloudLit = mix(uFogColor * 1.22, uLightColor * 1.18, 0.58 + 0.42 * pow(sunDot, 3.0)) + uLightColor * silverLining * 0.48;
+                        vec3 cloudColor = mix(cloudUnder, cloudLit, smoothstep(0.22, 0.80, detail));
+                        skyGrad = mix(skyGrad, cloudColor, cloudAlpha * 0.90);
                     }
 
                     fragColor = vec4(clamp(skyGrad, 0.0, 1.0), 1.0);
@@ -417,20 +423,22 @@ class WorldShaderProgram {
                 if (uHeadlightIntensity > 0.01) {
                     vec3 toFrag = vWorldPos - uHeadlightPos;
                     float distSpot = length(toFrag);
-                    if (distSpot < 140.0) {
+                    if (distSpot < 155.0) {
                         vec3 dirToFrag = toFrag / max(distSpot, 0.001);
                         float cone = dot(dirToFrag, normalize(uHeadlightDir));
-                        float spotMask = smoothstep(0.72, 0.96, cone);
-                        float atten = 1.0 / (1.0 + 0.012 * distSpot + 0.0008 * distSpot * distSpot);
+                        float wideCone = smoothstep(0.68, 0.94, cone);
+                        float hotCore = smoothstep(0.90, 0.99, cone) * 0.95;
+                        float spotMask = wideCone + hotCore;
+                        float atten = 1.0 / (1.0 + 0.010 * distSpot + 0.00065 * distSpot * distSpot);
                         float nDotSpot = max(dot(N, -dirToFrag), 0.18);
-                        spotContrib = vec3(1.0, 0.92, 0.78) * uHeadlightIntensity * spotMask * atten * nDotSpot * 3.5;
+                        spotContrib = vec3(1.0, 0.93, 0.80) * uHeadlightIntensity * spotMask * atten * nDotSpot * 3.2;
                     }
                 }
 
                 vec3 hdr = albedo * (hemiAmbient + fillLight + lightLin * diff * 1.38 * shadowFactor + sssGlow + spotContrib)
                          + lightLin * specPower
                          + envReflect;
-                vec3 toneMapped = acesToneMap(hdr * 1.16);
+                vec3 toneMapped = acesToneMap(hdr * 1.19);
                 vec3 litSrgb = linearToSrgb(toneMapped);
 
                 float distCam = length(vWorldPos - uCameraPos);

@@ -185,7 +185,7 @@ class TruckGLRenderer(
         }
 
         if (useShadows) {
-            renderShadowPass(env, showExterior)
+            renderShadowPass(env, showExterior, quality)
         }
 
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0)
@@ -299,7 +299,7 @@ class TruckGLRenderer(
         return floatArrayOf(camX, camY, camZ)
     }
 
-    private fun renderShadowPass(env: EnvLighting, includePlayerExterior: Boolean) {
+    private fun renderShadowPass(env: EnvLighting, includePlayerExterior: Boolean, quality: GraphicsQuality) {
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, shadowFbo)
         GLES30.glViewport(0, 0, shadowSize, shadowSize)
         GLES30.glClear(GLES30.GL_DEPTH_BUFFER_BIT)
@@ -325,6 +325,12 @@ class TruckGLRenderer(
         Matrix.multiplyMM(lightVpMatrix, 0, lightProjMatrix, 0, lightViewMatrix, 0)
 
         shadowShader.use()
+
+        if (quality == GraphicsQuality.HIGH) {
+            Matrix.setIdentityM(modelMatrix, 0)
+            drawShadowMesh(staticEnvMesh)
+            drawShadowMesh(buildingsMesh)
+        }
 
         // Player Truck + Trailer
         if (includePlayerExterior) {
@@ -438,6 +444,7 @@ class TruckGLRenderer(
             Matrix.rotateM(modelMatrix, 0, sin(physics.simTimeSeconds * 1.3f) * 4.5f * (1f - moveBlend), 0f, 1f, 0f)
             drawShadowMesh(driverMeshes.headFaceMesh)
             drawShadowMesh(driverMeshes.headAccMesh)
+            drawShadowMesh(driverMeshes.headGlassesFrameMesh)
 
             drawShadowArm(dx, pelvisY, dz, shoulderYaw, forwardLean, 1f, leftArmSwing, leftElbowFlex)
             drawShadowArm(dx, pelvisY, dz, shoulderYaw, forwardLean, -1f, rightArmSwing, rightElbowFlex)
@@ -1006,6 +1013,13 @@ class TruckGLRenderer(
         drawMeshWithModelMatrix(driverMeshes.headFaceMesh, 1f, 1f, 1f, 1f)
         bindTexture(textures.whiteTex)
         drawMeshWithModelMatrix(driverMeshes.headAccMesh, 1f, 1f, 1f, 1f)
+        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_CHROME)
+        drawMeshWithModelMatrix(driverMeshes.headGlassesFrameMesh, 1f, 1f, 1f, 1f)
+        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_GLASS)
+        GLES30.glDepthMask(false)
+        drawMeshWithModelMatrix(driverMeshes.headGlassesLensMesh, 1f, 1f, 1f, 1f)
+        GLES30.glDepthMask(true)
+        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_SKIN_FABRIC)
 
         bindTexture(textures.driverClothTex)
         drawArticulatedArm(dx, pelvisY, dz, shoulderYaw, forwardLean, side = 1f, upperRotX = leftArmSwing, elbowFlex = leftElbowFlex)
@@ -1018,7 +1032,8 @@ class TruckGLRenderer(
     private fun drawArticulatedArm(
         px: Float, pelvisY: Float, pz: Float,
         yawDeg: Float, forwardLean: Float,
-        side: Float, upperRotX: Float, elbowFlex: Float
+        side: Float, upperRotX: Float, elbowFlex: Float,
+        grippingWheel: Boolean = false
     ) {
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, px, pelvisY, pz)
@@ -1031,7 +1046,12 @@ class TruckGLRenderer(
 
         Matrix.translateM(modelMatrix, 0, 0f, -0.29f, 0f)
         Matrix.rotateM(modelMatrix, 0, -elbowFlex, 1f, 0f, 0f)
-        val forearmMesh = if (side > 0f) driverMeshes.leftForearmHandMesh else driverMeshes.rightForearmHandMesh
+        val forearmMesh = when {
+            grippingWheel && side > 0f -> driverMeshes.cockpitLeftHandMesh
+            grippingWheel -> driverMeshes.cockpitRightHandMesh
+            side > 0f -> driverMeshes.leftForearmHandMesh
+            else -> driverMeshes.rightForearmHandMesh
+        }
         drawMeshWithModelMatrix(forearmMesh, 1f, 1f, 1f, 1f)
     }
 
@@ -1083,6 +1103,13 @@ class TruckGLRenderer(
         drawMeshWithModelMatrix(driverMeshes.headFaceMesh, 1f, 1f, 1f, 1f)
         bindTexture(textures.whiteTex)
         drawMeshWithModelMatrix(driverMeshes.headAccMesh, 1f, 1f, 1f, 1f)
+        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_CHROME)
+        drawMeshWithModelMatrix(driverMeshes.headGlassesFrameMesh, 1f, 1f, 1f, 1f)
+        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_GLASS)
+        GLES30.glDepthMask(false)
+        drawMeshWithModelMatrix(driverMeshes.headGlassesLensMesh, 1f, 1f, 1f, 1f)
+        GLES30.glDepthMask(true)
+        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_SKIN_FABRIC)
 
         bindTexture(textures.driverClothTex)
         for (side in listOf(-1f, 1f)) {
@@ -1095,8 +1122,8 @@ class TruckGLRenderer(
             Matrix.rotateM(modelMatrix, 0, -86f, 1f, 0f, 0f)
             drawMeshWithModelMatrix(driverMeshes.thighMesh, 1f, 1f, 1f, 1f)
         }
-        drawArticulatedArm(seatX, seatY, seatZ, yawDeg, cabPitchDeg, side = 1f, upperRotX = -42f, elbowFlex = 46f)
-        drawArticulatedArm(seatX, seatY, seatZ, yawDeg, cabPitchDeg, side = -1f, upperRotX = -42f, elbowFlex = 46f)
+        drawArticulatedArm(seatX, seatY, seatZ, yawDeg, cabPitchDeg, side = 1f, upperRotX = -46f, elbowFlex = 42f, grippingWheel = true)
+        drawArticulatedArm(seatX, seatY, seatZ, yawDeg, cabPitchDeg, side = -1f, upperRotX = -46f, elbowFlex = 42f, grippingWheel = true)
     }
 
     private fun renderInteriorCockpit(camPos: FloatArray, inputs: DrivingInputs) {
@@ -1170,11 +1197,47 @@ class TruckGLRenderer(
         drawGaugeNeedle(cx + fwdX * 0.648f + rightX * 0.12f, cy - 0.28f, cz + fwdZ * 0.648f + rightZ * 0.12f, yaw, rpmNeedleRoll, 0.052f, 0.18f, 0.86f, 1.0f)
         drawBox(cx + fwdX * 0.644f + rightX * 0.12f, cy - 0.28f, cz + fwdZ * 0.644f + rightZ * 0.12f, yaw, 0.020f, 0.020f, 0.012f, 0.85f, 0.88f, 0.94f)
 
-        // Multi-layer Center Console GPS Navigation Screen
-        drawBox(cx + fwdX * 0.695f + rightX * 0.46f, cy - 0.34f, cz + fwdZ * 0.695f + rightZ * 0.46f, yaw, 0.24f, 0.14f, 0.02f, 0.05f, 0.10f, 0.16f)
-        drawBox(cx + fwdX * 0.686f + rightX * 0.46f, cy - 0.34f, cz + fwdZ * 0.686f + rightZ * 0.46f, yaw, 0.205f, 0.112f, 0.018f, 0.08f, 0.22f, 0.34f)
-        drawBox(cx + fwdX * 0.682f + rightX * 0.46f, cy - 0.34f, cz + fwdZ * 0.682f + rightZ * 0.46f, yaw, 0.022f, 0.095f, 0.016f, 0.14f, 0.84f, 0.98f)
-        drawBox(cx + fwdX * 0.680f + rightX * 0.46f, cy - 0.36f, cz + fwdZ * 0.680f + rightZ * 0.46f, yaw, 0.036f, 0.026f, 0.016f, 0.98f, 0.46f, 0.08f)
+        // Multi-layer Center Console GPS Navigation Map HUD + Backlit Toggle Switch LEDs
+        drawBox(cx + fwdX * 0.692f + rightX * 0.46f, cy - 0.34f, cz + fwdZ * 0.692f + rightZ * 0.46f, yaw, 0.24f, 0.142f, 0.018f, 0.04f, 0.08f, 0.14f)
+        drawBox(cx + fwdX * 0.686f + rightX * 0.46f, cy - 0.34f, cz + fwdZ * 0.686f + rightZ * 0.46f, yaw, 0.212f, 0.118f, 0.014f, 0.03f, 0.07f, 0.12f)
+        // Top HUD bar + active satellite dot + speed-limit badge
+        drawBox(cx + fwdX * 0.683f + rightX * 0.46f, cy - 0.289f, cz + fwdZ * 0.683f + rightZ * 0.46f, yaw, 0.206f, 0.014f, 0.010f, 0.06f, 0.16f, 0.28f)
+        drawBox(cx + fwdX * 0.680f + rightX * 0.545f, cy - 0.289f, cz + fwdZ * 0.680f + rightZ * 0.545f, yaw, 0.012f, 0.009f, 0.008f, 0.18f, 0.94f, 0.54f)
+        drawBox(cx + fwdX * 0.681f + rightX * 0.376f, cy - 0.312f, cz + fwdZ * 0.681f + rightZ * 0.376f, yaw, 0.026f, 0.026f, 0.008f, 0.92f, 0.20f, 0.18f)
+        drawBox(cx + fwdX * 0.679f + rightX * 0.376f, cy - 0.312f, cz + fwdZ * 0.679f + rightZ * 0.376f, yaw, 0.016f, 0.016f, 0.006f, 0.96f, 0.97f, 0.98f)
+        // Highway cross-grid + illuminated cyan route ribbon + pulsing amber cursor pin
+        drawBox(cx + fwdX * 0.684f + rightX * 0.46f, cy - 0.338f, cz + fwdZ * 0.684f + rightZ * 0.46f, yaw, 0.190f, 0.007f, 0.008f, 0.16f, 0.24f, 0.34f)
+        drawBox(cx + fwdX * 0.684f + rightX * 0.51f, cy - 0.346f, cz + fwdZ * 0.684f + rightZ * 0.51f, yaw, 0.008f, 0.088f, 0.008f, 0.16f, 0.24f, 0.34f)
+        drawBox(cx + fwdX * 0.682f + rightX * 0.46f, cy - 0.344f, cz + fwdZ * 0.682f + rightZ * 0.46f, yaw, 0.020f, 0.072f, 0.008f, 0.12f, 0.88f, 1.0f)
+        drawBox(cx + fwdX * 0.682f + rightX * 0.428f, cy - 0.314f, cz + fwdZ * 0.682f + rightZ * 0.428f, yaw, 0.056f, 0.016f, 0.008f, 0.12f, 0.88f, 1.0f)
+        val cursorPulse = 0.80f + 0.20f * sin(physics.simTimeSeconds * 5.0f)
+        drawBox(cx + fwdX * 0.679f + rightX * 0.46f, cy - 0.368f, cz + fwdZ * 0.679f + rightZ * 0.46f, yaw, 0.024f, 0.022f, 0.008f, 1.0f * cursorPulse, 0.56f * cursorPulse, 0.08f)
+
+        // Backlit LED status pips on the 5 lower console switches
+        val blinkActive = physics.blinkerState != BlinkerState.NONE && ((physics.simTimeSeconds * 2.6f).toInt() % 2) == 0
+        val hlActive = physics.headlightMode != HeadlightMode.OFF
+        val switchStates = listOf(
+            true,
+            hlActive,
+            physics.wipersOn,
+            blinkActive,
+            physics.fuelLiters > 0.01f
+        )
+        val switchOffsets = listOf(0.54f, 0.50f, 0.46f, 0.42f, 0.38f)
+        for (i in switchOffsets.indices) {
+            val active = switchStates[i]
+            val r = if (i == 3 && active) 1.0f else if (active) 0.14f else 0.12f
+            val g = if (i == 3 && active) 0.62f else if (active) 0.88f else 0.22f
+            val b = if (i == 3 && active) 0.08f else if (active) 0.98f else 0.30f
+            drawBox(
+                cx + fwdX * 0.663f + rightX * switchOffsets[i],
+                cy - 0.452f,
+                cz + fwdZ * 0.663f + rightZ * switchOffsets[i],
+                yaw,
+                0.014f, 0.007f, 0.008f,
+                r, g, b
+            )
+        }
 
         // Real 3D Torus Steering Wheel + Rim-Hugging Gloved Driver Hands + Connected Upper-Arm Jacket Sleeves
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
@@ -1212,12 +1275,15 @@ class TruckGLRenderer(
             drawMeshWithModelMatrix(driverMeshes.upperArmMesh, 1f, 1f, 1f, 1f)
         }
 
-        // Animated Windshield Wipers
+        // Sleek Windshield Wipers (parked neatly at base of glass when off, sweeping when on)
         bindTexture(textures.whiteTex)
         if (physics.wipersOn) {
-            val wiperAngle = sin(physics.wiperPhase) * 42f
-            drawTiltedBox(cx + fwdX * 0.96f - rightX * 0.15f, cy - 0.18f, cz + fwdZ * 0.96f - rightZ * 0.15f, yaw, 0f, wiperAngle, 0.035f, 0.65f, 0.03f, 0.08f, 0.08f, 0.10f)
-            drawTiltedBox(cx + fwdX * 0.96f + rightX * 0.55f, cy - 0.18f, cz + fwdZ * 0.96f + rightZ * 0.55f, yaw, 0f, wiperAngle, 0.035f, 0.65f, 0.03f, 0.08f, 0.08f, 0.10f)
+            val wiperAngle = sin(physics.wiperPhase) * 44f
+            drawTiltedBox(cx + fwdX * 0.96f - rightX * 0.15f, cy - 0.18f, cz + fwdZ * 0.96f - rightZ * 0.15f, yaw, 0f, wiperAngle, 0.032f, 0.65f, 0.028f, 0.08f, 0.08f, 0.10f)
+            drawTiltedBox(cx + fwdX * 0.96f + rightX * 0.55f, cy - 0.18f, cz + fwdZ * 0.96f + rightZ * 0.55f, yaw, 0f, wiperAngle, 0.032f, 0.65f, 0.028f, 0.08f, 0.08f, 0.10f)
+        } else {
+            drawTiltedBox(cx + fwdX * 0.96f - rightX * 0.12f, cy - 0.36f, cz + fwdZ * 0.96f - rightZ * 0.12f, yaw, 0f, 82f, 0.028f, 0.58f, 0.024f, 0.07f, 0.08f, 0.10f)
+            drawTiltedBox(cx + fwdX * 0.96f + rightX * 0.56f, cy - 0.36f, cz + fwdZ * 0.96f + rightZ * 0.56f, yaw, 0f, 82f, 0.028f, 0.58f, 0.024f, 0.07f, 0.08f, 0.10f)
         }
 
         // Live Rear-View Left & Right Side Mirrors rendered from FBO texture

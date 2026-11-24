@@ -33,12 +33,40 @@ val Typography = Typography(
         lineHeight = 44.sp,
         letterSpacing = 1.sp
     ),
+    displayMedium = TextStyle(
+        fontFamily = RajdhaniFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 34.sp,
+        lineHeight = 38.sp,
+        letterSpacing = 0.8.sp
+    ),
+    displaySmall = TextStyle(
+        fontFamily = RajdhaniFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 28.sp,
+        lineHeight = 32.sp,
+        letterSpacing = 0.6.sp
+    ),
+    headlineLarge = TextStyle(
+        fontFamily = RajdhaniFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 30.sp,
+        lineHeight = 34.sp,
+        letterSpacing = 0.7.sp
+    ),
     headlineMedium = TextStyle(
         fontFamily = RajdhaniFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 26.sp,
         lineHeight = 30.sp,
         letterSpacing = 0.6.sp
+    ),
+    headlineSmall = TextStyle(
+        fontFamily = RajdhaniFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 22.sp,
+        lineHeight = 26.sp,
+        letterSpacing = 0.4.sp
     ),
     titleLarge = TextStyle(
         fontFamily = RajdhaniFontFamily,
@@ -53,6 +81,12 @@ val Typography = Typography(
         fontSize = 15.sp,
         lineHeight = 20.sp
     ),
+    titleSmall = TextStyle(
+        fontFamily = InterFontFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 13.sp,
+        lineHeight = 18.sp
+    ),
     bodyLarge = TextStyle(
         fontFamily = InterFontFamily,
         fontWeight = FontWeight.Normal,
@@ -65,12 +99,25 @@ val Typography = Typography(
         fontSize = 12.sp,
         lineHeight = 16.sp
     ),
+    bodySmall = TextStyle(
+        fontFamily = InterFontFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 11.sp,
+        lineHeight = 15.sp
+    ),
     labelLarge = TextStyle(
         fontFamily = RajdhaniFontFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 15.sp,
         lineHeight = 18.sp,
         letterSpacing = 0.8.sp
+    ),
+    labelMedium = TextStyle(
+        fontFamily = RajdhaniFontFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 13.sp,
+        lineHeight = 16.sp,
+        letterSpacing = 0.5.sp
     ),
     labelSmall = TextStyle(
         fontFamily = JetBrainsMonoFontFamily,

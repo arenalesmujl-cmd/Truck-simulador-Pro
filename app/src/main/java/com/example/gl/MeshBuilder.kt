@@ -1493,6 +1493,28 @@ object WorldMeshFactory {
             addStreetlightPole(mb, 11.5f, d.toFloat())
         }
 
+        // Highway reflective shoulder delineator posts along long open stretches
+        for (road in TruckWorld.roads) {
+            if (!road.isHighway) continue
+            val rightX = -road.dirZ
+            val rightZ = road.dirX
+            val postOff = road.width * 0.5f + 1.55f
+            val count = (road.length / 56f).toInt()
+            for (k in 1 until count) {
+                val t = k.toFloat() / count
+                val px = road.x1 + (road.x2 - road.x1) * t
+                val pz = road.z1 + (road.z2 - road.z1) * t
+                if (hypot(px, pz) < 265f) continue
+                for (side in listOf(-1f, 1f)) {
+                    val sx = px + rightX * (postOff * side)
+                    val sz = pz + rightZ * (postOff * side)
+                    val sy = TruckWorld.terrainHeightAt(sx, sz)
+                    mb.addBox(sx, sy + 0.55f, sz, 0.08f, 1.15f, 0.08f, 0.88f, 0.90f, 0.94f)
+                    mb.addBox(sx, sy + 0.96f, sz, 0.095f, 0.14f, 0.095f, 0.98f, 0.48f, 0.06f)
+                }
+            }
+        }
+
         for (sign in TruckWorld.roadSigns) {
             val sy = TruckWorld.terrainHeightAt(sign.x, sign.z)
             mb.addCylinderY(sign.x, sy, sign.z, 0.13f, 3.6f, 8, 0.62f, 0.66f, 0.72f)
@@ -1502,13 +1524,21 @@ object WorldMeshFactory {
                 com.example.sim.SignType.CURVE -> Triple(0.95f, 0.72f, 0.08f)
                 else -> Triple(0.92f, 0.94f, 0.96f)
             }
-            // Reflective white/steel outer plate + inner colored sign face
-            mb.addBox(sign.x, sy + 3.5f, sign.z, 1.32f, 1.32f, 0.12f, 0.88f, 0.90f, 0.94f)
-            mb.addBox(sign.x, sy + 3.5f, sign.z, 1.12f, 1.12f, 0.16f, sr, sg, sb)
             if (sign.type == com.example.sim.SignType.STOP) {
-                mb.addBox(sign.x, sy + 3.5f, sign.z, 0.74f, 0.22f, 0.19f, 0.96f, 0.97f, 0.99f)
+                // Distinct 8-sided STOP sign silhouette + white bar & metallic backing
+                mb.addCylinderZ(sign.x, sy + 3.55f, sign.z - 0.07f, sign.z + 0.07f, 0.78f, 8, 0.88f, 0.90f, 0.94f)
+                mb.addCylinderZ(sign.x, sy + 3.55f, sign.z - 0.085f, sign.z + 0.085f, 0.68f, 8, sr, sg, sb)
+                mb.addBox(sign.x, sy + 3.55f, sign.z, 0.82f, 0.22f, 0.20f, 0.96f, 0.97f, 0.99f)
+            } else if (sign.type == com.example.sim.SignType.CURVE) {
+                // Distinct wide diamond/chevron warning board + dark chevron arrow
+                mb.addBox(sign.x, sy + 3.55f, sign.z, 1.38f, 1.15f, 0.12f, 0.88f, 0.90f, 0.94f)
+                mb.addBox(sign.x, sy + 3.55f, sign.z, 1.18f, 0.98f, 0.16f, sr, sg, sb)
+                mb.addBox(sign.x, sy + 3.55f, sign.z, 0.54f, 0.18f, 0.19f, 0.12f, 0.14f, 0.18f)
+                mb.addBox(sign.x + 0.16f, sy + 3.66f, sign.z, 0.22f, 0.44f, 0.19f, 0.12f, 0.14f, 0.18f)
             } else {
-                mb.addBox(sign.x, sy + 3.5f, sign.z, 0.34f, 0.56f, 0.19f, 0.14f, 0.16f, 0.20f)
+                mb.addBox(sign.x, sy + 3.55f, sign.z, 1.32f, 1.32f, 0.12f, 0.88f, 0.90f, 0.94f)
+                mb.addBox(sign.x, sy + 3.55f, sign.z, 1.12f, 1.12f, 0.16f, sr, sg, sb)
+                mb.addBox(sign.x, sy + 3.55f, sign.z, 0.34f, 0.56f, 0.19f, 0.14f, 0.16f, 0.20f)
             }
         }
 
