@@ -55,6 +55,7 @@ import com.example.model.AppScreen
 import com.example.model.CareerProfile
 import com.example.model.MissionContract
 import com.example.model.TruckCatalog
+import com.example.ui.components.ShowroomViewport
 import com.example.ui.theme.AmberSignal
 import com.example.ui.theme.EmeraldGo
 import com.example.ui.theme.RacingOrange
@@ -94,7 +95,7 @@ fun MainMenuScreen(
                     Brush.verticalGradient(
                         colors = listOf(
                             SimBackground.copy(alpha = 0.88f),
-                            SimBackground.copy(alpha = 0.65f),
+                            SimBackground.copy(alpha = 0.68f),
                             SimBackground.copy(alpha = 0.94f)
                         )
                     )
@@ -177,14 +178,14 @@ fun MainMenuScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(top = 12.dp),
+                    .padding(top = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Left Primary JUGAR + Active Rig Card
+                // Left: Live 3D Showroom Hero Card + Active Mission + JUGAR
                 Card(
                     modifier = Modifier
-                        .weight(0.92f)
+                        .weight(1.02f)
                         .fillMaxHeight(),
                     colors = CardDefaults.cardColors(containerColor = SimSurfaceGlass),
                     border = BorderStroke(1.dp, SimOutline),
@@ -193,50 +194,67 @@ fun MainMenuScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(18.dp),
-                        verticalArrangement = Arrangement.SpaceBetween
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Column {
-                            Text(
-                                text = "CAMIÓN ACTIVO",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = RacingOrange
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                        ) {
+                            ShowroomViewport(
+                                truckStyle = activeTruck.style,
+                                paintHex = profile.truckPaintHex,
+                                showDriver = true,
+                                badgeLabel = "360°",
+                                modifier = Modifier.fillMaxSize()
                             )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                text = activeTruck.name,
-                                style = MaterialTheme.typography.headlineMedium,
-                                color = TextPrimary
-                            )
-                            Text(
-                                text = "${activeTruck.basePowerHp + (profile.engineLevel - 1) * 45} HP • Motor Nv.${profile.engineLevel} • Tanque Nv.${profile.tankLevel}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = TextSecondary
-                            )
-
-                            Spacer(Modifier.height(10.dp))
                             Surface(
-                                color = if (activeMission != null) AmberSignal.copy(alpha = 0.16f) else SimSurfaceElevated,
-                                shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.fillMaxWidth()
+                                color = SimSurfaceGlass,
+                                border = BorderStroke(1.dp, SimOutline),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .padding(6.dp)
                             ) {
-                                Column(modifier = Modifier.padding(10.dp)) {
+                                Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
                                     Text(
-                                        text = if (activeMission != null) "MISIÓN ACTIVA: ${activeMission.title}" else "MODO LIBRE DISPONIBLE",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = if (activeMission != null) AmberSignal else SkyCyan
+                                        text = activeTruck.name,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextPrimary
                                     )
                                     Text(
-                                        text = if (activeMission != null) {
-                                            "${activeMission.originName} → ${activeMission.destinationName}"
-                                        } else {
-                                            "Explora autopistas, ciudades, gasolineras y puertos en 3D"
-                                        },
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = TextPrimary,
-                                        maxLines = 2
+                                        text = "${activeTruck.basePowerHp + (profile.engineLevel - 1) * 45} HP • Motor Nv.${profile.engineLevel}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = RacingOrange
                                     )
                                 }
+                            }
+                        }
+
+                        Surface(
+                            color = if (activeMission != null) AmberSignal.copy(alpha = 0.16f) else SimSurfaceElevated,
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
+                                Text(
+                                    text = if (activeMission != null) "MISIÓN: ${activeMission.title}" else "MODO LIBRE 3D LISTO",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (activeMission != null) AmberSignal else SkyCyan,
+                                    maxLines = 1
+                                )
+                                Text(
+                                    text = if (activeMission != null) {
+                                        "${activeMission.originName} → ${activeMission.destinationName}"
+                                    } else {
+                                        "Camión y conductor articulado listos en carretera"
+                                    },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = TextPrimary,
+                                    maxLines = 1
+                                )
                             }
                         }
 
@@ -249,7 +267,7 @@ fun MainMenuScreen(
                             shape = RoundedCornerShape(14.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(56.dp)
+                                .height(52.dp)
                                 .minimumInteractiveComponentSize()
                                 .testTag("menu_play_button")
                         ) {
@@ -271,7 +289,7 @@ fun MainMenuScreen(
                 // Right 5 Navigation Cards (2 rows)
                 Column(
                     modifier = Modifier
-                        .weight(1.25f)
+                        .weight(1.18f)
                         .fillMaxHeight(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {

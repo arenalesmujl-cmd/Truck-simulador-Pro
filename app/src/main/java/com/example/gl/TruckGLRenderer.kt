@@ -26,7 +26,9 @@ import java.nio.ByteBuffer
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import kotlin.math.PI
+import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.sin
 
 class TruckGLRenderer(
@@ -48,12 +50,17 @@ class TruckGLRenderer(
 
     private lateinit var worldShader: WorldShaderProgram
     private lateinit var mirrorShader: MirrorQuadShaderProgram
+    private lateinit var textures: WorldTextureSet
 
     private lateinit var unitCube: MeshBuffer
     private lateinit var unitWheel: MeshBuffer
+    private lateinit var groundQuad: MeshBuffer
+    private lateinit var billboardQuad: MeshBuffer
     private lateinit var skyDomeMesh: MeshBuffer
+    private lateinit var starFieldMesh: MeshBuffer
     private lateinit var terrainMesh: MeshBuffer
     private lateinit var roadsMesh: MeshBuffer
+    private lateinit var buildingsMesh: MeshBuffer
     private lateinit var staticEnvMesh: MeshBuffer
     private lateinit var nightLightsMesh: MeshBuffer
     private lateinit var cloudsMesh: MeshBuffer
@@ -65,7 +72,7 @@ class TruckGLRenderer(
     private lateinit var cockpitMeshes: CockpitMeshSet
     private lateinit var driverMeshes: DriverMeshSet
 
-    // Off-screen FBO for rear-view side mirrors in Interior Camera
+    // Off-screen FBO for live rear-view side mirrors in Interior Camera
     private var mirrorFbo = 0
     private var mirrorTex = 0
     private var mirrorDepthRb = 0
@@ -89,12 +96,17 @@ class TruckGLRenderer(
 
         worldShader = WorldShaderProgram()
         mirrorShader = MirrorQuadShaderProgram()
+        textures = TextureFactory.createAll()
 
         unitCube = WorldMeshFactory.buildUnitCube()
         unitWheel = WorldMeshFactory.buildUnitWheel()
+        groundQuad = WorldMeshFactory.buildGroundQuad()
+        billboardQuad = WorldMeshFactory.buildBillboardQuad()
         skyDomeMesh = WorldMeshFactory.buildSkyDomeMesh()
+        starFieldMesh = WorldMeshFactory.buildStarFieldMesh()
         terrainMesh = WorldMeshFactory.buildTerrainMesh()
         roadsMesh = WorldMeshFactory.buildRoadsAndMarkingsMesh()
+        buildingsMesh = WorldMeshFactory.buildBuildingsMesh()
         staticEnvMesh = WorldMeshFactory.buildStaticEnvironmentMesh()
         nightLightsMesh = WorldMeshFactory.buildNightWindowsAndLightsMesh()
         cloudsMesh = WorldMeshFactory.buildCloudsMesh()
@@ -153,7 +165,6 @@ class TruckGLRenderer(
             updateRain(dt)
         }
 
-        // Render rear-facing mirror view into FBO when inside cab
         if (physics.controlMode == PlayerControlMode.IN_TRUCK && physics.cameraMode == CameraMode.INTERIOR_CAB) {
             renderMirrorFbo()
         }
@@ -206,10 +217,9 @@ class TruckGLRenderer(
         val lookZ: Float
 
         if (physics.controlMode == PlayerControlMode.ON_FOOT) {
-            // Third-person over-the-shoulder / orbit camera around the human driver
             val orbitYaw = physics.yawRad + physics.cameraOrbitYaw
             val pitch = physics.cameraOrbitPitch.coerceIn(-0.08f, 0.65f)
-            val dist = 3.8f
+            val dist = 3.85f
             val horizDist = dist * cos(pitch)
             val vertOffset = dist * sin(pitch) + 1.55f
 
@@ -281,15 +291,16 @@ class TruckGLRenderer(
         Matrix.multiplyMM(vpMatrix, 0, projMatrix, 0, viewMatrix, 0)
 
         worldShader.use()
+        bindTexture(textures.whiteTex)
         GLES30.glUniform3f(worldShader.uLightDirLoc, env.lightDirX, env.lightDirY, env.lightDirZ)
         GLES30.glUniform3f(worldShader.uLightColorLoc, env.lightR, env.lightG, env.lightB)
         GLES30.glUniform3f(worldShader.uAmbientColorLoc, env.ambR, env.ambG, env.ambB)
         GLES30.glUniform3f(worldShader.uCameraPosLoc, camPos[0], camPos[1], camPos[2])
         GLES30.glUniform3f(worldShader.uFogColorLoc, env.skyR, env.skyG, env.skyB)
         val fogDensity = when (physics.weather) {
-            WeatherType.RAIN -> 0.0046f
-            WeatherType.CLOUDY -> 0.0026f
-            WeatherType.CLEAR -> 0.0016f
+            WeatherType.RAIN -> 0.0044f
+            WeatherType.CLOUDY -> 0.0024f
+            WeatherType.CLEAR -> 0.0014f
         }
         GLES30.glUniform1f(worldShader.uFogDensityLoc, fogDensity)
         GLES30.glUniform1f(worldShader.uWetnessLoc, if (physics.weather == WeatherType.RAIN) 1.0f else 0.0f)
@@ -298,54 +309,72 @@ class TruckGLRenderer(
         val fwdZ = cos(physics.yawRad)
         val hlIntensity = when (physics.headlightMode) {
             HeadlightMode.OFF -> 0f
-            HeadlightMode.LOW -> if (env.isNight) 1.1f else 0.3f
-            HeadlightMode.HIGH -> if (env.isNight) 1.85f else 0.55f
+            HeadlightMode.LOW -> if (env.isNight) 1.15f else 0.35f
+            HeadlightMode.HIGH -> if (env.isNight) 1.95f else 0.60f
         }
         GLES30.glUniform3f(worldShader.uHeadlightPosLoc, physics.x + fwdX * 3.1f, physics.y + 1.15f, physics.z + fwdZ * 3.1f)
         GLES30.glUniform3f(worldShader.uHeadlightDirLoc, fwdX, -0.09f, fwdZ)
         GLES30.glUniform1f(worldShader.uHeadlightIntensityLoc, hlIntensity)
 
-        // 0. Atmospheric Sky Dome
+        // 0. Atmospheric Sky Dome & Night Starfield
         GLES30.glDepthMask(false)
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 2f)
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
-        GLES30.glUniform4f(worldShader.uColorTintLoc, 1f, 1f, 1f, 1f)
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, camPos[0], camPos[1] - 25f, camPos[2])
         drawMeshWithModelMatrix(skyDomeMesh, 1f, 1f, 1f, 1f)
+
+        if (env.isNight && physics.weather != WeatherType.RAIN) {
+            GLES30.glUniform1f(worldShader.uEmissiveLoc, 1f)
+            Matrix.setIdentityM(modelMatrix, 0)
+            Matrix.translateM(modelMatrix, 0, camPos[0], camPos[1] - 10f, camPos[2])
+            drawMeshWithModelMatrix(starFieldMesh, 1f, 1f, 1f, 0.9f)
+        }
+
+        // 1. Radiant Sun / Moon Corona Billboard Disc
+        val sunDist = 330f
+        val sunX = camPos[0] + env.lightDirX * sunDist
+        val sunY = camPos[1] + env.lightDirY * sunDist
+        val sunZ = camPos[2] + env.lightDirZ * sunDist
+        bindTexture(textures.glowDiscTex)
+        GLES30.glUniform1f(worldShader.uEmissiveLoc, 3f)
+        drawBillboard(
+            sunX, sunY, sunZ, camPos,
+            size = if (env.isNight) 46f else 82f,
+            r = if (env.isNight) 0.85f else 1.0f,
+            g = if (env.isNight) 0.92f else 0.94f,
+            b = if (env.isNight) 1.0f else 0.78f,
+            a = if (physics.weather == WeatherType.RAIN) 0.35f else 0.92f
+        )
         GLES30.glDepthMask(true)
 
-        // 1. Sun / Moon disc & Clouds
-        GLES30.glUniform1f(worldShader.uEmissiveLoc, 1f)
-        val sunDist = 340f
-        drawBox(
-            camPos[0] + env.lightDirX * sunDist,
-            camPos[1] + env.lightDirY * sunDist,
-            camPos[2] + env.lightDirZ * sunDist,
-            0f, 18f, 18f, 18f,
-            if (env.isNight) 0.85f else 1.0f,
-            if (env.isNight) 0.90f else 0.92f,
-            if (env.isNight) 1.0f else 0.72f,
-            1f
-        )
+        // Clouds
+        bindTexture(textures.whiteTex)
         if (quality != GraphicsQuality.LOW) {
+            GLES30.glUniform1f(worldShader.uEmissiveLoc, 1f)
             setIdentityModel()
-            val cloudShade = if (env.isNight) 0.25f else if (physics.weather == WeatherType.RAIN) 0.55f else 1.0f
-            GLES30.glUniform4f(worldShader.uColorTintLoc, cloudShade, cloudShade, cloudShade + 0.03f, 0.92f)
+            val cloudShade = if (env.isNight) 0.22f else if (physics.weather == WeatherType.RAIN) 0.52f else 1.0f
+            GLES30.glUniform4f(worldShader.uColorTintLoc, cloudShade, cloudShade, cloudShade + 0.03f, 0.90f)
             cloudsMesh.draw()
         }
 
-        // 2. Terrain, Paved Roads (with procedural asphalt shader), and Static World
+        // 2. Textured Terrain, Asphalt Highway, Architectural Curtain-Wall Buildings & Props
         setIdentityModel()
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
         GLES30.glUniform4f(worldShader.uColorTintLoc, 1f, 1f, 1f, 1f)
+        bindTexture(textures.terrainTex)
         terrainMesh.draw()
 
+        bindTexture(textures.asphaltTex)
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_ROAD)
         roadsMesh.draw()
 
+        bindTexture(textures.buildingTex)
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
+        buildingsMesh.draw()
+
+        bindTexture(textures.whiteTex)
         staticEnvMesh.draw()
 
         // 3. Nighttime windows & streetlights
@@ -365,7 +394,7 @@ class TruckGLRenderer(
 
         // 6. Realistic Player Truck & Articulated Semi-Trailer
         if (includePlayerExterior) {
-            renderPlayerTruck(env.isNight)
+            renderPlayerTruck(camPos, env.isNight)
         }
         if (physics.hasTrailer) {
             renderPlayerTrailer(env.isNight)
@@ -386,6 +415,7 @@ class TruckGLRenderer(
 
     private fun renderTrafficLights() {
         val phase = TruckWorld.lightPhaseAt(physics.simTimeSeconds)
+        bindTexture(textures.whiteTex)
         for (tl in TruckWorld.trafficLights) {
             val ty = TruckWorld.terrainHeightAt(tl.x, tl.z)
             GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
@@ -409,12 +439,17 @@ class TruckGLRenderer(
         val targetId = if (!missionLoaded) mission.originHubId else mission.destinationHubId
         val hub = TruckWorld.hubById(targetId) ?: return
         val hy = TruckWorld.terrainHeightAt(hub.x, hub.z)
-        val pulse = 0.7f + 0.3f * sin(physics.simTimeSeconds * 4f)
+        val pulse = 0.75f + 0.25f * sin(physics.simTimeSeconds * 4f)
         val (r, g, b) = if (!missionLoaded) Triple(1.0f, 0.65f, 0.08f) else Triple(0.10f, 0.92f, 0.48f)
 
+        bindTexture(textures.whiteTex)
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 1f)
         drawBox(hub.x, hy + 18f, hub.z, 0f, 2.2f * pulse, 36f, 2.2f * pulse, r, g, b, 0.32f)
-        drawBox(hub.x, hy + 0.2f, hub.z, 0f, 14f, 0.12f, 14f, r, g, b, 0.28f)
+        bindTexture(textures.glowDiscTex)
+        GLES30.glUniform1f(worldShader.uEmissiveLoc, 3f)
+        GLES30.glDepthMask(false)
+        drawGroundShadow(hub.x, hy + 0.15f, hub.z, 0f, 18f * pulse, 18f * pulse, r, g, b, 0.52f)
+        GLES30.glDepthMask(true)
     }
 
     private fun renderTrafficVehicles(isNight: Boolean) {
@@ -426,10 +461,15 @@ class TruckGLRenderer(
             val rightX = -fwdZ
             val rightZ = fwdX
 
-            GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
-            // Contact shadow
-            drawBox(v.x, v.y + 0.08f, v.z, v.yawRad, v.width * 1.05f, 0.04f, v.length * 1.02f, 0.04f, 0.04f, 0.05f, 0.45f)
+            // Smooth radial ambient shadow
+            bindTexture(textures.softShadowTex)
+            GLES30.glUniform1f(worldShader.uEmissiveLoc, 3f)
+            GLES30.glDepthMask(false)
+            drawGroundShadow(v.x, v.y + 0.08f, v.z, v.yawRad, v.width * 1.45f, v.length * 1.25f, 1f, 1f, 1f, 0.78f)
+            GLES30.glDepthMask(true)
 
+            bindTexture(textures.whiteTex)
+            GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
             Matrix.setIdentityM(modelMatrix, 0)
             Matrix.translateM(modelMatrix, 0, v.x, v.y, v.z)
             Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
@@ -440,7 +480,7 @@ class TruckGLRenderer(
                     drawMeshWithModelMatrix(trafficMeshes.sedanBodyMesh, v.colorR, v.colorG, v.colorB, 1f)
                     GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_GLASS)
                     drawMeshWithModelMatrix(trafficMeshes.sedanGlassMesh, 1f, 1f, 1f, 0.85f)
-                    GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
+                    GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_CHROME)
                     for (ax in listOf(1.32f, -1.28f)) {
                         drawWheel(v.x + fwdX * ax + rightX * 0.86f, v.y + 0.36f, v.z + fwdZ * ax + rightZ * 0.86f, v.yawRad, 0f, wheelSpin, scale = 0.68f)
                         drawWheel(v.x + fwdX * ax - rightX * 0.86f, v.y + 0.36f, v.z + fwdZ * ax - rightZ * 0.86f, v.yawRad, 0f, wheelSpin, scale = 0.68f)
@@ -451,7 +491,7 @@ class TruckGLRenderer(
                     drawMeshWithModelMatrix(trafficMeshes.busBodyMesh, v.colorR, v.colorG, v.colorB, 1f)
                     GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_GLASS)
                     drawMeshWithModelMatrix(trafficMeshes.busGlassMesh, 1f, 1f, 1f, 0.88f)
-                    GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
+                    GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_CHROME)
                     for (ax in listOf(3.15f, -3.10f)) {
                         drawWheel(v.x + fwdX * ax + rightX * 1.14f, v.y + 0.48f, v.z + fwdZ * ax + rightZ * 1.14f, v.yawRad, 0f, wheelSpin * 0.8f, scale = 0.90f)
                         drawWheel(v.x + fwdX * ax - rightX * 1.14f, v.y + 0.48f, v.z + fwdZ * ax - rightZ * 1.14f, v.yawRad, 0f, wheelSpin * 0.8f, scale = 0.90f)
@@ -460,8 +500,11 @@ class TruckGLRenderer(
                 TrafficVehicleType.TRUCK -> {
                     GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_METALLIC_PAINT)
                     drawMeshWithModelMatrix(trafficMeshes.cargoCabMesh, 1f, 1f, 1f, 1f)
+                    bindTexture(textures.corrugatedTex)
                     GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
                     drawMeshWithModelMatrix(trafficMeshes.cargoBoxMesh, v.colorR, v.colorG, v.colorB, 1f)
+                    bindTexture(textures.whiteTex)
+                    GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_CHROME)
                     for (ax in listOf(2.45f, -1.55f, -2.75f)) {
                         drawWheel(v.x + fwdX * ax + rightX * 1.14f, v.y + 0.48f, v.z + fwdZ * ax + rightZ * 1.14f, v.yawRad, 0f, wheelSpin * 0.8f, scale = 0.90f)
                         drawWheel(v.x + fwdX * ax - rightX * 1.14f, v.y + 0.48f, v.z + fwdZ * ax - rightZ * 1.14f, v.yawRad, 0f, wheelSpin * 0.8f, scale = 0.90f)
@@ -469,8 +512,8 @@ class TruckGLRenderer(
                 }
             }
 
-            // Headlights & Brake lights
             GLES30.glUniform1f(worldShader.uEmissiveLoc, 1f)
+            GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
             val hlAlpha = if (isNight) 1f else 0.65f
             drawBox(v.x + fwdX * (v.length * 0.49f) + rightX * (v.width * 0.30f), v.y + 0.62f, v.z + fwdZ * (v.length * 0.49f) + rightZ * (v.width * 0.30f), v.yawRad, 0.28f, 0.16f, 0.08f, 1.0f, 0.96f, 0.82f, hlAlpha)
             drawBox(v.x + fwdX * (v.length * 0.49f) - rightX * (v.width * 0.30f), v.y + 0.62f, v.z + fwdZ * (v.length * 0.49f) - rightZ * (v.width * 0.30f), v.yawRad, 0.28f, 0.16f, 0.08f, 1.0f, 0.96f, 0.82f, hlAlpha)
@@ -480,7 +523,7 @@ class TruckGLRenderer(
         }
     }
 
-    private fun renderPlayerTruck(isNight: Boolean) {
+    private fun renderPlayerTruck(camPos: FloatArray, isNight: Boolean) {
         val model = TruckCatalog.byId(currentProfile.selectedTruckId)
         val meshSet = truckMeshes[model.style] ?: return
         val (paintR, paintG, paintB) = parseHexRgb(currentProfile.truckPaintHex)
@@ -497,12 +540,17 @@ class TruckGLRenderer(
         val pitchDeg = Math.toDegrees(physics.cabPitchRad.toDouble()).toFloat()
         val rollDeg = Math.toDegrees(physics.cabRollRad.toDouble()).toFloat()
 
-        // Soft grounded contact shadow
-        GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
-        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
-        drawBox(px, physics.y + 0.09f, pz, yaw, 2.95f, 0.04f, 7.8f, 0.03f, 0.03f, 0.04f, 0.52f)
+        // Smooth radial contact shadow under tractor
+        bindTexture(textures.softShadowTex)
+        GLES30.glUniform1f(worldShader.uEmissiveLoc, 3f)
+        GLES30.glDepthMask(false)
+        drawGroundShadow(px, physics.y + 0.09f, pz, yaw, 4.1f, 9.4f, 1f, 1f, 1f, 0.88f)
+        GLES30.glDepthMask(true)
 
-        // Chassis (follows suspension height & pitch/roll slightly)
+        bindTexture(textures.whiteTex)
+        GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
+
+        // Chassis
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, px, py, pz)
         Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
@@ -511,7 +559,7 @@ class TruckGLRenderer(
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
         drawMeshWithModelMatrix(meshSet.chassisMesh, 1f, 1f, 1f, 1f)
 
-        // Cab & Hood (full suspension pitch/roll + Clearcoat Metallic Paint)
+        // Cab & Hood (Metallic Clearcoat Paint)
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, px, py, pz)
         Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
@@ -520,15 +568,15 @@ class TruckGLRenderer(
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_METALLIC_PAINT)
         drawMeshWithModelMatrix(meshSet.cabPaintMesh, paintR, paintG, paintB, 1f)
 
-        // Chrome Trim (Fuel tanks, grille, exhausts, mirrors, bumper)
+        // Mirror Chrome
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_CHROME)
         drawMeshWithModelMatrix(meshSet.chromeMesh, 1f, 1f, 1f, 1f)
 
-        // Tinted Windshield & Side Glass
+        // Tinted Automotive Glass
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_GLASS)
         drawMeshWithModelMatrix(meshSet.glassMesh, 1f, 1f, 1f, 1f)
 
-        // Wheels (Front steerable + Rear tandem/triple axles for Arctic 8x4)
+        // Steerable Front & Tandem/Triple Rear Wheels
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_CHROME)
         val spinDeg = Math.toDegrees(physics.wheelSpinAngle.toDouble()).toFloat()
         val steerDeg = Math.toDegrees(physics.frontSteerRad.toDouble()).toFloat()
@@ -543,26 +591,46 @@ class TruckGLRenderer(
             drawWheel(px + fwdX * fwdOff - rightX * 1.18f, physics.y + 0.53f, pz + fwdZ * fwdOff - rightZ * 1.18f, yaw, st, spinDeg)
         }
 
-        // Emissive Headlights, Roof Amber Marker LEDs, Brake Lights & Turn Signals
+        // Emissive Headlights, DRLs, Roof Clearance Marker LEDs, Tail & Turn Signals
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 1f)
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
         val hlOn = physics.headlightMode != HeadlightMode.OFF
         val hlBrightness = when (physics.headlightMode) {
             HeadlightMode.OFF -> 0.25f
-            HeadlightMode.LOW -> 0.95f
+            HeadlightMode.LOW -> 0.96f
             HeadlightMode.HIGH -> 1.0f
         }
-        val noseZ = if (model.style == TruckStyle.EURO_CABOVER) 3.06f else 3.58f
-        drawBox(px + fwdX * noseZ + rightX * 0.88f, py + 0.96f, pz + fwdZ * noseZ + rightZ * 0.88f, yaw, 0.38f, 0.20f, 0.12f, hlBrightness, hlBrightness * 0.95f, if (hlOn) 0.80f else 0.25f)
-        drawBox(px + fwdX * noseZ - rightX * 0.88f, py + 0.96f, pz + fwdZ * noseZ - rightZ * 0.88f, yaw, 0.38f, 0.20f, 0.12f, hlBrightness, hlBrightness * 0.95f, if (hlOn) 0.80f else 0.25f)
+        val noseZ = when (model.style) {
+            TruckStyle.EURO_CABOVER -> 3.05f
+            TruckStyle.AMERICAN_LONGNOSE -> 3.55f
+            TruckStyle.HEAVY_TWIN_EXHAUST -> 3.50f
+            TruckStyle.ARCTIC_EXPEDITION -> 3.58f
+        }
+        drawBox(px + fwdX * (noseZ + 0.03f) + rightX * 0.88f, py + 0.98f, pz + fwdZ * (noseZ + 0.03f) + rightZ * 0.88f, yaw, 0.18f, 0.16f, 0.05f, hlBrightness, hlBrightness * 0.95f, if (hlOn) 0.84f else 0.28f)
+        drawBox(px + fwdX * (noseZ + 0.03f) - rightX * 0.88f, py + 0.98f, pz + fwdZ * (noseZ + 0.03f) - rightZ * 0.88f, yaw, 0.18f, 0.16f, 0.05f, hlBrightness, hlBrightness * 0.95f, if (hlOn) 0.84f else 0.28f)
+        // Lower bumper fog lamps
+        val fogB = if (hlOn) 0.92f else 0.20f
+        drawBox(px + fwdX * (noseZ + 0.22f) + rightX * 0.94f, py + 0.66f, pz + fwdZ * (noseZ + 0.22f) + rightZ * 0.94f, yaw, 0.19f, 0.075f, 0.03f, fogB, fogB * 0.95f, if (hlOn) 0.82f else 0.2f)
+        drawBox(px + fwdX * (noseZ + 0.22f) - rightX * 0.94f, py + 0.66f, pz + fwdZ * (noseZ + 0.22f) - rightZ * 0.94f, yaw, 0.19f, 0.075f, 0.03f, fogB, fogB * 0.95f, if (hlOn) 0.82f else 0.2f)
 
-        // Roof clearance amber LEDs (5 across cab roof)
+        if (hlOn) {
+            bindTexture(textures.glowDiscTex)
+            GLES30.glUniform1f(worldShader.uEmissiveLoc, 3f)
+            GLES30.glDepthMask(false)
+            val haloSize = if (physics.headlightMode == HeadlightMode.HIGH) 2.2f else 1.45f
+            drawBillboard(px + fwdX * (noseZ + 0.14f) + rightX * 0.88f, py + 0.98f, pz + fwdZ * (noseZ + 0.14f) + rightZ * 0.88f, camPos, haloSize, 1f, 0.96f, 0.84f, 0.55f)
+            drawBillboard(px + fwdX * (noseZ + 0.14f) - rightX * 0.88f, py + 0.98f, pz + fwdZ * (noseZ + 0.14f) - rightZ * 0.88f, camPos, haloSize, 1f, 0.96f, 0.84f, 0.55f)
+            GLES30.glDepthMask(true)
+            bindTexture(textures.whiteTex)
+            GLES30.glUniform1f(worldShader.uEmissiveLoc, 1f)
+        }
+
+        // Roof clearance amber LEDs
         val roofZ = if (model.style == TruckStyle.EURO_CABOVER) 2.58f else 1.65f
         val roofY = if (model.style == TruckStyle.EURO_CABOVER) 3.44f else 3.30f
         for (lx in listOf(-0.75f, -0.35f, 0f, 0.35f, 0.75f)) {
             drawBox(px + fwdX * roofZ + rightX * lx, py + roofY, pz + fwdZ * roofZ + rightZ * lx, yaw, 0.12f, 0.07f, 0.08f, 1.0f, 0.62f, 0.06f)
         }
-        // Arctic roof LED bar
         if (model.style == TruckStyle.ARCTIC_EXPEDITION && hlOn) {
             for (lx in listOf(-0.75f, -0.25f, 0.25f, 0.75f)) {
                 drawBox(px + fwdX * 2.13f + rightX * lx, py + 3.75f, pz + fwdZ * 2.13f + rightZ * lx, yaw, 0.18f, 0.16f, 0.06f, 1f, 0.96f, 0.88f)
@@ -570,7 +638,7 @@ class TruckGLRenderer(
         }
 
         // Tail / Brake / Reverse lights
-        val brBright = if (currentInputs.brake > 0.08f && physics.controlMode == PlayerControlMode.IN_TRUCK) 1.0f else if (isNight) 0.55f else 0.40f
+        val brBright = if (currentInputs.brake > 0.08f && physics.controlMode == PlayerControlMode.IN_TRUCK) 1.0f else if (isNight) 0.58f else 0.40f
         drawBox(px - fwdX * 3.75f + rightX * 0.85f, py + 0.76f, pz - fwdZ * 3.75f + rightZ * 0.85f, yaw, 0.38f, 0.18f, 0.10f, brBright, 0.06f, 0.06f)
         drawBox(px - fwdX * 3.75f - rightX * 0.85f, py + 0.76f, pz - fwdZ * 3.75f - rightZ * 0.85f, yaw, 0.38f, 0.18f, 0.10f, brBright, 0.06f, 0.06f)
         if (physics.gear == -1) {
@@ -603,10 +671,15 @@ class TruckGLRenderer(
         val rightZ = fwdX
         val (tr, tg, tb) = parseHexRgb(physics.trailerColorHex)
 
-        GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
-        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
-        drawBox(tx, ty + 0.09f, tz, yaw, 2.85f, 0.04f, 11.4f, 0.03f, 0.03f, 0.04f, 0.50f)
+        // Smooth radial contact shadow under semi-trailer
+        bindTexture(textures.softShadowTex)
+        GLES30.glUniform1f(worldShader.uEmissiveLoc, 3f)
+        GLES30.glDepthMask(false)
+        drawGroundShadow(tx, ty + 0.09f, tz, yaw, 3.8f, 13.4f, 1f, 1f, 1f, 0.85f)
+        GLES30.glDepthMask(true)
 
+        bindTexture(textures.whiteTex)
+        GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, tx, ty, tz)
         Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
@@ -614,20 +687,20 @@ class TruckGLRenderer(
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
         drawMeshWithModelMatrix(trailerMesh.chassisMesh, 1f, 1f, 1f, 1f)
 
+        bindTexture(textures.corrugatedTex)
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_METALLIC_PAINT)
         drawMeshWithModelMatrix(trailerMesh.bodyPaintMesh, tr, tg, tb, 1f)
 
+        bindTexture(textures.whiteTex)
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_CHROME)
         drawMeshWithModelMatrix(trailerMesh.chromeMesh, 1f, 1f, 1f, 1f)
 
-        // Tandem rear wheels
         val spinDeg = Math.toDegrees(physics.wheelSpinAngle.toDouble()).toFloat()
         for (off in listOf(-3.4f, -4.6f)) {
             drawWheel(tx + fwdX * off + rightX * 1.18f, ty + 0.53f, tz + fwdZ * off + rightZ * 1.18f, yaw, 0f, spinDeg)
             drawWheel(tx + fwdX * off - rightX * 1.18f, ty + 0.53f, tz + fwdZ * off - rightZ * 1.18f, yaw, 0f, spinDeg)
         }
 
-        // Rear trailer brake/marker lights + amber side markers
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 1f)
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
         val brBright = if (currentInputs.brake > 0.08f && physics.controlMode == PlayerControlMode.IN_TRUCK) 1.0f else if (isNight) 0.58f else 0.35f
@@ -640,7 +713,7 @@ class TruckGLRenderer(
     }
 
     /**
-     * Renders the realistic articulated 3D human driver walking, sprinting, or idling on foot.
+     * Renders the realistic articulated 3D human driver with soft wrap lighting, breathing idle, and natural stride.
      */
     private fun renderHumanDriverOnFoot() {
         val dx = physics.driverX
@@ -652,43 +725,46 @@ class TruckGLRenderer(
         val moving = physics.driverSpeedMs > 0.15f
         val phase = physics.driverWalkPhase
 
-        val strideSwing = if (moving) sin(phase) * (24f + 22f * speedNorm) else 0f
-        val armSwing = if (moving) sin(phase) * (22f + 20f * speedNorm) else 0f
-        val leftKneeFlex = if (moving) maxOf(0f, -cos(phase)) * (32f + 22f * speedNorm) else 0f
-        val rightKneeFlex = if (moving) maxOf(0f, cos(phase)) * (32f + 22f * speedNorm) else 0f
-        val leftElbowFlex = if (moving) 18f + maxOf(0f, sin(phase)) * 22f else 8f
-        val rightElbowFlex = if (moving) 18f + maxOf(0f, -sin(phase)) * 22f else 8f
-        val hipBob = if (moving) kotlin.math.abs(sin(phase)) * (0.045f + 0.035f * speedNorm) else sin(physics.simTimeSeconds * 2.2f) * 0.008f
-        val forwardLean = if (moving) 5f + 12f * speedNorm else 0f
+        val strideSwing = if (moving) sin(phase) * (25f + 22f * speedNorm) else 3.5f
+        val armSwing = if (moving) sin(phase) * (22f + 20f * speedNorm) else -4f
+        val leftKneeFlex = if (moving) maxOf(0f, -cos(phase)) * (34f + 22f * speedNorm) else 3f
+        val rightKneeFlex = if (moving) maxOf(0f, cos(phase)) * (34f + 22f * speedNorm) else 5f
+        val leftElbowFlex = if (moving) 18f + maxOf(0f, sin(phase)) * 24f else 14f
+        val rightElbowFlex = if (moving) 18f + maxOf(0f, -sin(phase)) * 24f else 16f
+        val hipBob = if (moving) kotlin.math.abs(sin(phase)) * (0.045f + 0.035f * speedNorm) else sin(physics.simTimeSeconds * 2.1f) * 0.008f
+        val forwardLean = if (moving) 5f + 12f * speedNorm else 1.5f
+        val hipTwist = if (moving) sin(phase) * 5.5f else 2.5f
 
-        // Contact shadow on ground
+        // Smooth radial shadow beneath boots
+        bindTexture(textures.softShadowTex)
+        GLES30.glUniform1f(worldShader.uEmissiveLoc, 3f)
+        GLES30.glDepthMask(false)
+        drawGroundShadow(dx, dy + 0.04f, dz, physics.driverYawRad, 0.92f, 0.92f, 1f, 1f, 1f, 0.85f)
+        GLES30.glDepthMask(true)
+
+        bindTexture(textures.whiteTex)
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
-        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
-        drawBox(dx, dy + 0.04f, dz, physics.driverYawRad, 0.55f, 0.03f, 0.55f, 0.03f, 0.03f, 0.04f, 0.48f)
+        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_SKIN_FABRIC)
 
         val pelvisY = dy + 0.89f + hipBob
 
-        // Torso & Pelvis
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, dx, pelvisY, dz)
-        Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
+        Matrix.rotateM(modelMatrix, 0, yawDeg + hipTwist, 0f, 1f, 0f)
         Matrix.rotateM(modelMatrix, 0, forwardLean, 1f, 0f, 0f)
         drawMeshWithModelMatrix(driverMeshes.torsoMesh, 1f, 1f, 1f, 1f)
 
-        // Head (mounted at top of torso +0.58m)
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, dx, pelvisY, dz)
         Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
         Matrix.rotateM(modelMatrix, 0, forwardLean, 1f, 0f, 0f)
         Matrix.translateM(modelMatrix, 0, 0f, 0.58f, 0f)
-        Matrix.rotateM(modelMatrix, 0, sin(physics.simTimeSeconds * 1.4f) * 3f, 0f, 1f, 0f)
+        Matrix.rotateM(modelMatrix, 0, sin(physics.simTimeSeconds * 1.4f) * 4f, 0f, 1f, 0f)
         drawMeshWithModelMatrix(driverMeshes.headMesh, 1f, 1f, 1f, 1f)
 
-        // Left & Right Arms (shoulder pivot at (+/-0.24, +0.49, 0))
-        drawArticulatedArm(dx, pelvisY, dz, yawDeg, forwardLean, side = 1f, upperRotX = -armSwing, elbowFlex = leftElbowFlex)
-        drawArticulatedArm(dx, pelvisY, dz, yawDeg, forwardLean, side = -1f, upperRotX = armSwing, elbowFlex = rightElbowFlex)
+        drawArticulatedArm(dx, pelvisY, dz, yawDeg + hipTwist, forwardLean, side = 1f, upperRotX = -armSwing, elbowFlex = leftElbowFlex)
+        drawArticulatedArm(dx, pelvisY, dz, yawDeg + hipTwist, forwardLean, side = -1f, upperRotX = armSwing, elbowFlex = rightElbowFlex)
 
-        // Left & Right Legs (hip pivot at (+/-0.10, 0.0, 0))
         drawArticulatedLeg(dx, pelvisY, dz, yawDeg, side = 1f, hipRotX = strideSwing, kneeFlex = leftKneeFlex)
         drawArticulatedLeg(dx, pelvisY, dz, yawDeg, side = -1f, hipRotX = -strideSwing, kneeFlex = rightKneeFlex)
     }
@@ -698,17 +774,15 @@ class TruckGLRenderer(
         yawDeg: Float, forwardLean: Float,
         side: Float, upperRotX: Float, elbowFlex: Float
     ) {
-        // Upper arm
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, px, pelvisY, pz)
         Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
         Matrix.rotateM(modelMatrix, 0, forwardLean, 1f, 0f, 0f)
         Matrix.translateM(modelMatrix, 0, side * 0.24f, 0.49f, 0f)
-        Matrix.rotateM(modelMatrix, 0, side * 7f, 0f, 0f, 1f)
+        Matrix.rotateM(modelMatrix, 0, side * 8f, 0f, 0f, 1f)
         Matrix.rotateM(modelMatrix, 0, upperRotX, 1f, 0f, 0f)
         drawMeshWithModelMatrix(driverMeshes.upperArmMesh, 1f, 1f, 1f, 1f)
 
-        // Forearm + Hand (pivots at elbow -0.29m down upper arm)
         Matrix.translateM(modelMatrix, 0, 0f, -0.29f, 0f)
         Matrix.rotateM(modelMatrix, 0, -elbowFlex, 1f, 0f, 0f)
         drawMeshWithModelMatrix(driverMeshes.forearmHandMesh, 1f, 1f, 1f, 1f)
@@ -718,7 +792,6 @@ class TruckGLRenderer(
         px: Float, pelvisY: Float, pz: Float,
         yawDeg: Float, side: Float, hipRotX: Float, kneeFlex: Float
     ) {
-        // Thigh
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, px, pelvisY, pz)
         Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
@@ -726,15 +799,11 @@ class TruckGLRenderer(
         Matrix.rotateM(modelMatrix, 0, hipRotX, 1f, 0f, 0f)
         drawMeshWithModelMatrix(driverMeshes.thighMesh, 1f, 1f, 1f, 1f)
 
-        // Shin + Work Boot (pivots at knee -0.42m down thigh)
         Matrix.translateM(modelMatrix, 0, 0f, -0.42f, 0f)
         Matrix.rotateM(modelMatrix, 0, kneeFlex, 1f, 0f, 0f)
         drawMeshWithModelMatrix(driverMeshes.shinBootMesh, 1f, 1f, 1f, 1f)
     }
 
-    /**
-     * Renders the seated realistic driver visible through the truck windshield in Exterior/Side cameras.
-     */
     private fun renderSeatedDriverInCab() {
         val model = TruckCatalog.byId(currentProfile.selectedTruckId)
         val fwdX = sin(physics.yawRad)
@@ -747,8 +816,9 @@ class TruckGLRenderer(
         val seatZ = physics.z + fwdZ * seatFwd - rightZ * 0.56f
         val yawDeg = Math.toDegrees(physics.yawRad.toDouble()).toFloat()
 
+        bindTexture(textures.whiteTex)
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
-        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
+        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_SKIN_FABRIC)
 
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, seatX, seatY, seatZ)
@@ -758,6 +828,10 @@ class TruckGLRenderer(
         Matrix.translateM(modelMatrix, 0, 0f, 0.58f, 0f)
         Matrix.rotateM(modelMatrix, 0, -currentInputs.steering * 12f, 0f, 1f, 0f)
         drawMeshWithModelMatrix(driverMeshes.headMesh, 1f, 1f, 1f, 1f)
+
+        // Seated forward arms reaching toward steering wheel
+        drawArticulatedArm(seatX, seatY, seatZ, yawDeg, 0f, side = 1f, upperRotX = -42f, elbowFlex = 46f)
+        drawArticulatedArm(seatX, seatY, seatZ, yawDeg, 0f, side = -1f, upperRotX = -42f, elbowFlex = 46f)
     }
 
     private fun renderInteriorCockpit(camPos: FloatArray, inputs: DrivingInputs) {
@@ -773,26 +847,36 @@ class TruckGLRenderer(
 
         GLES30.glClear(GLES30.GL_DEPTH_BUFFER_BIT)
         worldShader.use()
+        bindTexture(textures.whiteTex)
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
 
-        // Sculpted Dashboard, Cowl, A-Pillars & Steering Column
+        // Sculpted Dashboard, Gauge Binnacle Rings, Shifter & A-Pillars
         Matrix.setIdentityM(modelMatrix, 0)
         Matrix.translateM(modelMatrix, 0, cx, cy, cz)
         Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
         drawMeshWithModelMatrix(cockpitMeshes.dashboardMesh, 1f, 1f, 1f, 1f)
 
-        // Illuminated Digital + Analog Dash Display
+        // Compact Digital Trip Computer Strip between Round Chrome Analog Gauges
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 1f)
-        drawBox(cx + fwdX * 0.68f, cy - 0.30f, cz + fwdZ * 0.68f, yaw, 0.44f, 0.14f, 0.03f, 0.06f, 0.16f, 0.26f)
-        val speedFrac = (abs(physics.speedMs) * 3.6f / 130f).coerceIn(0.05f, 1f)
-        val rpmFrac = (physics.rpm / 2450f).coerceIn(0.05f, 1f)
-        drawBox(cx + fwdX * 0.66f - rightX * 0.10f, cy - 0.29f, cz + fwdZ * 0.66f - rightZ * 0.10f, yaw, 0.16f * speedFrac, 0.03f, 0.02f, 1.0f, 0.45f, 0.05f)
-        drawBox(cx + fwdX * 0.66f + rightX * 0.10f, cy - 0.29f, cz + fwdZ * 0.66f + rightZ * 0.10f, yaw, 0.16f * rpmFrac, 0.03f, 0.02f, 0.20f, 0.85f, 0.98f)
-        // Center GPS Nav screen glow
-        drawBox(cx + fwdX * 0.72f + rightX * 0.46f, cy - 0.34f, cz + fwdZ * 0.72f + rightZ * 0.46f, yaw, 0.24f, 0.15f, 0.03f, 0.08f, 0.28f, 0.24f)
+        drawBox(cx + fwdX * 0.66f, cy - 0.28f, cz + fwdZ * 0.66f, yaw, 0.075f, 0.105f, 0.02f, 0.06f, 0.16f, 0.26f)
+        val speedFrac = (abs(physics.speedMs) * 3.6f / 130f).coerceIn(0f, 1f)
+        val rpmFrac = (physics.rpm / 2450f).coerceIn(0f, 1f)
 
-        // Real 3D Torus Steering Wheel + Driver Forearms/Hands gripping the wheel!
+        // Left analog speedometer dial + orange needle + hub pin
+        val speedNeedleRoll = 120f - speedFrac * 240f
+        drawTiltedBox(cx + fwdX * 0.648f - rightX * 0.12f, cy - 0.28f, cz + fwdZ * 0.648f - rightZ * 0.12f, yaw, 0f, speedNeedleRoll, 0.009f, 0.056f, 0.010f, 1.0f, 0.45f, 0.05f)
+        drawBox(cx + fwdX * 0.644f - rightX * 0.12f, cy - 0.28f, cz + fwdZ * 0.644f - rightZ * 0.12f, yaw, 0.022f, 0.022f, 0.012f, 0.85f, 0.88f, 0.94f)
+        // Right analog tachometer dial + cyan needle + hub pin
+        val rpmNeedleRoll = 120f - rpmFrac * 240f
+        drawTiltedBox(cx + fwdX * 0.648f + rightX * 0.12f, cy - 0.28f, cz + fwdZ * 0.648f + rightZ * 0.12f, yaw, 0f, rpmNeedleRoll, 0.009f, 0.056f, 0.010f, 0.18f, 0.86f, 1.0f)
+        drawBox(cx + fwdX * 0.644f + rightX * 0.12f, cy - 0.28f, cz + fwdZ * 0.644f + rightZ * 0.12f, yaw, 0.022f, 0.022f, 0.012f, 0.85f, 0.88f, 0.94f)
+
+        // Center GPS Nav Screen glow (on center console to driver's right)
+        drawBox(cx + fwdX * 0.69f + rightX * 0.46f, cy - 0.34f, cz + fwdZ * 0.69f + rightZ * 0.46f, yaw, 0.24f, 0.14f, 0.02f, 0.07f, 0.24f, 0.22f)
+        drawBox(cx + fwdX * 0.68f + rightX * 0.46f, cy - 0.34f, cz + fwdZ * 0.68f + rightZ * 0.46f, yaw, 0.02f, 0.10f, 0.02f, 0.20f, 0.90f, 0.55f)
+
+        // Real 3D Torus Steering Wheel + Driver Forearms/Hands gripping rim at 9-and-3!
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
         val steerRollDeg = -inputs.steering * 155f
         val wheelX = cx + fwdX * 0.50f
@@ -807,15 +891,13 @@ class TruckGLRenderer(
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_CHROME)
         drawMeshWithModelMatrix(cockpitMeshes.steeringWheelMesh, 1f, 1f, 1f, 1f)
 
-        // Driver Left & Right Hands/Forearms attached to the rotating steering wheel rim
-        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
+        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_SKIN_FABRIC)
         for (side in listOf(-1f, 1f)) {
             Matrix.setIdentityM(modelMatrix, 0)
             Matrix.translateM(modelMatrix, 0, wheelX, wheelY, wheelZ)
             Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
             Matrix.rotateM(modelMatrix, 0, -28f, 1f, 0f, 0f)
             Matrix.rotateM(modelMatrix, 0, steerRollDeg, 0f, 0f, 1f)
-            // Position hand near 9-and-3 on rim (x=+/-0.20, y=0) pointing back toward driver
             Matrix.translateM(modelMatrix, 0, side * 0.20f, 0.02f, -0.02f)
             Matrix.rotateM(modelMatrix, 0, -72f, 1f, 0f, 0f)
             Matrix.rotateM(modelMatrix, 0, side * -12f, 0f, 0f, 1f)
@@ -869,6 +951,7 @@ class TruckGLRenderer(
     }
 
     private fun renderRainParticles(camPos: FloatArray, count: Int) {
+        bindTexture(textures.whiteTex)
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 1f)
         val n = count.coerceAtMost(650)
         for (i in 0 until n) {
@@ -892,6 +975,39 @@ class TruckGLRenderer(
             Matrix.scaleM(modelMatrix, 0, scale, scale, scale)
         }
         drawMeshWithModelMatrix(unitWheel, 1f, 1f, 1f, 1f)
+    }
+
+    private fun drawGroundShadow(
+        x: Float, y: Float, z: Float,
+        yawRad: Float, sx: Float, sz: Float,
+        r: Float, g: Float, b: Float, a: Float
+    ) {
+        Matrix.setIdentityM(modelMatrix, 0)
+        Matrix.translateM(modelMatrix, 0, x, y, z)
+        Matrix.rotateM(modelMatrix, 0, Math.toDegrees(yawRad.toDouble()).toFloat(), 0f, 1f, 0f)
+        Matrix.scaleM(modelMatrix, 0, sx, 1f, sz)
+        drawMeshWithModelMatrix(groundQuad, r, g, b, a)
+    }
+
+    private fun drawBillboard(
+        x: Float, y: Float, z: Float,
+        camPos: FloatArray,
+        size: Float,
+        r: Float, g: Float, b: Float, a: Float
+    ) {
+        val dx = camPos[0] - x
+        val dy = camPos[1] - y
+        val dz = camPos[2] - z
+        val yawDeg = Math.toDegrees(atan2(dx.toDouble(), dz.toDouble())).toFloat()
+        val horiz = hypot(dx, dz).coerceAtLeast(0.001f)
+        val pitchDeg = -Math.toDegrees(atan2(dy.toDouble(), horiz.toDouble())).toFloat()
+
+        Matrix.setIdentityM(modelMatrix, 0)
+        Matrix.translateM(modelMatrix, 0, x, y, z)
+        Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
+        Matrix.rotateM(modelMatrix, 0, pitchDeg, 1f, 0f, 0f)
+        Matrix.scaleM(modelMatrix, 0, size, size, 1f)
+        drawMeshWithModelMatrix(billboardQuad, r, g, b, a)
     }
 
     private fun drawMeshWithModelMatrix(mesh: MeshBuffer, r: Float, g: Float, b: Float, a: Float) {
@@ -928,6 +1044,12 @@ class TruckGLRenderer(
         Matrix.rotateM(modelMatrix, 0, rollDeg, 0f, 0f, 1f)
         Matrix.scaleM(modelMatrix, 0, sx, sy, sz)
         drawMeshWithModelMatrix(unitCube, r, g, b, a)
+    }
+
+    private fun bindTexture(texId: Int) {
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, texId)
+        GLES30.glUniform1i(worldShader.uTextureLoc, 0)
     }
 
     private fun setIdentityModel() {
@@ -992,14 +1114,14 @@ class TruckGLRenderer(
         }
 
         val (lr, lg, lb) = when {
-            !isDay -> Triple(0.22f, 0.28f, 0.45f)
+            !isDay -> Triple(0.32f, 0.38f, 0.56f)
             isTwilight -> Triple(1.0f * cloudDim, 0.68f * cloudDim, 0.42f * cloudDim)
             else -> Triple(0.98f * cloudDim, 0.95f * cloudDim, 0.88f * cloudDim)
         }
 
         val (ar, ag, ab) = when {
-            !isDay -> Triple(0.14f, 0.17f, 0.26f)
-            isTwilight -> Triple(0.38f, 0.30f, 0.32f)
+            !isDay -> Triple(0.22f, 0.26f, 0.36f)
+            isTwilight -> Triple(0.42f, 0.34f, 0.36f)
             else -> Triple(0.42f * cloudDim + 0.1f, 0.45f * cloudDim + 0.1f, 0.50f * cloudDim + 0.1f)
         }
 

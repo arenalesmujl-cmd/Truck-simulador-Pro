@@ -68,7 +68,9 @@ import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 import kotlin.math.PI
 import kotlin.math.atan2
+import kotlin.math.cos
 import kotlin.math.hypot
+import kotlin.math.sin
 
 @Composable
 fun SpeedometerArcCluster(
@@ -87,13 +89,28 @@ fun SpeedometerArcCluster(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Box(
-                modifier = Modifier.size(96.dp),
+                modifier = Modifier.size(100.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val stroke = 9f
                     val arcSize = Size(size.width - stroke, size.height - stroke)
                     val topLeft = Offset(stroke / 2f, stroke / 2f)
+                    val center = Offset(size.width / 2f, size.height / 2f)
+                    val outerR = size.minDimension * 0.45f
+
+                    // Precision speedometer dial ticks
+                    for (i in 0..14) {
+                        val deg = 135f + (i / 14f) * 270f
+                        val rad = Math.toRadians(deg.toDouble()).toFloat()
+                        val inner = if (i % 2 == 0) outerR * 0.80f else outerR * 0.87f
+                        drawLine(
+                            color = if (i >= 11) CrimsonAlert.copy(alpha = 0.7f) else Color(0xFF475569),
+                            start = Offset(center.x + cos(rad) * inner, center.y + sin(rad) * inner),
+                            end = Offset(center.x + cos(rad) * outerR, center.y + sin(rad) * outerR),
+                            strokeWidth = if (i % 2 == 0) 2.5f else 1.5f
+                        )
+                    }
 
                     // Speedometer outer track
                     drawArc(
@@ -105,7 +122,8 @@ fun SpeedometerArcCluster(
                         size = arcSize,
                         style = Stroke(width = stroke, cap = StrokeCap.Round)
                     )
-                    val speedSweep = ((telemetry.speedKmh / 140f).coerceIn(0f, 1f)) * 270f
+                    val speedFrac = (telemetry.speedKmh / 140f).coerceIn(0f, 1f)
+                    val speedSweep = speedFrac * 270f
                     drawArc(
                         brush = Brush.sweepGradient(listOf(SkyCyan, RacingOrange, CrimsonAlert)),
                         startAngle = 135f,
@@ -116,8 +134,18 @@ fun SpeedometerArcCluster(
                         style = Stroke(width = stroke, cap = StrokeCap.Round)
                     )
 
+                    // Glowing Analog Speed Needle
+                    val needleRad = Math.toRadians((135f + speedSweep).toDouble()).toFloat()
+                    drawLine(
+                        color = RacingOrange,
+                        start = Offset(center.x + cos(needleRad) * (outerR * 0.36f), center.y + sin(needleRad) * (outerR * 0.36f)),
+                        end = Offset(center.x + cos(needleRad) * (outerR * 0.94f), center.y + sin(needleRad) * (outerR * 0.94f)),
+                        strokeWidth = 3.5f,
+                        cap = StrokeCap.Round
+                    )
+
                     // Inner RPM arc
-                    val innerInset = 18f
+                    val innerInset = 20f
                     val innerSize = Size(size.width - innerInset * 2f, size.height - innerInset * 2f)
                     val innerTopLeft = Offset(innerInset, innerInset)
                     drawArc(
@@ -127,7 +155,7 @@ fun SpeedometerArcCluster(
                         useCenter = false,
                         topLeft = innerTopLeft,
                         size = innerSize,
-                        style = Stroke(width = 5f, cap = StrokeCap.Round)
+                        style = Stroke(width = 4.5f, cap = StrokeCap.Round)
                     )
                     val rpmSweep = ((telemetry.rpm / 2450f).coerceIn(0f, 1f)) * 270f
                     drawArc(
@@ -137,7 +165,7 @@ fun SpeedometerArcCluster(
                         useCenter = false,
                         topLeft = innerTopLeft,
                         size = innerSize,
-                        style = Stroke(width = 5f, cap = StrokeCap.Round)
+                        style = Stroke(width = 4.5f, cap = StrokeCap.Round)
                     )
                 }
 
@@ -175,16 +203,16 @@ fun SpeedometerArcCluster(
                     )
                 }
 
-                Text(
-                    text = "⛽ ${telemetry.fuelPercent.toInt()}%",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (telemetry.fuelPercent < 20f) CrimsonAlert else EmeraldGo
-                )
-                Text(
-                    text = "🔧 ${telemetry.damagePercent.toInt()}%",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (telemetry.damagePercent > 40f) AmberSignal else TextSecondary
-                )
+                val fuelColor = if (telemetry.fuelPercent < 20f) CrimsonAlert else EmeraldGo
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Icon(Icons.Filled.LocalGasStation, contentDescription = "Combustible", tint = fuelColor, modifier = Modifier.size(13.dp))
+                    Text("${telemetry.fuelPercent.toInt()}%", style = MaterialTheme.typography.labelSmall, color = fuelColor)
+                }
+                val dmgColor = if (telemetry.damagePercent > 40f) AmberSignal else TextSecondary
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Icon(Icons.Filled.Build, contentDescription = "Daño", tint = dmgColor, modifier = Modifier.size(13.dp))
+                    Text("${telemetry.damagePercent.toInt()}%", style = MaterialTheme.typography.labelSmall, color = dmgColor)
+                }
             }
         }
     }
@@ -223,7 +251,6 @@ fun OnFootAnalogJoystick(
                             candidate
                         }
                         knobOffset = clamped
-                        // +Y up on screen means forward (+1 moveY)
                         onMoveChange(
                             (clamped.x / maxRadius).coerceIn(-1f, 1f),
                             (-clamped.y / maxRadius).coerceIn(-1f, 1f)
@@ -237,7 +264,9 @@ fun OnFootAnalogJoystick(
             val c = Offset(size.width / 2f, size.height / 2f)
             val outerR = size.minDimension * 0.40f
             drawCircle(color = Color(0xFF334155), radius = outerR, center = c, style = Stroke(width = 2.5f))
-            drawCircle(color = SkyCyan.copy(alpha = 0.20f), radius = 28f, center = c + knobOffset)
+            drawLine(Color(0xFF1E293B), Offset(c.x - outerR * 0.6f, c.y), Offset(c.x + outerR * 0.6f, c.y), strokeWidth = 1.5f)
+            drawLine(Color(0xFF1E293B), Offset(c.x, c.y - outerR * 0.6f), Offset(c.x, c.y + outerR * 0.6f), strokeWidth = 1.5f)
+            drawCircle(color = SkyCyan.copy(alpha = 0.22f), radius = 30f, center = c + knobOffset)
             drawCircle(color = SkyCyan, radius = 22f, center = c + knobOffset)
             drawCircle(color = TextPrimary, radius = 8f, center = c + knobOffset)
         }
@@ -374,11 +403,29 @@ fun TactileSteeringWheel(
             val r = size.minDimension / 2f
             val c = Offset(size.width / 2f, size.height / 2f)
             rotate(degrees = steerValue * 110f, pivot = c) {
-                drawCircle(color = Color(0xFF94A3B8), radius = r, center = c, style = Stroke(width = 16f))
-                drawCircle(color = RacingOrange, radius = 18f, center = c)
-                drawLine(Color(0xFFCBD5E1), Offset(c.x - r + 6f, c.y), Offset(c.x + r - 6f, c.y), strokeWidth = 10f, cap = StrokeCap.Round)
-                drawLine(Color(0xFFCBD5E1), Offset(c.x, c.y), Offset(c.x, c.y + r - 6f), strokeWidth = 10f, cap = StrokeCap.Round)
-                drawCircle(RacingOrange, radius = 6f, center = Offset(c.x, c.y - r))
+                // Dark stitched leather rim & subtle metallic outer highlight
+                drawCircle(color = Color(0xFF0F172A), radius = r, center = c, style = Stroke(width = 22f))
+                drawCircle(color = Color(0xFF1E293B), radius = r, center = c, style = Stroke(width = 16f))
+                drawCircle(color = Color(0xFF64748B), radius = r + 5f, center = c, style = Stroke(width = 2.5f))
+                // Thumb grip bolsters at 9 & 3 o'clock
+                drawCircle(color = Color(0xFF334155), radius = 11f, center = Offset(c.x - r + 2f, c.y))
+                drawCircle(color = Color(0xFF334155), radius = 11f, center = Offset(c.x + r - 2f, c.y))
+                // Brushed aluminum spokes
+                drawLine(Color(0xFF94A3B8), Offset(c.x - r + 8f, c.y), Offset(c.x + r - 8f, c.y), strokeWidth = 12f, cap = StrokeCap.Round)
+                drawLine(Color(0xFFE2E8F0), Offset(c.x - r + 10f, c.y - 1.5f), Offset(c.x + r - 10f, c.y - 1.5f), strokeWidth = 3f, cap = StrokeCap.Round)
+                drawLine(Color(0xFF94A3B8), Offset(c.x, c.y), Offset(c.x, c.y + r - 8f), strokeWidth = 12f, cap = StrokeCap.Round)
+                // Center horn boss with metallic trim & orange racing badge
+                drawCircle(Color(0xFF0F172A), radius = 24f, center = c)
+                drawCircle(Color(0xFF94A3B8), radius = 24f, center = c, style = Stroke(width = 2.5f))
+                drawCircle(RacingOrange, radius = 13f, center = c)
+                // Top dead center stripe
+                drawLine(
+                    color = RacingOrange,
+                    start = Offset(c.x, c.y - r - 8f),
+                    end = Offset(c.x, c.y - r + 8f),
+                    strokeWidth = 7f,
+                    cap = StrokeCap.Round
+                )
             }
         }
     }
@@ -395,8 +442,8 @@ fun HoldButtonPad(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        color = if (held) accent.copy(alpha = 0.85f) else SimSurfaceGlass,
-        border = BorderStroke(2.dp, if (held) accent else accent.copy(alpha = 0.55f)),
+        color = if (held) accent.copy(alpha = 0.88f) else SimSurfaceGlass,
+        border = BorderStroke(2.dp, if (held) accent else accent.copy(alpha = 0.62f)),
         shape = RoundedCornerShape(14.dp),
         modifier = modifier
             .minimumInteractiveComponentSize()
@@ -410,20 +457,38 @@ fun HoldButtonPad(
                 }
             }
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            if (icon != null) {
-                Icon(icon, contentDescription = label, tint = if (held) SimBackground else TextPrimary, modifier = Modifier.size(28.dp))
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Subtle ribbed pedal traction bars behind content
+            Canvas(modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 8.dp)) {
+                val barCount = 5
+                val step = size.height / (barCount + 1)
+                val barColor = if (held) Color.Black.copy(alpha = 0.22f) else accent.copy(alpha = 0.14f)
+                for (i in 1..barCount) {
+                    val y = step * i
+                    drawLine(
+                        color = barColor,
+                        start = Offset(4f, y),
+                        end = Offset(size.width - 4f, y),
+                        strokeWidth = 4f,
+                        cap = StrokeCap.Round
+                    )
+                }
             }
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelLarge,
-                color = if (held) SimBackground else TextPrimary,
-                fontWeight = FontWeight.Bold
-            )
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                if (icon != null) {
+                    Icon(icon, contentDescription = label, tint = if (held) SimBackground else TextPrimary, modifier = Modifier.size(26.dp))
+                }
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (held) SimBackground else TextPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }
@@ -471,6 +536,14 @@ fun MiniMapRadar(
         val cy = h * 0.5f
         val scale = w / 460f
 
+        // Concentric radar range rings & cardinal crosshair ticks
+        drawCircle(Color(0xFF1E293B), radius = w * 0.44f, center = Offset(cx, cy), style = Stroke(1.5f))
+        drawCircle(Color(0xFF1E293B), radius = w * 0.23f, center = Offset(cx, cy), style = Stroke(1f))
+        drawLine(Color(0xFF1E293B), Offset(cx, 4f), Offset(cx, 12f), strokeWidth = 2f)
+        drawLine(Color(0xFF1E293B), Offset(cx, h - 12f), Offset(cx, h - 4f), strokeWidth = 2f)
+        drawLine(Color(0xFF1E293B), Offset(4f, cy), Offset(12f, cy), strokeWidth = 2f)
+        drawLine(Color(0xFF1E293B), Offset(w - 12f, cy), Offset(w - 4f, cy), strokeWidth = 2f)
+
         val refX = if (telemetry.controlMode == PlayerControlMode.ON_FOOT) telemetry.driverX else telemetry.truckX
         val refZ = if (telemetry.controlMode == PlayerControlMode.ON_FOOT) telemetry.driverZ else telemetry.truckZ
 
@@ -480,12 +553,10 @@ fun MiniMapRadar(
         )
 
         for (road in TruckWorld.roads) {
-            drawLine(
-                color = Color(0xFF475569),
-                start = toRadar(road.x1, road.z1),
-                end = toRadar(road.x2, road.z2),
-                strokeWidth = 4f
-            )
+            val s = toRadar(road.x1, road.z1)
+            val e = toRadar(road.x2, road.z2)
+            drawLine(color = Color(0xFF334155), start = s, end = e, strokeWidth = 6f, cap = StrokeCap.Round)
+            drawLine(color = Color(0xFF64748B), start = s, end = e, strokeWidth = 2.5f, cap = StrokeCap.Round)
         }
 
         for (z in TruckWorld.zones) {
@@ -507,21 +578,23 @@ fun MiniMapRadar(
             if (hub != null) {
                 val raw = toRadar(hub.x, hub.z)
                 val clamped = Offset(raw.x.coerceIn(6f, w - 6f), raw.y.coerceIn(6f, h - 6f))
-                drawCircle(if (missionLoaded) EmeraldGo else AmberSignal, radius = 6f, center = clamped)
+                val targetCol = if (missionLoaded) EmeraldGo else AmberSignal
+                drawLine(targetCol.copy(alpha = 0.55f), Offset(cx, cy), clamped, strokeWidth = 2.5f)
+                drawCircle(targetCol, radius = 6f, center = clamped)
             }
         }
 
         if (telemetry.controlMode == PlayerControlMode.ON_FOOT) {
-            // Parked truck marker
             val truckPos = toRadar(telemetry.truckX, telemetry.truckZ)
             drawCircle(RacingOrange, radius = 6f, center = Offset(truckPos.x.coerceIn(6f, w - 6f), truckPos.y.coerceIn(6f, h - 6f)))
-            // Human driver center arrow
             rotate(degrees = Math.toDegrees(telemetry.driverYawRad.toDouble()).toFloat(), pivot = Offset(cx, cy)) {
+                drawArc(SkyCyan.copy(alpha = 0.22f), startAngle = -115f, sweepAngle = 50f, useCenter = true, topLeft = Offset(cx - 22f, cy - 22f), size = Size(44f, 44f))
                 drawCircle(SkyCyan, radius = 4.5f, center = Offset(cx, cy))
                 drawLine(SkyCyan, Offset(cx, cy), Offset(cx, cy - 10f), strokeWidth = 3f, cap = StrokeCap.Round)
             }
         } else {
             rotate(degrees = Math.toDegrees(telemetry.truckYawRad.toDouble()).toFloat(), pivot = Offset(cx, cy)) {
+                drawArc(RacingOrange.copy(alpha = 0.22f), startAngle = -115f, sweepAngle = 50f, useCenter = true, topLeft = Offset(cx - 24f, cy - 24f), size = Size(48f, 48f))
                 drawCircle(RacingOrange, radius = 5.5f, center = Offset(cx, cy))
                 drawLine(RacingOrange, Offset(cx, cy), Offset(cx, cy - 11f), strokeWidth = 3f, cap = StrokeCap.Round)
             }

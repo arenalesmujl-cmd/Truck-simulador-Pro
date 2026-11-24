@@ -7,17 +7,42 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.hypot
+import kotlin.math.pow
+import kotlin.math.sign
 import kotlin.math.sin
 import kotlin.math.sqrt
+
+data class LoftRingY(
+    val y: Float,
+    val centerZ: Float,
+    val rx: Float,
+    val rz: Float,
+    val r: Float,
+    val g: Float,
+    val b: Float,
+    val roundness: Float = 1.0f // 1.0 = smooth ellipse, < 1.0 = athletic/squared superellipse
+)
+
+data class LoftRingZ(
+    val z: Float,
+    val centerY: Float,
+    val rx: Float,
+    val ry: Float,
+    val r: Float,
+    val g: Float,
+    val b: Float,
+    val roundness: Float = 0.42f // automotive rounded-corner sheet metal
+)
 
 class MeshBuffer(
     vertices: FloatArray,
     private val drawMode: Int = GLES30.GL_TRIANGLES
 ) {
-    // Stride: pos(3) + normal(3) + color(4) = 10 floats = 40 bytes
-    val vertexCount: Int = vertices.size / 10
+    // Stride: pos(3) + normal(3) + uv(2) + color(4) = 12 floats = 48 bytes
+    val vertexCount: Int = vertices.size / 12
     private val vaoId: Int
     private val vboId: Int
 
@@ -39,13 +64,15 @@ class MeshBuffer(
         GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vboId)
         GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, vertices.size * 4, fb, GLES30.GL_STATIC_DRAW)
 
-        val strideBytes = 10 * 4
+        val strideBytes = 12 * 4
         GLES30.glEnableVertexAttribArray(0)
         GLES30.glVertexAttribPointer(0, 3, GLES30.GL_FLOAT, false, strideBytes, 0)
         GLES30.glEnableVertexAttribArray(1)
         GLES30.glVertexAttribPointer(1, 3, GLES30.GL_FLOAT, false, strideBytes, 3 * 4)
         GLES30.glEnableVertexAttribArray(2)
-        GLES30.glVertexAttribPointer(2, 4, GLES30.GL_FLOAT, false, strideBytes, 6 * 4)
+        GLES30.glVertexAttribPointer(2, 2, GLES30.GL_FLOAT, false, strideBytes, 6 * 4)
+        GLES30.glEnableVertexAttribArray(3)
+        GLES30.glVertexAttribPointer(3, 4, GLES30.GL_FLOAT, false, strideBytes, 8 * 4)
 
         GLES30.glBindVertexArray(0)
         GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0)
@@ -65,12 +92,35 @@ class MeshBuffer(
 }
 
 class DynamicMeshBuilder {
-    private val data = ArrayList<Float>(8192)
+    private val data = ArrayList<Float>(16384)
 
-    fun addVertex(x: Float, y: Float, z: Float, nx: Float, ny: Float, nz: Float, r: Float, g: Float, b: Float, a: Float = 1f) {
+    fun addVertex(
+        x: Float, y: Float, z: Float,
+        nx: Float, ny: Float, nz: Float,
+        u: Float, v: Float,
+        r: Float, g: Float, b: Float, a: Float = 1f
+    ) {
         data.add(x); data.add(y); data.add(z)
         data.add(nx); data.add(ny); data.add(nz)
+        data.add(u); data.add(v)
         data.add(r); data.add(g); data.add(b); data.add(a)
+    }
+
+    fun addQuadUv(
+        x1: Float, y1: Float, z1: Float, u1: Float, v1: Float,
+        x2: Float, y2: Float, z2: Float, u2: Float, v2: Float,
+        x3: Float, y3: Float, z3: Float, u3: Float, v3: Float,
+        x4: Float, y4: Float, z4: Float, u4: Float, v4: Float,
+        nx: Float, ny: Float, nz: Float,
+        r: Float, g: Float, b: Float, a: Float = 1f
+    ) {
+        addVertex(x1, y1, z1, nx, ny, nz, u1, v1, r, g, b, a)
+        addVertex(x2, y2, z2, nx, ny, nz, u2, v2, r, g, b, a)
+        addVertex(x3, y3, z3, nx, ny, nz, u3, v3, r, g, b, a)
+
+        addVertex(x1, y1, z1, nx, ny, nz, u1, v1, r, g, b, a)
+        addVertex(x3, y3, z3, nx, ny, nz, u3, v3, r, g, b, a)
+        addVertex(x4, y4, z4, nx, ny, nz, u4, v4, r, g, b, a)
     }
 
     fun addQuad(
@@ -81,21 +131,239 @@ class DynamicMeshBuilder {
         nx: Float, ny: Float, nz: Float,
         r: Float, g: Float, b: Float, a: Float = 1f
     ) {
-        addVertex(x1, y1, z1, nx, ny, nz, r, g, b, a)
-        addVertex(x2, y2, z2, nx, ny, nz, r, g, b, a)
-        addVertex(x3, y3, z3, nx, ny, nz, r, g, b, a)
+        addQuadUv(
+            x1, y1, z1, 0f, 0f,
+            x2, y2, z2, 1f, 0f,
+            x3, y3, z3, 1f, 1f,
+            x4, y4, z4, 0f, 1f,
+            nx, ny, nz, r, g, b, a
+        )
+    }
 
-        addVertex(x1, y1, z1, nx, ny, nz, r, g, b, a)
-        addVertex(x3, y3, z3, nx, ny, nz, r, g, b, a)
-        addVertex(x4, y4, z4, nx, ny, nz, r, g, b, a)
+    private fun superPow(v: Float, p: Float): Float = sign(v) * abs(v).pow(p)
+
+    /**
+     * Builds an organic smooth-shaded anatomical mesh along Y from ordered cross-section rings.
+     */
+    fun addLoftedProfileY(
+        cx: Float,
+        rings: List<LoftRingY>,
+        sectors: Int = 18,
+        cappedBottom: Boolean = true,
+        cappedTop: Boolean = true
+    ) {
+        if (rings.size < 2) return
+        val nRings = rings.size
+        val posX = Array(nRings) { FloatArray(sectors) }
+        val posY = Array(nRings) { FloatArray(sectors) }
+        val posZ = Array(nRings) { FloatArray(sectors) }
+        val norX = Array(nRings) { FloatArray(sectors) }
+        val norY = Array(nRings) { FloatArray(sectors) }
+        val norZ = Array(nRings) { FloatArray(sectors) }
+
+        for (ri in 0 until nRings) {
+            val ring = rings[ri]
+            for (s in 0 until sectors) {
+                val a = (s.toFloat() / sectors) * 2f * PI.toFloat()
+                val ca = superPow(cos(a), ring.roundness)
+                val sa = superPow(sin(a), ring.roundness)
+                posX[ri][s] = cx + ca * ring.rx
+                posY[ri][s] = ring.y
+                posZ[ri][s] = ring.centerZ + sa * ring.rz
+            }
+        }
+
+        // Smooth averaged vertex normals across neighboring rings & radial sectors
+        for (ri in 0 until nRings) {
+            val prevR = (ri - 1).coerceAtLeast(0)
+            val nextR = (ri + 1).coerceAtMost(nRings - 1)
+            for (s in 0 until sectors) {
+                val prevS = (s - 1 + sectors) % sectors
+                val nextS = (s + 1) % sectors
+                val tx = posX[ri][nextS] - posX[ri][prevS]
+                val ty = posY[ri][nextS] - posY[ri][prevS]
+                val tz = posZ[ri][nextS] - posZ[ri][prevS]
+                val bx = posX[nextR][s] - posX[prevR][s]
+                val by = posY[nextR][s] - posY[prevR][s]
+                val bz = posZ[nextR][s] - posZ[prevR][s]
+                // Cross tangent x bitangent -> outward normal
+                var nx = by * tz - bz * ty
+                var ny = bz * tx - bx * tz
+                var nz = bx * ty - by * tx
+                val len = sqrt(nx * nx + ny * ny + nz * nz).coerceAtLeast(0.0001f)
+                nx /= len; ny /= len; nz /= len
+                norX[ri][s] = nx; norY[ri][s] = ny; norZ[ri][s] = nz
+            }
+        }
+
+        for (ri in 0 until nRings - 1) {
+            val r0 = rings[ri]
+            val r1 = rings[ri + 1]
+            val v0 = ri.toFloat() / (nRings - 1)
+            val v1 = (ri + 1).toFloat() / (nRings - 1)
+            for (s in 0 until sectors) {
+                val sNext = (s + 1) % sectors
+                val u0 = s.toFloat() / sectors
+                val u1 = (s + 1).toFloat() / sectors
+
+                addVertex(posX[ri][s], posY[ri][s], posZ[ri][s], norX[ri][s], norY[ri][s], norZ[ri][s], u0, v0, r0.r, r0.g, r0.b)
+                addVertex(posX[ri][sNext], posY[ri][sNext], posZ[ri][sNext], norX[ri][sNext], norY[ri][sNext], norZ[ri][sNext], u1, v0, r0.r, r0.g, r0.b)
+                addVertex(posX[ri + 1][sNext], posY[ri + 1][sNext], posZ[ri + 1][sNext], norX[ri + 1][sNext], norY[ri + 1][sNext], norZ[ri + 1][sNext], u1, v1, r1.r, r1.g, r1.b)
+
+                addVertex(posX[ri][s], posY[ri][s], posZ[ri][s], norX[ri][s], norY[ri][s], norZ[ri][s], u0, v0, r0.r, r0.g, r0.b)
+                addVertex(posX[ri + 1][sNext], posY[ri + 1][sNext], posZ[ri + 1][sNext], norX[ri + 1][sNext], norY[ri + 1][sNext], norZ[ri + 1][sNext], u1, v1, r1.r, r1.g, r1.b)
+                addVertex(posX[ri + 1][s], posY[ri + 1][s], posZ[ri + 1][s], norX[ri + 1][s], norY[ri + 1][s], norZ[ri + 1][s], u0, v1, r1.r, r1.g, r1.b)
+            }
+        }
+
+        if (cappedTop) {
+            val top = rings.last()
+            val lastIdx = nRings - 1
+            for (s in 0 until sectors) {
+                val sNext = (s + 1) % sectors
+                addVertex(cx, top.y, top.centerZ, 0f, 1f, 0f, 0.5f, 0.5f, top.r, top.g, top.b)
+                addVertex(posX[lastIdx][s], top.y, posZ[lastIdx][s], 0f, 1f, 0f, 0.5f, 0.5f, top.r, top.g, top.b)
+                addVertex(posX[lastIdx][sNext], top.y, posZ[lastIdx][sNext], 0f, 1f, 0f, 0.5f, 0.5f, top.r, top.g, top.b)
+            }
+        }
+        if (cappedBottom) {
+            val bot = rings.first()
+            for (s in 0 until sectors) {
+                val sNext = (s + 1) % sectors
+                addVertex(cx, bot.y, bot.centerZ, 0f, -1f, 0f, 0.5f, 0.5f, bot.r * 0.85f, bot.g * 0.85f, bot.b * 0.85f)
+                addVertex(posX[0][sNext], bot.y, posZ[0][sNext], 0f, -1f, 0f, 0.5f, 0.5f, bot.r * 0.85f, bot.g * 0.85f, bot.b * 0.85f)
+                addVertex(posX[0][s], bot.y, posZ[0][s], 0f, -1f, 0f, 0.5f, 0.5f, bot.r * 0.85f, bot.g * 0.85f, bot.b * 0.85f)
+            }
+        }
     }
 
     /**
-     * Adds an arbitrary 8-corner hexahedron (perfect for sloped hoods, windshields,
-     * wheel arches, fenders, and aerodynamic roofs).
-     * Bottom 4 corners: b0(-x,-z), b1(+x,-z), b2(+x,+z), b3(-x,+z)
-     * Top 4 corners:    t0(-x,-z), t1(+x,-z), t2(+x,+z), t3(-x,+z)
+     * Builds rounded-corner aerodynamic automotive sheet-metal shells along Z (cabs, sleeper roofs, sculpted hoods).
      */
+    fun addLoftedProfileZ(
+        cx: Float,
+        rings: List<LoftRingZ>,
+        sectors: Int = 24,
+        cappedFront: Boolean = true,
+        cappedBack: Boolean = true
+    ) {
+        if (rings.size < 2) return
+        val nRings = rings.size
+        val posX = Array(nRings) { FloatArray(sectors) }
+        val posY = Array(nRings) { FloatArray(sectors) }
+        val posZ = Array(nRings) { FloatArray(sectors) }
+        val norX = Array(nRings) { FloatArray(sectors) }
+        val norY = Array(nRings) { FloatArray(sectors) }
+        val norZ = Array(nRings) { FloatArray(sectors) }
+
+        for (ri in 0 until nRings) {
+            val ring = rings[ri]
+            for (s in 0 until sectors) {
+                val a = (s.toFloat() / sectors) * 2f * PI.toFloat()
+                val ca = superPow(cos(a), ring.roundness)
+                val sa = superPow(sin(a), ring.roundness)
+                posX[ri][s] = cx + ca * ring.rx
+                posY[ri][s] = ring.centerY + sa * ring.ry
+                posZ[ri][s] = ring.z
+            }
+        }
+
+        for (ri in 0 until nRings) {
+            val prevR = (ri - 1).coerceAtLeast(0)
+            val nextR = (ri + 1).coerceAtMost(nRings - 1)
+            for (s in 0 until sectors) {
+                val prevS = (s - 1 + sectors) % sectors
+                val nextS = (s + 1) % sectors
+                val tx = posX[ri][nextS] - posX[ri][prevS]
+                val ty = posY[ri][nextS] - posY[ri][prevS]
+                val tz = posZ[ri][nextS] - posZ[ri][prevS]
+                val bx = posX[nextR][s] - posX[prevR][s]
+                val by = posY[nextR][s] - posY[prevR][s]
+                val bz = posZ[nextR][s] - posZ[prevR][s]
+                var nx = ty * bz - tz * by
+                var ny = tz * bx - tx * bz
+                var nz = tx * by - ty * bx
+                val len = sqrt(nx * nx + ny * ny + nz * nz).coerceAtLeast(0.0001f)
+                nx /= len; ny /= len; nz /= len
+                norX[ri][s] = nx; norY[ri][s] = ny; norZ[ri][s] = nz
+            }
+        }
+
+        for (ri in 0 until nRings - 1) {
+            val r0 = rings[ri]
+            val r1 = rings[ri + 1]
+            val v0 = ri.toFloat() / (nRings - 1)
+            val v1 = (ri + 1).toFloat() / (nRings - 1)
+            for (s in 0 until sectors) {
+                val sNext = (s + 1) % sectors
+                val u0 = s.toFloat() / sectors
+                val u1 = (s + 1).toFloat() / sectors
+
+                addVertex(posX[ri][s], posY[ri][s], posZ[ri][s], norX[ri][s], norY[ri][s], norZ[ri][s], u0, v0, r0.r, r0.g, r0.b)
+                addVertex(posX[ri + 1][sNext], posY[ri + 1][sNext], posZ[ri + 1][sNext], norX[ri + 1][sNext], norY[ri + 1][sNext], norZ[ri + 1][sNext], u1, v1, r1.r, r1.g, r1.b)
+                addVertex(posX[ri][sNext], posY[ri][sNext], posZ[ri][sNext], norX[ri][sNext], norY[ri][sNext], norZ[ri][sNext], u1, v0, r0.r, r0.g, r0.b)
+
+                addVertex(posX[ri][s], posY[ri][s], posZ[ri][s], norX[ri][s], norY[ri][s], norZ[ri][s], u0, v0, r0.r, r0.g, r0.b)
+                addVertex(posX[ri + 1][s], posY[ri + 1][s], posZ[ri + 1][s], norX[ri + 1][s], norY[ri + 1][s], norZ[ri + 1][s], u0, v1, r1.r, r1.g, r1.b)
+                addVertex(posX[ri + 1][sNext], posY[ri + 1][sNext], posZ[ri + 1][sNext], norX[ri + 1][sNext], norY[ri + 1][sNext], norZ[ri + 1][sNext], u1, v1, r1.r, r1.g, r1.b)
+            }
+        }
+
+        if (cappedFront) {
+            val front = rings.last()
+            val lastIdx = nRings - 1
+            for (s in 0 until sectors) {
+                val sNext = (s + 1) % sectors
+                addVertex(cx, front.centerY, front.z, 0f, 0f, 1f, 0.5f, 0.5f, front.r, front.g, front.b)
+                addVertex(posX[lastIdx][s], posY[lastIdx][s], front.z, 0f, 0f, 1f, 0.5f, 0.5f, front.r, front.g, front.b)
+                addVertex(posX[lastIdx][sNext], posY[lastIdx][sNext], front.z, 0f, 0f, 1f, 0.5f, 0.5f, front.r, front.g, front.b)
+            }
+        }
+        if (cappedBack) {
+            val back = rings.first()
+            for (s in 0 until sectors) {
+                val sNext = (s + 1) % sectors
+                addVertex(cx, back.centerY, back.z, 0f, 0f, -1f, 0.5f, 0.5f, back.r * 0.9f, back.g * 0.9f, back.b * 0.9f)
+                addVertex(posX[0][sNext], posY[0][sNext], back.z, 0f, 0f, -1f, 0.5f, 0.5f, back.r * 0.9f, back.g * 0.9f, back.b * 0.9f)
+                addVertex(posX[0][s], posY[0][s], back.z, 0f, 0f, -1f, 0.5f, 0.5f, back.r * 0.9f, back.g * 0.9f, back.b * 0.9f)
+            }
+        }
+    }
+
+    /**
+     * Smooth curved baseball/trucker cap visor swept smoothly across the brow.
+     */
+    fun addCurvedVisor(
+        cy: Float, cz: Float,
+        width: Float, length: Float, thickness: Float, archHeight: Float,
+        segs: Int = 12,
+        r: Float, g: Float, b: Float
+    ) {
+        for (i in 0 until segs) {
+            val t0 = (i.toFloat() / segs) * 2f - 1f
+            val t1 = ((i + 1).toFloat() / segs) * 2f - 1f
+            val x0 = t0 * (width * 0.5f)
+            val x1 = t1 * (width * 0.5f)
+            val y0 = cy - (t0 * t0) * archHeight
+            val y1 = cy - (t1 * t1) * archHeight
+            val zBack0 = cz - (t0 * t0) * 0.025f
+            val zBack1 = cz - (t1 * t1) * 0.025f
+            val tip0 = (1f - t0 * t0 * 0.42f) * length
+            val tip1 = (1f - t1 * t1 * 0.42f) * length
+            val zFront0 = zBack0 + tip0
+            val zFront1 = zBack1 + tip1
+            val yFront0 = y0 - 0.012f
+            val yFront1 = y1 - 0.012f
+
+            // Top curved visor skin
+            addQuad(x0, y0, zBack0, x1, y1, zBack1, x1, yFront1, zFront1, x0, yFront0, zFront0, 0f, 0.96f, 0.25f, r, g, b)
+            // Bottom underside
+            addQuad(x1, y1 - thickness, zBack1, x0, y0 - thickness, zBack0, x0, yFront0 - thickness * 0.8f, zFront0, x1, yFront1 - thickness * 0.8f, zFront1, 0f, -0.96f, -0.25f, r * 0.72f, g * 0.72f, b * 0.72f)
+            // Front rim lip
+            addQuad(x0, yFront0 - thickness * 0.8f, zFront0, x1, yFront1 - thickness * 0.8f, zFront1, x1, yFront1, zFront1, x0, yFront0, zFront0, 0f, 0.1f, 0.99f, r * 0.9f, g * 0.9f, b * 0.9f)
+        }
+    }
+
     fun addHexahedron(
         bx0: Float, by0: Float, bz0: Float,
         bx1: Float, by1: Float, bz1: Float,
@@ -123,23 +391,14 @@ class DynamicMeshBuilder {
             nx /= len; ny /= len; nz /= len
             addQuad(ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz, nx, ny, nz, r * shade, g * shade, b * shade, a)
         }
-        // Top
         emitQuad(tx3, ty3, tz3, tx2, ty2, tz2, tx1, ty1, tz1, tx0, ty0, tz0, 1.0f)
-        // Bottom
         emitQuad(bx0, by0, bz0, bx1, by1, bz1, bx2, by2, bz2, bx3, by3, bz3, 0.72f)
-        // Front (+Z)
         emitQuad(bx3, by3, bz3, bx2, by2, bz2, tx2, ty2, tz2, tx3, ty3, tz3, 0.96f)
-        // Back (-Z)
         emitQuad(bx1, by1, bz1, bx0, by0, bz0, tx0, ty0, tz0, tx1, ty1, tz1, 0.88f)
-        // Right (+X)
         emitQuad(bx2, by2, bz2, bx1, by1, bz1, tx1, ty1, tz1, tx2, ty2, tz2, 0.91f)
-        // Left (-X)
         emitQuad(bx0, by0, bz0, bx3, by3, bz3, tx3, ty3, tz3, tx0, ty0, tz0, 0.91f)
     }
 
-    /**
-     * Sloped rectangular box where the top face can be narrower or shifted along Z/X.
-     */
     fun addSlopedBox(
         cx: Float, cy: Float, cz: Float,
         bottomW: Float, bottomD: Float,
@@ -159,7 +418,44 @@ class DynamicMeshBuilder {
         )
     }
 
+    fun addBeveledBox(
+        cx: Float, cy: Float, cz: Float,
+        sx: Float, sy: Float, sz: Float,
+        bevel: Float,
+        r: Float, g: Float, b: Float, a: Float = 1f
+    ) {
+        val bAmt = bevel.coerceAtMost(minOf(sx, sy, sz) * 0.25f)
+        addSlopedBox(cx, cy + sy * 0.5f - bAmt * 0.5f, cz, sx, sz, sx - bAmt * 2f, sz - bAmt * 2f, bAmt, 0f, r, g, b, a)
+        addBox(cx, cy - bAmt * 0.5f, cz, sx, sy - bAmt, sz, r, g, b, a)
+    }
+
+    fun addWheelArch(
+        cx: Float, cy: Float, cz: Float,
+        width: Float, innerR: Float, outerR: Float,
+        segs: Int = 10,
+        r: Float, g: Float, b: Float
+    ) {
+        val hw = width * 0.5f
+        for (i in 0 until segs) {
+            val a0 = -PI.toFloat() * 0.44f + (i.toFloat() / segs) * (PI.toFloat() * 0.88f)
+            val a1 = -PI.toFloat() * 0.44f + ((i + 1).toFloat() / segs) * (PI.toFloat() * 0.88f)
+            val yIn0 = cy + cos(a0) * innerR; val zIn0 = cz + sin(a0) * innerR
+            val yIn1 = cy + cos(a1) * innerR; val zIn1 = cz + sin(a1) * innerR
+            val yOut0 = cy + cos(a0) * outerR; val zOut0 = cz + sin(a0) * outerR
+            val yOut1 = cy + cos(a1) * outerR; val zOut1 = cz + sin(a1) * outerR
+            val ny = cos((a0 + a1) * 0.5f); val nz = sin((a0 + a1) * 0.5f)
+            addQuad(cx - hw, yOut0, zOut0, cx + hw, yOut0, zOut0, cx + hw, yOut1, zOut1, cx - hw, yOut1, zOut1, 0f, ny, nz, r, g, b)
+            addQuad(cx + hw, yIn0, zIn0, cx - hw, yIn0, zIn0, cx - hw, yIn1, zIn1, cx + hw, yIn1, zIn1, 0f, -ny, -nz, r * 0.48f, g * 0.48f, b * 0.48f)
+            addQuad(cx + hw, yIn0, zIn0, cx + hw, yOut0, zOut0, cx + hw, yOut1, zOut1, cx + hw, yIn1, zIn1, 1f, 0f, 0f, r * 0.92f, g * 0.92f, b * 0.92f)
+            addQuad(cx - hw, yOut0, zOut0, cx - hw, yIn0, zIn0, cx - hw, yIn1, zIn1, cx - hw, yOut1, zOut1, -1f, 0f, 0f, r * 0.92f, g * 0.92f, b * 0.92f)
+        }
+    }
+
     fun addBox(cx: Float, cy: Float, cz: Float, sx: Float, sy: Float, sz: Float, r: Float, g: Float, b: Float, a: Float = 1f) {
+        addBoxUv(cx, cy, cz, sx, sy, sz, 1f, 1f, r, g, b, a)
+    }
+
+    fun addBoxUv(cx: Float, cy: Float, cz: Float, sx: Float, sy: Float, sz: Float, uvScaleX: Float, uvScaleY: Float, r: Float, g: Float, b: Float, a: Float = 1f) {
         val hx = sx * 0.5f
         val hy = sy * 0.5f
         val hz = sz * 0.5f
@@ -167,12 +463,12 @@ class DynamicMeshBuilder {
         val y0 = cy - hy; val y1 = cy + hy
         val z0 = cz - hz; val z1 = cz + hz
 
-        addQuad(x0, y1, z1, x1, y1, z1, x1, y1, z0, x0, y1, z0, 0f, 1f, 0f, r, g, b, a)
-        addQuad(x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1, 0f, -1f, 0f, r * 0.72f, g * 0.72f, b * 0.72f, a)
-        addQuad(x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1, 0f, 0f, 1f, r * 0.96f, g * 0.96f, b * 0.96f, a)
-        addQuad(x1, y0, z0, x0, y0, z0, x0, y1, z0, x1, y1, z0, 0f, 0f, -1f, r * 0.88f, g * 0.88f, b * 0.88f, a)
-        addQuad(x1, y0, z1, x1, y0, z0, x1, y1, z0, x1, y1, z1, 1f, 0f, 0f, r * 0.91f, g * 0.91f, b * 0.91f, a)
-        addQuad(x0, y0, z0, x0, y0, z1, x0, y1, z1, x0, y1, z0, -1f, 0f, 0f, r * 0.91f, g * 0.91f, b * 0.91f, a)
+        addQuadUv(x0, y1, z1, 0f, 0f, x1, y1, z1, uvScaleX, 0f, x1, y1, z0, uvScaleX, uvScaleX, x0, y1, z0, 0f, uvScaleX, 0f, 1f, 0f, r, g, b, a)
+        addQuadUv(x0, y0, z0, 0f, 0f, x1, y0, z0, uvScaleX, 0f, x1, y0, z1, uvScaleX, uvScaleX, x0, y0, z1, 0f, uvScaleX, 0f, -1f, 0f, r * 0.72f, g * 0.72f, b * 0.72f, a)
+        addQuadUv(x0, y0, z1, 0f, uvScaleY, x1, y0, z1, uvScaleX, uvScaleY, x1, y1, z1, uvScaleX, 0f, x0, y1, z1, 0f, 0f, 0f, 0f, 1f, r * 0.96f, g * 0.96f, b * 0.96f, a)
+        addQuadUv(x1, y0, z0, 0f, uvScaleY, x0, y0, z0, uvScaleX, uvScaleY, x0, y1, z0, uvScaleX, 0f, x1, y1, z0, 0f, 0f, 0f, 0f, -1f, r * 0.88f, g * 0.88f, b * 0.88f, a)
+        addQuadUv(x1, y0, z1, 0f, uvScaleY, x1, y0, z0, uvScaleX, uvScaleY, x1, y1, z0, uvScaleX, 0f, x1, y1, z1, 0f, 0f, 1f, 0f, 0f, r * 0.91f, g * 0.91f, b * 0.91f, a)
+        addQuadUv(x0, y0, z0, 0f, uvScaleY, x0, y0, z1, uvScaleX, uvScaleY, x0, y1, z1, uvScaleX, 0f, x0, y1, z0, 0f, 0f, -1f, 0f, 0f, r * 0.91f, g * 0.91f, b * 0.91f, a)
     }
 
     fun addCone(cx: Float, baseY: Float, cz: Float, radius: Float, height: Float, segments: Int, r: Float, g: Float, b: Float) {
@@ -188,9 +484,9 @@ class DynamicMeshBuilder {
             val nx = cos(midA) * 0.85f
             val nz = sin(midA) * 0.85f
             val ny = 0.52f
-            addVertex(x0, baseY, z0, nx, ny, nz, r, g, b)
-            addVertex(x1, baseY, z1, nx, ny, nz, r, g, b)
-            addVertex(cx, topY, cz, nx, ny, nz, r * 1.1f, g * 1.1f, b * 1.1f)
+            addVertex(x0, baseY, z0, nx, ny, nz, 0f, 1f, r, g, b)
+            addVertex(x1, baseY, z1, nx, ny, nz, 1f, 1f, r, g, b)
+            addVertex(cx, topY, cz, nx, ny, nz, 0.5f, 0f, r * 1.1f, g * 1.1f, b * 1.1f)
         }
     }
 
@@ -224,22 +520,22 @@ class DynamicMeshBuilder {
             val tx0 = cx + c0 * topRadius * scaleX; val tz0 = cz + s0 * topRadius * scaleZ
             val tx1 = cx + c1 * topRadius * scaleX; val tz1 = cz + s1 * topRadius * scaleZ
 
-            addVertex(bx0, baseY, bz0, c0, 0.1f, s0, r, g, b)
-            addVertex(bx1, baseY, bz1, c1, 0.1f, s1, r, g, b)
-            addVertex(tx1, topY, tz1, c1, 0.1f, s1, r, g, b)
+            addVertex(bx0, baseY, bz0, c0, 0.1f, s0, 0f, 1f, r, g, b)
+            addVertex(bx1, baseY, bz1, c1, 0.1f, s1, 1f, 1f, r, g, b)
+            addVertex(tx1, topY, tz1, c1, 0.1f, s1, 1f, 0f, r, g, b)
 
-            addVertex(bx0, baseY, bz0, c0, 0.1f, s0, r, g, b)
-            addVertex(tx1, topY, tz1, c1, 0.1f, s1, r, g, b)
-            addVertex(tx0, topY, tz0, c0, 0.1f, s0, r, g, b)
+            addVertex(bx0, baseY, bz0, c0, 0.1f, s0, 0f, 1f, r, g, b)
+            addVertex(tx1, topY, tz1, c1, 0.1f, s1, 1f, 0f, r, g, b)
+            addVertex(tx0, topY, tz0, c0, 0.1f, s0, 0f, 0f, r, g, b)
 
             if (capped) {
-                addVertex(cx, topY, cz, 0f, 1f, 0f, r * 1.03f, g * 1.03f, b * 1.03f)
-                addVertex(tx0, topY, tz0, 0f, 1f, 0f, r * 1.03f, g * 1.03f, b * 1.03f)
-                addVertex(tx1, topY, tz1, 0f, 1f, 0f, r * 1.03f, g * 1.03f, b * 1.03f)
+                addVertex(cx, topY, cz, 0f, 1f, 0f, 0.5f, 0.5f, r * 1.03f, g * 1.03f, b * 1.03f)
+                addVertex(tx0, topY, tz0, 0f, 1f, 0f, 0.5f, 0.5f, r * 1.03f, g * 1.03f, b * 1.03f)
+                addVertex(tx1, topY, tz1, 0f, 1f, 0f, 0.5f, 0.5f, r * 1.03f, g * 1.03f, b * 1.03f)
 
-                addVertex(cx, baseY, cz, 0f, -1f, 0f, r * 0.75f, g * 0.75f, b * 0.75f)
-                addVertex(bx1, baseY, bz1, 0f, -1f, 0f, r * 0.75f, g * 0.75f, b * 0.75f)
-                addVertex(bx0, baseY, bz0, 0f, -1f, 0f, r * 0.75f, g * 0.75f, b * 0.75f)
+                addVertex(cx, baseY, cz, 0f, -1f, 0f, 0.5f, 0.5f, r * 0.75f, g * 0.75f, b * 0.75f)
+                addVertex(bx1, baseY, bz1, 0f, -1f, 0f, 0.5f, 0.5f, r * 0.75f, g * 0.75f, b * 0.75f)
+                addVertex(bx0, baseY, bz0, 0f, -1f, 0f, 0.5f, 0.5f, r * 0.75f, g * 0.75f, b * 0.75f)
             }
         }
     }
@@ -253,23 +549,21 @@ class DynamicMeshBuilder {
             val x0 = cx + c0 * radius; val y0 = cy + s0 * radius
             val x1 = cx + c1 * radius; val y1 = cy + s1 * radius
 
-            addVertex(x0, y0, zStart, c0, s0, 0f, r, g, b)
-            addVertex(x1, y1, zStart, c1, s1, 0f, r, g, b)
-            addVertex(x1, y1, zEnd, c1, s1, 0f, r, g, b)
+            addVertex(x0, y0, zStart, c0, s0, 0f, 0f, 0f, r, g, b)
+            addVertex(x1, y1, zStart, c1, s1, 0f, 1f, 0f, r, g, b)
+            addVertex(x1, y1, zEnd, c1, s1, 0f, 1f, 1f, r, g, b)
 
-            addVertex(x0, y0, zStart, c0, s0, 0f, r, g, b)
-            addVertex(x1, y1, zEnd, c1, s1, 0f, r, g, b)
-            addVertex(x0, y0, zEnd, c0, s0, 0f, r, g, b)
+            addVertex(x0, y0, zStart, c0, s0, 0f, 0f, 0f, r, g, b)
+            addVertex(x1, y1, zEnd, c1, s1, 0f, 1f, 1f, r, g, b)
+            addVertex(x0, y0, zEnd, c0, s0, 0f, 0f, 1f, r, g, b)
 
-            // Front cap (+Z)
-            addVertex(cx, cy, zEnd, 0f, 0f, 1f, r * 0.95f, g * 0.95f, b * 0.95f)
-            addVertex(x0, y0, zEnd, 0f, 0f, 1f, r * 0.95f, g * 0.95f, b * 0.95f)
-            addVertex(x1, y1, zEnd, 0f, 0f, 1f, r * 0.95f, g * 0.95f, b * 0.95f)
+            addVertex(cx, cy, zEnd, 0f, 0f, 1f, 0.5f, 0.5f, r * 0.95f, g * 0.95f, b * 0.95f)
+            addVertex(x0, y0, zEnd, 0f, 0f, 1f, 0.5f, 0.5f, r * 0.95f, g * 0.95f, b * 0.95f)
+            addVertex(x1, y1, zEnd, 0f, 0f, 1f, 0.5f, 0.5f, r * 0.95f, g * 0.95f, b * 0.95f)
 
-            // Back cap (-Z)
-            addVertex(cx, cy, zStart, 0f, 0f, -1f, r * 0.85f, g * 0.85f, b * 0.85f)
-            addVertex(x1, y1, zStart, 0f, 0f, -1f, r * 0.85f, g * 0.85f, b * 0.85f)
-            addVertex(x0, y0, zStart, 0f, 0f, -1f, r * 0.85f, g * 0.85f, b * 0.85f)
+            addVertex(cx, cy, zStart, 0f, 0f, -1f, 0.5f, 0.5f, r * 0.85f, g * 0.85f, b * 0.85f)
+            addVertex(x1, y1, zStart, 0f, 0f, -1f, 0.5f, 0.5f, r * 0.85f, g * 0.85f, b * 0.85f)
+            addVertex(x0, y0, zStart, 0f, 0f, -1f, 0.5f, 0.5f, r * 0.85f, g * 0.85f, b * 0.85f)
         }
     }
 
@@ -282,21 +576,21 @@ class DynamicMeshBuilder {
             val y0 = cy + c0 * radius; val z0 = cz + s0 * radius
             val y1 = cy + c1 * radius; val z1 = cz + s1 * radius
 
-            addVertex(xStart, y0, z0, 0f, c0, s0, r, g, b)
-            addVertex(xEnd, y0, z0, 0f, c0, s0, r, g, b)
-            addVertex(xEnd, y1, z1, 0f, c1, s1, r, g, b)
+            addVertex(xStart, y0, z0, 0f, c0, s0, 0f, 0f, r, g, b)
+            addVertex(xEnd, y0, z0, 0f, c0, s0, 1f, 0f, r, g, b)
+            addVertex(xEnd, y1, z1, 0f, c1, s1, 1f, 1f, r, g, b)
 
-            addVertex(xStart, y0, z0, 0f, c0, s0, r, g, b)
-            addVertex(xEnd, y1, z1, 0f, c1, s1, r, g, b)
-            addVertex(xStart, y1, z1, 0f, c1, s1, r, g, b)
+            addVertex(xStart, y0, z0, 0f, c0, s0, 0f, 0f, r, g, b)
+            addVertex(xEnd, y1, z1, 0f, c1, s1, 1f, 1f, r, g, b)
+            addVertex(xStart, y1, z1, 0f, c1, s1, 0f, 1f, r, g, b)
 
-            addVertex(xEnd, cy, cz, 1f, 0f, 0f, r * 0.92f, g * 0.92f, b * 0.92f)
-            addVertex(xEnd, y0, z0, 1f, 0f, 0f, r * 0.92f, g * 0.92f, b * 0.92f)
-            addVertex(xEnd, y1, z1, 1f, 0f, 0f, r * 0.92f, g * 0.92f, b * 0.92f)
+            addVertex(xEnd, cy, cz, 1f, 0f, 0f, 0.5f, 0.5f, r * 0.92f, g * 0.92f, b * 0.92f)
+            addVertex(xEnd, y0, z0, 1f, 0f, 0f, 0.5f, 0.5f, r * 0.92f, g * 0.92f, b * 0.92f)
+            addVertex(xEnd, y1, z1, 1f, 0f, 0f, 0.5f, 0.5f, r * 0.92f, g * 0.92f, b * 0.92f)
 
-            addVertex(xStart, cy, cz, -1f, 0f, 0f, r * 0.88f, g * 0.88f, b * 0.88f)
-            addVertex(xStart, y1, z1, -1f, 0f, 0f, r * 0.88f, g * 0.88f, b * 0.88f)
-            addVertex(xStart, y0, z0, -1f, 0f, 0f, r * 0.88f, g * 0.88f, b * 0.88f)
+            addVertex(xStart, cy, cz, -1f, 0f, 0f, 0.5f, 0.5f, r * 0.88f, g * 0.88f, b * 0.88f)
+            addVertex(xStart, y1, z1, -1f, 0f, 0f, 0.5f, 0.5f, r * 0.88f, g * 0.88f, b * 0.88f)
+            addVertex(xStart, y0, z0, -1f, 0f, 0f, 0.5f, 0.5f, r * 0.88f, g * 0.88f, b * 0.88f)
         }
     }
 
@@ -323,13 +617,13 @@ class DynamicMeshBuilder {
                 val nx11 = cPhi1 * cTh1; val ny11 = sPhi1; val nz11 = cPhi1 * sTh1
                 val nx01 = cPhi1 * cTh0; val ny01 = sPhi1; val nz01 = cPhi1 * sTh0
 
-                addVertex(cx + nx00 * rx, cy + ny00 * ry, cz + nz00 * rz, nx00, ny00, nz00, r, g, b, a)
-                addVertex(cx + nx10 * rx, cy + ny10 * ry, cz + nz10 * rz, nx10, ny10, nz10, r, g, b, a)
-                addVertex(cx + nx11 * rx, cy + ny11 * ry, cz + nz11 * rz, nx11, ny11, nz11, r, g, b, a)
+                addVertex(cx + nx00 * rx, cy + ny00 * ry, cz + nz00 * rz, nx00, ny00, nz00, 0f, 0f, r, g, b, a)
+                addVertex(cx + nx10 * rx, cy + ny10 * ry, cz + nz10 * rz, nx10, ny10, nz10, 1f, 0f, r, g, b, a)
+                addVertex(cx + nx11 * rx, cy + ny11 * ry, cz + nz11 * rz, nx11, ny11, nz11, 1f, 1f, r, g, b, a)
 
-                addVertex(cx + nx00 * rx, cy + ny00 * ry, cz + nz00 * rz, nx00, ny00, nz00, r, g, b, a)
-                addVertex(cx + nx11 * rx, cy + ny11 * ry, cz + nz11 * rz, nx11, ny11, nz11, r, g, b, a)
-                addVertex(cx + nx01 * rx, cy + ny01 * ry, cz + nz01 * rz, nx01, ny01, nz01, r, g, b, a)
+                addVertex(cx + nx00 * rx, cy + ny00 * ry, cz + nz00 * rz, nx00, ny00, nz00, 0f, 0f, r, g, b, a)
+                addVertex(cx + nx11 * rx, cy + ny11 * ry, cz + nz11 * rz, nx11, ny11, nz11, 1f, 1f, r, g, b, a)
+                addVertex(cx + nx01 * rx, cy + ny01 * ry, cz + nz01 * rz, nx01, ny01, nz01, 0f, 1f, r, g, b, a)
             }
         }
     }
@@ -369,13 +663,13 @@ class DynamicMeshBuilder {
                 val p11 = pt(cu1, su1, cv1, sv1)
                 val p01 = pt(cu0, su0, cv1, sv1)
 
-                addVertex(p00[0], p00[1], p00[2], p00[3], p00[4], p00[5], r, g, b)
-                addVertex(p10[0], p10[1], p10[2], p10[3], p10[4], p10[5], r, g, b)
-                addVertex(p11[0], p11[1], p11[2], p11[3], p11[4], p11[5], r, g, b)
+                addVertex(p00[0], p00[1], p00[2], p00[3], p00[4], p00[5], 0f, 0f, r, g, b)
+                addVertex(p10[0], p10[1], p10[2], p10[3], p10[4], p10[5], 1f, 0f, r, g, b)
+                addVertex(p11[0], p11[1], p11[2], p11[3], p11[4], p11[5], 1f, 1f, r, g, b)
 
-                addVertex(p00[0], p00[1], p00[2], p00[3], p00[4], p00[5], r, g, b)
-                addVertex(p11[0], p11[1], p11[2], p11[3], p11[4], p11[5], r, g, b)
-                addVertex(p01[0], p01[1], p01[2], p01[3], p01[4], p01[5], r, g, b)
+                addVertex(p00[0], p00[1], p00[2], p00[3], p00[4], p00[5], 0f, 0f, r, g, b)
+                addVertex(p11[0], p11[1], p11[2], p11[3], p11[4], p11[5], 1f, 1f, r, g, b)
+                addVertex(p01[0], p01[1], p01[2], p01[3], p01[4], p01[5], 0f, 1f, r, g, b)
             }
         }
     }
@@ -395,6 +689,32 @@ object WorldMeshFactory {
         return mb.build()
     }
 
+    fun buildGroundQuad(): MeshBuffer {
+        val mb = DynamicMeshBuilder()
+        mb.addQuadUv(
+            -0.5f, 0f, 0.5f, 0f, 1f,
+            0.5f, 0f, 0.5f, 1f, 1f,
+            0.5f, 0f, -0.5f, 1f, 0f,
+            -0.5f, 0f, -0.5f, 0f, 0f,
+            0f, 1f, 0f,
+            1f, 1f, 1f, 1f
+        )
+        return mb.build()
+    }
+
+    fun buildBillboardQuad(): MeshBuffer {
+        val mb = DynamicMeshBuilder()
+        mb.addQuadUv(
+            -0.5f, -0.5f, 0f, 0f, 1f,
+            0.5f, -0.5f, 0f, 1f, 1f,
+            0.5f, 0.5f, 0f, 1f, 0f,
+            -0.5f, 0.5f, 0f, 0f, 0f,
+            0f, 0f, 1f,
+            1f, 1f, 1f, 1f
+        )
+        return mb.build()
+    }
+
     fun buildSkyDomeMesh(): MeshBuffer {
         val mb = DynamicMeshBuilder()
         val radius = 380f
@@ -411,30 +731,46 @@ object WorldMeshFactory {
                 val x11 = cos(p1) * cos(t1) * radius; val y11 = sin(p1) * radius; val z11 = cos(p1) * sin(t1) * radius
                 val x01 = cos(p1) * cos(t0) * radius; val y01 = sin(p1) * radius; val z01 = cos(p1) * sin(t0) * radius
 
-                mb.addVertex(x00, y00, z00, 0f, 1f, 0f, 1f, 1f, 1f)
-                mb.addVertex(x11, y11, z11, 0f, 1f, 0f, 1f, 1f, 1f)
-                mb.addVertex(x10, y10, z10, 0f, 1f, 0f, 1f, 1f, 1f)
+                mb.addVertex(x00, y00, z00, 0f, 1f, 0f, 0f, 0f, 1f, 1f, 1f)
+                mb.addVertex(x11, y11, z11, 0f, 1f, 0f, 1f, 1f, 1f, 1f, 1f)
+                mb.addVertex(x10, y10, z10, 0f, 1f, 0f, 1f, 0f, 1f, 1f, 1f)
 
-                mb.addVertex(x00, y00, z00, 0f, 1f, 0f, 1f, 1f, 1f)
-                mb.addVertex(x01, y01, z01, 0f, 1f, 0f, 1f, 1f, 1f)
-                mb.addVertex(x11, y11, z11, 0f, 1f, 0f, 1f, 1f, 1f)
+                mb.addVertex(x00, y00, z00, 0f, 1f, 0f, 0f, 0f, 1f, 1f, 1f)
+                mb.addVertex(x01, y01, z01, 0f, 1f, 0f, 0f, 1f, 1f, 1f, 1f)
+                mb.addVertex(x11, y11, z11, 0f, 1f, 0f, 1f, 1f, 1f, 1f, 1f)
             }
         }
         return mb.build()
     }
 
-    /**
-     * High-detail truck wheel with beveled rubber shoulder, tread ribs, recessed alloy rim,
-     * 10 chrome lug nuts, and hub cap.
-     */
+    fun buildStarFieldMesh(): MeshBuffer {
+        val mb = DynamicMeshBuilder()
+        var seed = 5511
+        fun rand(): Float {
+            seed = (seed * 1103515245 + 12345) and 0x7fffffff
+            return (seed % 10000) / 10000f
+        }
+        for (i in 0 until 200) {
+            val az = rand() * 2f * PI.toFloat()
+            val el = 0.10f + rand() * 1.18f
+            val r = 340f
+            val sx = cos(el) * cos(az) * r
+            val sy = sin(el) * r
+            val sz = cos(el) * sin(az) * r
+            val szBox = 0.65f + rand() * 0.95f
+            mb.addBox(sx, sy, sz, szBox, szBox, szBox, 0.92f, 0.95f, 1.0f, 0.9f)
+        }
+        return mb.build()
+    }
+
     fun buildUnitWheel(): MeshBuffer {
         val mb = DynamicMeshBuilder()
-        val segs = 22
+        val segs = 32
         val hw = 0.21f
         val bevelW = 0.16f
         val rad = 0.53f
         val bevelRad = 0.48f
-        val rimR = 0.29f
+        val rimR = 0.30f
         val hubR = 0.11f
 
         for (i in 0 until segs) {
@@ -445,51 +781,61 @@ object WorldMeshFactory {
             val midA = (a0 + a1) * 0.5f
             val ny = cos(midA); val nz = sin(midA)
 
-            // Outer tread (alternating subtle lug rib shade for visible tire rotation!)
-            val treadShade = if (i % 2 == 0) 0.12f else 0.16f
+            val treadShade = if (i % 2 == 0) 0.10f else 0.16f
             mb.addQuad(-bevelW, c0 * rad, s0 * rad, bevelW, c0 * rad, s0 * rad, bevelW, c1 * rad, s1 * rad, -bevelW, c1 * rad, s1 * rad, 0f, ny, nz, treadShade, treadShade + 0.01f, treadShade + 0.02f)
 
-            // Tire bevel shoulders
-            mb.addQuad(bevelW, c0 * rad, s0 * rad, hw, c0 * bevelRad, s0 * bevelRad, hw, c1 * bevelRad, s1 * bevelRad, bevelW, c1 * rad, s1 * rad, 0.55f, ny * 0.8f, nz * 0.8f, 0.14f, 0.15f, 0.17f)
-            mb.addQuad(-hw, c0 * bevelRad, s0 * bevelRad, -bevelW, c0 * rad, s0 * rad, -bevelW, c1 * rad, s1 * rad, -hw, c1 * bevelRad, s1 * bevelRad, -0.55f, ny * 0.8f, nz * 0.8f, 0.14f, 0.15f, 0.17f)
+            mb.addQuad(bevelW, c0 * rad, s0 * rad, hw, c0 * bevelRad, s0 * bevelRad, hw, c1 * bevelRad, s1 * bevelRad, bevelW, c1 * rad, s1 * rad, 0.55f, ny * 0.8f, nz * 0.8f, 0.13f, 0.14f, 0.16f)
+            mb.addQuad(-hw, c0 * bevelRad, s0 * bevelRad, -bevelW, c0 * rad, s0 * rad, -bevelW, c1 * rad, s1 * rad, -hw, c1 * bevelRad, s1 * bevelRad, -0.55f, ny * 0.8f, nz * 0.8f, 0.13f, 0.14f, 0.16f)
 
-            // Tire sidewalls
-            mb.addQuad(hw, c0 * rimR, s0 * rimR, hw, c0 * bevelRad, s0 * bevelRad, hw, c1 * bevelRad, s1 * bevelRad, hw, c1 * rimR, s1 * rimR, 1f, 0f, 0f, 0.15f, 0.16f, 0.18f)
-            mb.addQuad(-hw, c0 * bevelRad, s0 * bevelRad, -hw, c0 * rimR, s0 * rimR, -hw, c1 * rimR, s1 * rimR, -hw, c1 * bevelRad, s1 * bevelRad, -1f, 0f, 0f, 0.15f, 0.16f, 0.18f)
+            mb.addQuad(hw, c0 * rimR, s0 * rimR, hw, c0 * bevelRad, s0 * bevelRad, hw, c1 * bevelRad, s1 * bevelRad, hw, c1 * rimR, s1 * rimR, 1f, 0f, 0f, 0.14f, 0.15f, 0.17f)
+            mb.addQuad(-hw, c0 * bevelRad, s0 * bevelRad, -hw, c0 * rimR, s0 * rimR, -hw, c1 * rimR, s1 * rimR, -hw, c1 * bevelRad, s1 * bevelRad, -1f, 0f, 0f, 0.14f, 0.15f, 0.17f)
 
-            // Deep-dish polished alloy rim barrel
-            val recessX = hw * 0.62f
-            mb.addQuad(recessX, c0 * rimR, s0 * rimR, hw, c0 * rimR, s0 * rimR, hw, c1 * rimR, s1 * rimR, recessX, c1 * rimR, s1 * rimR, 0f, -ny, -nz, 0.72f, 0.76f, 0.82f)
-            mb.addQuad(-hw, c0 * rimR, s0 * rimR, -recessX, c0 * rimR, s0 * rimR, -recessX, c1 * rimR, s1 * rimR, -hw, c1 * rimR, s1 * rimR, 0f, -ny, -nz, 0.72f, 0.76f, 0.82f)
+            val recessX = hw * 0.58f
+            mb.addQuad(recessX, c0 * rimR, s0 * rimR, hw, c0 * rimR, s0 * rimR, hw, c1 * rimR, s1 * rimR, recessX, c1 * rimR, s1 * rimR, 0f, -ny, -nz, 0.78f, 0.82f, 0.88f)
+            mb.addQuad(-hw, c0 * rimR, s0 * rimR, -recessX, c0 * rimR, s0 * rimR, -recessX, c1 * rimR, s1 * rimR, -hw, c1 * rimR, s1 * rimR, 0f, -ny, -nz, 0.78f, 0.82f, 0.88f)
 
-            // Rim dish face + ventilated cooling holes accent
-            val faceTone = if (i % 2 == 0) 0.80f else 0.62f
+            val faceTone = if (i % 4 == 0) 0.24f else 0.86f
             mb.addQuad(recessX, c0 * hubR, s0 * hubR, recessX, c0 * rimR, s0 * rimR, recessX, c1 * rimR, s1 * rimR, recessX, c1 * hubR, s1 * hubR, 1f, 0f, 0f, faceTone, faceTone + 0.02f, faceTone + 0.05f)
             mb.addQuad(-recessX, c0 * rimR, s0 * rimR, -recessX, c0 * hubR, s0 * hubR, -recessX, c1 * hubR, s1 * hubR, -recessX, c1 * rimR, s1 * rimR, -1f, 0f, 0f, faceTone, faceTone + 0.02f, faceTone + 0.05f)
 
-            // Protruding central axle hub
-            val hubOut = hw + 0.03f
-            mb.addQuad(recessX, c0 * hubR, s0 * hubR, hubOut, c0 * (hubR * 0.7f), s0 * (hubR * 0.7f), hubOut, c1 * (hubR * 0.7f), s1 * (hubR * 0.7f), recessX, c1 * hubR, s1 * hubR, 0.4f, ny * 0.9f, nz * 0.9f, 0.75f, 0.78f, 0.84f)
-            mb.addQuad(hubOut, 0f, 0f, hubOut, c0 * (hubR * 0.7f), s0 * (hubR * 0.7f), hubOut, c1 * (hubR * 0.7f), s1 * (hubR * 0.7f), hubOut, 0f, 0f, 1f, 0f, 0f, 0.25f, 0.28f, 0.32f)
+            val hubOut = hw + 0.035f
+            mb.addQuad(recessX, c0 * hubR, s0 * hubR, hubOut, c0 * (hubR * 0.72f), s0 * (hubR * 0.72f), hubOut, c1 * (hubR * 0.72f), s1 * (hubR * 0.72f), recessX, c1 * hubR, s1 * hubR, 0.4f, ny * 0.9f, nz * 0.9f, 0.82f, 0.85f, 0.90f)
+            mb.addQuad(hubOut, 0f, 0f, hubOut, c0 * (hubR * 0.72f), s0 * (hubR * 0.72f), hubOut, c1 * (hubR * 0.72f), s1 * (hubR * 0.72f), hubOut, 0f, 0f, 1f, 0f, 0f, 0.20f, 0.23f, 0.28f)
 
-            mb.addQuad(-hubOut, c0 * (hubR * 0.7f), s0 * (hubR * 0.7f), -recessX, c0 * hubR, s0 * hubR, -recessX, c1 * hubR, s1 * hubR, -hubOut, c1 * (hubR * 0.7f), s1 * (hubR * 0.7f), -0.4f, ny * 0.9f, nz * 0.9f, 0.75f, 0.78f, 0.84f)
-            mb.addQuad(-hubOut, 0f, 0f, -hubOut, c1 * (hubR * 0.7f), s1 * (hubR * 0.7f), -hubOut, c0 * (hubR * 0.7f), s0 * (hubR * 0.7f), -hubOut, 0f, 0f, -1f, 0f, 0f, 0.25f, 0.28f, 0.32f)
+            mb.addQuad(-hubOut, c0 * (hubR * 0.72f), s0 * (hubR * 0.72f), -recessX, c0 * hubR, s0 * hubR, -recessX, c1 * hubR, s1 * hubR, -hubOut, c1 * (hubR * 0.72f), s1 * (hubR * 0.72f), -0.4f, ny * 0.9f, nz * 0.9f, 0.82f, 0.85f, 0.90f)
+            mb.addQuad(-hubOut, 0f, 0f, -hubOut, c1 * (hubR * 0.72f), s1 * (hubR * 0.72f), -hubOut, c0 * (hubR * 0.72f), s0 * (hubR * 0.72f), -hubOut, 0f, 0f, -1f, 0f, 0f, 0.20f, 0.23f, 0.28f)
         }
 
-        // 10 Chrome Lug Nuts on both sides
+        // 10 Chrome Lug Nuts around center hub
         for (k in 0 until 10) {
             val a = (k.toFloat() / 10f) * 2f * PI.toFloat()
-            val ly = cos(a) * (hubR + 0.055f)
-            val lz = sin(a) * (hubR + 0.055f)
-            mb.addBox(hw * 0.68f, ly, lz, 0.04f, 0.025f, 0.025f, 0.92f, 0.94f, 0.96f)
-            mb.addBox(-hw * 0.68f, ly, lz, 0.04f, 0.025f, 0.025f, 0.92f, 0.94f, 0.96f)
+            val ly = cos(a) * (hubR + 0.06f)
+            val lz = sin(a) * (hubR + 0.06f)
+            mb.addBox(hw * 0.68f, ly, lz, 0.045f, 0.026f, 0.026f, 0.94f, 0.96f, 0.99f)
+            mb.addBox(-hw * 0.68f, ly, lz, 0.045f, 0.026f, 0.026f, 0.94f, 0.96f, 0.99f)
         }
         return mb.build()
     }
 
+    private fun terrainNormalAt(x: Float, z: Float): Triple<Float, Float, Float> {
+        val eps = 4.0f
+        val hL = TruckWorld.terrainHeightAt(x - eps, z)
+        val hR = TruckWorld.terrainHeightAt(x + eps, z)
+        val hD = TruckWorld.terrainHeightAt(x, z - eps)
+        val hU = TruckWorld.terrainHeightAt(x, z + eps)
+        val dx = (hR - hL) / (2f * eps)
+        val dz = (hU - hD) / (2f * eps)
+        var nx = -dx
+        var ny = 1.0f
+        var nz = -dz
+        val len = sqrt(nx * nx + ny * ny + nz * nz).coerceAtLeast(0.001f)
+        nx /= len; ny /= len; nz /= len
+        return Triple(nx, ny, nz)
+    }
+
     fun buildTerrainMesh(): MeshBuffer {
         val mb = DynamicMeshBuilder()
-        val grid = 52
+        val grid = 96
         val minCoord = -1300f
         val step = 2600f / grid
 
@@ -508,15 +854,20 @@ object WorldMeshFactory {
                 val y01 = TruckWorld.terrainHeightAt(x0, z1)
 
                 val isOcean = cx > 870f && cz < -180f
+                val isBeach = cx > 820f && cx <= 875f && cz < -170f
                 val isUrban = hypot(cx, cz) < 280f
                 val isSierra = cz > 450f
 
+                val (nx, ny, nz) = if (isOcean) Triple(0f, 1f, 0f) else terrainNormalAt(cx, cz)
+                val steep = 1f - ny
+
                 val (r, g, b) = when {
-                    isOcean -> Triple(0.08f, 0.32f, 0.54f)
-                    isUrban -> Triple(0.24f, 0.26f, 0.28f)
-                    isSierra -> Triple(0.24f, 0.36f, 0.20f)
-                    (gx + gz) % 3 == 0 -> Triple(0.18f, 0.42f, 0.16f)
-                    else -> Triple(0.22f, 0.46f, 0.18f)
+                    isOcean -> Triple(0.08f, 0.36f, 0.62f)
+                    isBeach -> Triple(0.72f, 0.65f, 0.48f)
+                    isUrban -> Triple(0.26f, 0.28f, 0.31f)
+                    steep > 0.14f -> Triple(0.38f, 0.36f, 0.34f)
+                    isSierra -> Triple(0.25f, 0.40f, 0.23f)
+                    else -> Triple(0.24f, 0.48f, 0.20f)
                 }
 
                 val h00 = if (isOcean) -0.5f else y00
@@ -524,7 +875,13 @@ object WorldMeshFactory {
                 val h11 = if (isOcean) -0.5f else y11
                 val h01 = if (isOcean) -0.5f else y01
 
-                mb.addQuad(x0, h01, z1, x1, h11, z1, x1, h10, z0, x0, h00, z0, 0f, 1f, 0f, r, g, b)
+                mb.addQuadUv(
+                    x0, h01, z1, 0f, 3f,
+                    x1, h11, z1, 3f, 3f,
+                    x1, h10, z0, 3f, 0f,
+                    x0, h00, z0, 0f, 0f,
+                    nx, ny, nz, r, g, b
+                )
             }
         }
         return mb.build()
@@ -533,11 +890,12 @@ object WorldMeshFactory {
     fun buildRoadsAndMarkingsMesh(): MeshBuffer {
         val mb = DynamicMeshBuilder()
         for (road in TruckWorld.roads) {
-            val steps = (road.length / 22f).toInt().coerceAtLeast(2)
+            val steps = (road.length / 16f).toInt().coerceAtLeast(2)
             val rightX = -road.dirZ
             val rightZ = road.dirX
             val halfW = road.width * 0.5f
             val shoulderW = halfW + 1.5f
+            val bermW = shoulderW + 2.2f
 
             for (i in 0 until steps) {
                 val t0 = i.toFloat() / steps
@@ -547,24 +905,42 @@ object WorldMeshFactory {
                 val cx1 = road.x1 + (road.x2 - road.x1) * t1
                 val cz1 = road.z1 + (road.z2 - road.z1) * t1
 
-                val y0 = TruckWorld.terrainHeightAt(cx0, cz0) + 0.06f
-                val y1 = TruckWorld.terrainHeightAt(cx1, cz1) + 0.06f
+                val y0 = TruckWorld.terrainHeightAt(cx0, cz0) + 0.16f
+                val y1 = TruckWorld.terrainHeightAt(cx1, cz1) + 0.16f
 
+                val v0 = (t0 * road.length) / 14f
+                val v1 = (t1 * road.length) / 14f
+
+                // Sloped gravel berm embankment skirts so elevated roadbeds meet terrain seamlessly
                 mb.addQuad(
+                    cx0 - rightX * bermW, y0 - 0.85f, cz0 - rightZ * bermW,
                     cx0 - rightX * shoulderW, y0 - 0.02f, cz0 - rightZ * shoulderW,
-                    cx0 + rightX * shoulderW, y0 - 0.02f, cz0 + rightZ * shoulderW,
-                    cx1 + rightX * shoulderW, y1 - 0.02f, cz1 + rightZ * shoulderW,
                     cx1 - rightX * shoulderW, y1 - 0.02f, cz1 - rightZ * shoulderW,
-                    0f, 1f, 0f, 0.34f, 0.35f, 0.37f
+                    cx1 - rightX * bermW, y1 - 0.85f, cz1 - rightZ * bermW,
+                    -rightX * 0.4f, 0.9f, -rightZ * 0.4f, 0.30f, 0.31f, 0.30f
+                )
+                mb.addQuad(
+                    cx0 + rightX * shoulderW, y0 - 0.02f, cz0 + rightZ * shoulderW,
+                    cx0 + rightX * bermW, y0 - 0.85f, cz0 + rightZ * bermW,
+                    cx1 + rightX * bermW, y1 - 0.85f, cz1 + rightZ * bermW,
+                    cx1 + rightX * shoulderW, y1 - 0.02f, cz1 + rightZ * shoulderW,
+                    rightX * 0.4f, 0.9f, rightZ * 0.4f, 0.30f, 0.31f, 0.30f
                 )
 
-                val shade = if (i % 2 == 0) 0.14f else 0.16f
-                mb.addQuad(
-                    cx0 - rightX * halfW, y0, cz0 - rightZ * halfW,
-                    cx0 + rightX * halfW, y0, cz0 + rightZ * halfW,
-                    cx1 + rightX * halfW, y1, cz1 + rightZ * halfW,
-                    cx1 - rightX * halfW, y1, cz1 - rightZ * halfW,
-                    0f, 1f, 0f, shade, shade + 0.01f, shade + 0.02f
+                mb.addQuadUv(
+                    cx0 - rightX * shoulderW, y0 - 0.02f, cz0 - rightZ * shoulderW, 0f, v0,
+                    cx0 + rightX * shoulderW, y0 - 0.02f, cz0 + rightZ * shoulderW, 1f, v0,
+                    cx1 + rightX * shoulderW, y1 - 0.02f, cz1 + rightZ * shoulderW, 1f, v1,
+                    cx1 - rightX * shoulderW, y1 - 0.02f, cz1 - rightZ * shoulderW, 0f, v1,
+                    0f, 1f, 0f, 0.34f, 0.36f, 0.38f
+                )
+
+                mb.addQuadUv(
+                    cx0 - rightX * halfW, y0, cz0 - rightZ * halfW, 0f, v0,
+                    cx0 + rightX * halfW, y0, cz0 + rightZ * halfW, 1f, v0,
+                    cx1 + rightX * halfW, y1, cz1 + rightZ * halfW, 1f, v1,
+                    cx1 - rightX * halfW, y1, cz1 - rightZ * halfW, 0f, v1,
+                    0f, 1f, 0f, 0.22f, 0.23f, 0.25f
                 )
 
                 val edgeInner = halfW - 0.55f
@@ -596,24 +972,23 @@ object WorldMeshFactory {
                     )
                 }
 
-                // Highway steel guardrails every 2nd segment outside Central
                 if (road.isHighway && i % 2 == 1 && hypot(cx0, cz0) > 250f) {
                     val railOff = halfW + 1.25f
-                    mb.addBox(cx0 + rightX * railOff, y0 + 0.52f, cz0 + rightZ * railOff, 0.18f, 0.35f, 14f, 0.68f, 0.70f, 0.74f)
-                    mb.addBox(cx0 - rightX * railOff, y0 + 0.52f, cz0 - rightZ * railOff, 0.18f, 0.35f, 14f, 0.68f, 0.70f, 0.74f)
+                    mb.addBox(cx0 + rightX * railOff, y0 + 0.52f, cz0 + rightZ * railOff, 0.18f, 0.35f, 12f, 0.68f, 0.70f, 0.74f)
+                    mb.addBox(cx0 - rightX * railOff, y0 + 0.52f, cz0 - rightZ * railOff, 0.18f, 0.35f, 12f, 0.68f, 0.70f, 0.74f)
                 }
             }
         }
 
         for (zone in TruckWorld.zones) {
-            val zy = TruckWorld.terrainHeightAt(zone.x, zone.z) + 0.07f
+            val zy = TruckWorld.terrainHeightAt(zone.x, zone.z) + 0.17f
             val r = zone.radius
-            mb.addQuad(
-                zone.x - r, zy, zone.z + r,
-                zone.x + r, zy, zone.z + r,
-                zone.x + r, zy, zone.z - r,
-                zone.x - r, zy, zone.z - r,
-                0f, 1f, 0f, 0.21f, 0.23f, 0.26f
+            mb.addQuadUv(
+                zone.x - r, zy, zone.z + r, 0f, 3f,
+                zone.x + r, zy, zone.z + r, 3f, 3f,
+                zone.x + r, zy, zone.z - r, 3f, 0f,
+                zone.x - r, zy, zone.z - r, 0f, 0f,
+                0f, 1f, 0f, 0.25f, 0.27f, 0.30f
             )
             val (br, bg, bb) = when (zone.type) {
                 ZoneType.CARGO_HUB -> Triple(0.10f, 0.78f, 0.45f)
@@ -629,23 +1004,48 @@ object WorldMeshFactory {
         return mb.build()
     }
 
+    fun buildBuildingsMesh(): MeshBuffer {
+        val mb = DynamicMeshBuilder()
+        for (b in TruckWorld.buildings) {
+            val baseY = TruckWorld.terrainHeightAt(b.x, b.z)
+            val uvX = (b.width / 12f).coerceIn(1f, 4f)
+            val uvY = (b.height / 16f).coerceIn(1f, 6f)
+            mb.addBoxUv(b.x, baseY + b.height * 0.5f, b.z, b.width, b.height, b.depth, uvX, uvY, b.colorR + 0.25f, b.colorG + 0.25f, b.colorB + 0.28f)
+            mb.addBox(b.x, baseY + b.height + 0.4f, b.z, b.width + 0.6f, 0.8f, b.depth + 0.6f, 0.16f, 0.18f, 0.22f)
+            if (b.isSkyscraper) {
+                mb.addBox(b.x, baseY + b.height + 1.8f, b.z, b.width * 0.5f, 2.2f, b.depth * 0.5f, 0.22f, 0.25f, 0.30f)
+                mb.addCylinderY(b.x, baseY + b.height + 2.8f, b.z, 0.22f, 6.5f, 8, 0.72f, 0.74f, 0.78f)
+            }
+        }
+        return mb.build()
+    }
+
     fun buildStaticEnvironmentMesh(): MeshBuffer {
         val mb = DynamicMeshBuilder()
 
+        // Ridged multi-tier alpine mountains with snow peaks
         for (m in TruckWorld.mountains) {
             val my = TruckWorld.terrainHeightAt(m.x, m.z) - 2f
-            mb.addCone(m.x, my, m.z, m.radius, m.height, 12, 0.32f, 0.35f, 0.39f)
-            mb.addCone(m.x, my + m.height * 0.65f, m.z, m.radius * 0.36f, m.height * 0.37f, 12, 0.90f, 0.93f, 0.97f)
+            mb.addCone(m.x, my, m.z, m.radius, m.height, 18, 0.30f, 0.34f, 0.36f)
+            mb.addCone(m.x + m.radius * 0.28f, my, m.z - m.radius * 0.18f, m.radius * 0.62f, m.height * 0.72f, 14, 0.28f, 0.32f, 0.34f)
+            mb.addCone(m.x, my + m.height * 0.64f, m.z, m.radius * 0.38f, m.height * 0.38f, 18, 0.90f, 0.93f, 0.98f)
         }
 
-        for (b in TruckWorld.buildings) {
-            val baseY = TruckWorld.terrainHeightAt(b.x, b.z)
-            mb.addBox(b.x, baseY + b.height * 0.5f, b.z, b.width, b.height, b.depth, b.colorR, b.colorG, b.colorB)
-            mb.addBox(b.x, baseY + b.height + 0.4f, b.z, b.width + 0.6f, 0.8f, b.depth + 0.6f, 0.18f, 0.20f, 0.24f)
-            if (b.isSkyscraper) {
-                mb.addBox(b.x, baseY + b.height + 1.8f, b.z, b.width * 0.5f, 2.2f, b.depth * 0.5f, 0.24f, 0.27f, 0.32f)
-                mb.addCylinderY(b.x, baseY + b.height + 2.8f, b.z, 0.22f, 6.5f, 6, 0.72f, 0.74f, 0.78f)
-            }
+        // Highway Overhead Steel Gantry Sign Arches at city exits
+        for (gantryZ in listOf(-245f, 245f)) {
+            val gy = TruckWorld.terrainHeightAt(0f, gantryZ)
+            mb.addCylinderY(-11.5f, gy, gantryZ, 0.30f, 7.6f, 8, 0.56f, 0.60f, 0.66f)
+            mb.addCylinderY(11.5f, gy, gantryZ, 0.30f, 7.6f, 8, 0.56f, 0.60f, 0.66f)
+            mb.addBox(0f, gy + 7.2f, gantryZ, 23.6f, 0.45f, 0.45f, 0.60f, 0.64f, 0.70f)
+            mb.addBox(0f, gy + 7.2f, gantryZ, 12.5f, 2.2f, 0.62f, 0.08f, 0.46f, 0.24f)
+            mb.addBox(0f, gy + 7.3f, gantryZ + 0.34f, 9.5f, 0.45f, 0.05f, 0.92f, 0.94f, 0.96f)
+        }
+        for (gantryX in listOf(-245f, 245f)) {
+            val gy = TruckWorld.terrainHeightAt(gantryX, 0f)
+            mb.addCylinderY(gantryX, gy, -11.5f, 0.30f, 7.6f, 8, 0.56f, 0.60f, 0.66f)
+            mb.addCylinderY(gantryX, gy, 11.5f, 0.30f, 7.6f, 8, 0.56f, 0.60f, 0.66f)
+            mb.addBox(gantryX, gy + 7.2f, 0f, 0.45f, 0.45f, 23.6f, 0.60f, 0.64f, 0.70f)
+            mb.addBox(gantryX, gy + 7.2f, 0f, 0.62f, 2.2f, 12.5f, 0.08f, 0.46f, 0.24f)
         }
 
         for (zone in TruckWorld.zones) {
@@ -654,43 +1054,53 @@ object WorldMeshFactory {
                 ZoneType.GAS_STATION -> {
                     val cx = zone.x + 8f
                     val cz = zone.z - 8f
-                    mb.addCylinderY(cx - 4.5f, zy, cz - 2f, 0.35f, 5.6f, 8, 0.85f, 0.85f, 0.88f)
-                    mb.addCylinderY(cx + 4.5f, zy, cz - 2f, 0.35f, 5.6f, 8, 0.85f, 0.85f, 0.88f)
-                    mb.addBox(cx, zy + 5.8f, cz, 13f, 0.9f, 7.5f, 0.96f, 0.45f, 0.05f)
-                    mb.addBox(cx, zy + 5.25f, cz, 13.1f, 0.25f, 7.6f, 0.95f, 0.95f, 0.98f)
-                    // Twin fuel pumps
+                    mb.addCylinderY(cx - 4.5f, zy, cz - 2f, 0.35f, 5.6f, 10, 0.85f, 0.85f, 0.88f)
+                    mb.addCylinderY(cx + 4.5f, zy, cz - 2f, 0.35f, 5.6f, 10, 0.85f, 0.85f, 0.88f)
+                    mb.addBeveledBox(cx, zy + 5.8f, cz, 13.4f, 0.95f, 7.6f, 0.2f, 0.96f, 0.45f, 0.05f)
+                    mb.addBox(cx, zy + 5.25f, cz, 13.5f, 0.25f, 7.7f, 0.95f, 0.95f, 0.98f)
                     mb.addBox(cx - 2f, zy + 1.15f, cz - 2f, 1.3f, 2.3f, 0.85f, 0.92f, 0.94f, 0.96f)
                     mb.addBox(cx + 2f, zy + 1.15f, cz - 2f, 1.3f, 2.3f, 0.85f, 0.92f, 0.94f, 0.96f)
                     mb.addBox(cx - 2f, zy + 1.55f, cz - 2f, 1.34f, 0.55f, 0.88f, 0.12f, 0.65f, 0.38f)
                     mb.addBox(cx + 2f, zy + 1.55f, cz - 2f, 1.34f, 0.55f, 0.88f, 0.95f, 0.45f, 0.05f)
+                    mb.addBox(cx - 9f, zy + 4.5f, cz - 5f, 2.4f, 9.0f, 0.7f, 0.14f, 0.16f, 0.20f)
+                    mb.addBox(cx - 9f, zy + 7.2f, cz - 5f, 2.5f, 2.4f, 0.75f, 0.96f, 0.44f, 0.06f)
                 }
                 ZoneType.WORKSHOP -> {
                     val wx = zone.x + 10f
                     val wz = zone.z + 10f
                     mb.addBox(wx, zy + 3.2f, wz, 12.5f, 6.4f, 10.5f, 0.24f, 0.32f, 0.44f)
-                    mb.addBox(wx, zy + 6.6f, wz, 13.1f, 0.6f, 11.1f, 0.14f, 0.56f, 0.88f)
+                    mb.addBeveledBox(wx, zy + 6.6f, wz, 13.1f, 0.7f, 11.1f, 0.15f, 0.14f, 0.56f, 0.88f)
                     mb.addBox(wx, zy + 2.2f, wz - 5.3f, 6.2f, 4.4f, 0.2f, 0.16f, 0.18f, 0.22f)
                 }
                 ZoneType.CARGO_HUB -> {
                     val hx = zone.x + 14f
                     val hz = zone.z + 12f
                     mb.addBox(hx, zy + 4.0f, hz, 16f, 8.0f, 12f, 0.34f, 0.38f, 0.44f)
+                    mb.addBeveledBox(hx, zy + 8.3f, hz, 16.8f, 0.6f, 12.8f, 0.2f, 0.16f, 0.54f, 0.38f)
                     mb.addBox(hx - 4f, zy + 1.8f, hz - 6.2f, 5.5f, 3.6f, 0.4f, 0.15f, 0.68f, 0.42f)
                     mb.addBox(hx + 3.5f, zy + 1.8f, hz - 6.2f, 5.5f, 3.6f, 0.4f, 0.22f, 0.26f, 0.30f)
+                    // Stacked shipping containers for authentic freight yard look
+                    mb.addBox(hx - 14f, zy + 1.4f, hz + 1f, 2.5f, 2.8f, 6.4f, 0.82f, 0.26f, 0.16f)
+                    mb.addBox(hx - 14f, zy + 4.2f, hz + 1f, 2.5f, 2.8f, 6.4f, 0.14f, 0.46f, 0.76f)
+                    mb.addBox(hx - 11f, zy + 1.4f, hz + 1f, 2.5f, 2.8f, 6.4f, 0.16f, 0.58f, 0.36f)
                 }
                 ZoneType.PARKING -> Unit
             }
         }
 
+        // Lush multi-tiered pine & broadleaf trees
         for (t in TruckWorld.trees) {
             val ty = TruckWorld.terrainHeightAt(t.x, t.z)
             val s = t.scale
-            mb.addCylinderY(t.x, ty, t.z, 0.40f * s, 3.2f * s, 7, 0.38f, 0.25f, 0.14f)
+            mb.addTaperedCylinderY(t.x, ty, t.z, 0.42f * s, 0.24f * s, 3.4f * s, 8, 0.34f, 0.22f, 0.12f, capped = false)
             if (t.isPine) {
-                mb.addCone(t.x, ty + 2.6f * s, t.z, 2.5f * s, 5.2f * s, 8, 0.11f, 0.34f, 0.16f)
-                mb.addCone(t.x, ty + 5.2f * s, t.z, 1.8f * s, 4.4f * s, 8, 0.14f, 0.40f, 0.19f)
+                mb.addCone(t.x, ty + 2.3f * s, t.z, 2.6f * s, 4.3f * s, 9, 0.10f, 0.32f, 0.14f)
+                mb.addCone(t.x, ty + 4.4f * s, t.z, 2.1f * s, 3.8f * s, 9, 0.12f, 0.38f, 0.16f)
+                mb.addCone(t.x, ty + 6.4f * s, t.z, 1.45f * s, 3.4f * s, 9, 0.15f, 0.44f, 0.19f)
             } else {
-                mb.addEllipsoid(t.x, ty + 5.0f * s, t.z, 2.4f * s, 2.1f * s, 2.4f * s, 6, 8, 0.17f, 0.46f, 0.17f)
+                mb.addEllipsoid(t.x, ty + 5.1f * s, t.z, 2.4f * s, 2.0f * s, 2.4f * s, 6, 9, 0.16f, 0.45f, 0.16f)
+                mb.addEllipsoid(t.x + 1.0f * s, ty + 4.4f * s, t.z + 0.8f * s, 1.6f * s, 1.4f * s, 1.6f * s, 5, 7, 0.14f, 0.39f, 0.15f)
+                mb.addEllipsoid(t.x - 0.9f * s, ty + 4.5f * s, t.z - 0.7f * s, 1.5f * s, 1.35f * s, 1.5f * s, 5, 7, 0.19f, 0.49f, 0.18f)
             }
         }
 
@@ -729,7 +1139,7 @@ object WorldMeshFactory {
                 val rows = (b.height / 6f).toInt().coerceIn(1, 7)
                 for (r in 1..rows) {
                     val wy = baseY + r * 5.2f
-                    mb.addBox(b.x, wy, b.z, b.width + 0.12f, 0.9f, b.depth + 0.12f, 1.0f, 0.88f, 0.55f)
+                    mb.addBox(b.x, wy, b.z, b.width + 0.14f, 0.85f, b.depth + 0.14f, 1.0f, 0.88f, 0.55f)
                 }
             }
         }
