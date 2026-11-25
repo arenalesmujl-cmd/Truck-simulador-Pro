@@ -528,6 +528,107 @@ class MirrorQuadShaderProgram {
     }
 }
 
+class SkyBackdropShaderProgram {
+    val programId: Int
+    val uTextureLoc: Int
+    val uHorizonYLoc: Int
+    val uFogColorLoc: Int
+    val uWeatherDimLoc: Int
+    val uSunsetWarmthLoc: Int
+    val uNightAmountLoc: Int
+    val uTimeLoc: Int
+
+    init {
+        programId = linkProgram(VERTEX_SHADER, FRAGMENT_SHADER)
+        uTextureLoc = GLES30.glGetUniformLocation(programId, "uTexture")
+        uHorizonYLoc = GLES30.glGetUniformLocation(programId, "uHorizonY")
+        uFogColorLoc = GLES30.glGetUniformLocation(programId, "uFogColor")
+        uWeatherDimLoc = GLES30.glGetUniformLocation(programId, "uWeatherDim")
+        uSunsetWarmthLoc = GLES30.glGetUniformLocation(programId, "uSunsetWarmth")
+        uNightAmountLoc = GLES30.glGetUniformLocation(programId, "uNightAmount")
+        uTimeLoc = GLES30.glGetUniformLocation(programId, "uTime")
+    }
+
+    fun use() {
+        GLES30.glUseProgram(programId)
+    }
+
+    companion object {
+        private const val VERTEX_SHADER = """#version 300 es
+            layout(location = 0) in vec2 aPos;
+            layout(location = 1) in vec2 aUv;
+
+            out vec2 vScreenUv;
+
+            void main() {
+                vec2 ndc = aPos * 2.0 - 1.0;
+                vScreenUv = aUv;
+                gl_Position = vec4(ndc, 0.9999, 1.0);
+            }
+        """
+
+        private const val FRAGMENT_SHADER = """#version 300 es
+            precision highp float;
+
+            in vec2 vScreenUv;
+
+            uniform sampler2D uTexture;
+            uniform float uHorizonY;
+            uniform vec3 uFogColor;
+            uniform float uWeatherDim;
+            uniform float uSunsetWarmth;
+            uniform float uNightAmount;
+            uniform float uTime;
+
+            out vec4 fragColor;
+
+            float hash21(vec2 p) {
+                p = fract(p * vec2(123.34, 456.21));
+                p += dot(p, p + 45.32);
+                return fract(p.x * p.y);
+            }
+
+            void main() {
+                float skyFrac = clamp((vScreenUv.y - uHorizonY) / max(1.0 - uHorizonY, 0.25), 0.0, 1.0);
+                vec2 photoUv = vec2(clamp(vScreenUv.x, 0.001, 0.999), clamp(1.0 - skyFrac, 0.001, 0.999));
+                vec3 skyCol = texture(uTexture, photoUv).rgb;
+
+                if (uWeatherDim > 0.01) {
+                    float luma = dot(skyCol, vec3(0.299, 0.587, 0.114));
+                    vec3 overcast = mix(vec3(luma) * vec3(0.86, 0.91, 0.97), uFogColor * 1.05, 0.45);
+                    skyCol = mix(skyCol, overcast, uWeatherDim);
+                }
+
+                if (uSunsetWarmth > 0.01) {
+                    float lowSky = 1.0 - smoothstep(0.05, 0.65, skyFrac);
+                    vec3 tint = mix(vec3(0.76, 0.66, 0.84), vec3(1.16, 0.76, 0.46), lowSky);
+                    skyCol = mix(skyCol, skyCol * tint, uSunsetWarmth);
+                }
+
+                if (uNightAmount > 0.02) {
+                    skyCol = mix(skyCol, skyCol * vec3(0.06, 0.10, 0.20) + uFogColor * 0.42, clamp(uNightAmount, 0.0, 1.0));
+                    if (skyFrac > 0.08) {
+                        vec2 starUv = vec2(vScreenUv.x * 28.0, skyFrac * 18.0);
+                        vec2 cell = floor(starUv);
+                        vec2 f = fract(starUv) - 0.5;
+                        float rnd = hash21(cell);
+                        if (rnd > 0.962) {
+                            float d = length(f - (vec2(hash21(cell + 3.1), hash21(cell + 7.7)) - 0.5) * 0.55);
+                            float twinkle = 0.68 + 0.32 * sin(uTime * 2.8 + rnd * 90.0);
+                            float starBright = smoothstep(0.18, 0.02, d) * twinkle * uNightAmount * smoothstep(0.08, 0.32, skyFrac);
+                            skyCol += vec3(0.86, 0.92, 1.0) * starBright * 1.25;
+                        }
+                    }
+                }
+
+                float belowHorizon = smoothstep(uHorizonY - 0.08, uHorizonY, vScreenUv.y);
+                skyCol = mix(uFogColor, skyCol, belowHorizon);
+                fragColor = vec4(clamp(skyCol, 0.0, 1.0), 1.0);
+            }
+        """
+    }
+}
+
 private fun compileShader(type: Int, source: String): Int {
     val shader = GLES30.glCreateShader(type)
     GLES30.glShaderSource(shader, source)

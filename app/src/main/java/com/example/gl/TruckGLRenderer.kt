@@ -54,13 +54,13 @@ class TruckGLRenderer(
     private lateinit var shadowShader: ShadowDepthShaderProgram
     private lateinit var worldShader: WorldShaderProgram
     private lateinit var mirrorShader: MirrorQuadShaderProgram
+    private lateinit var skyShader: SkyBackdropShaderProgram
     private lateinit var textures: WorldTextureSet
 
     private lateinit var unitCube: MeshBuffer
     private lateinit var unitWheelSet: WheelMeshSet
     private lateinit var groundQuad: MeshBuffer
     private lateinit var billboardQuad: MeshBuffer
-    private lateinit var skyDomeMesh: MeshBuffer
     private lateinit var terrainMesh: MeshBuffer
     private lateinit var roadsMesh: MeshBuffer
     private lateinit var buildingsMesh: MeshBuffer
@@ -107,13 +107,13 @@ class TruckGLRenderer(
         shadowShader = ShadowDepthShaderProgram()
         worldShader = WorldShaderProgram()
         mirrorShader = MirrorQuadShaderProgram()
+        skyShader = SkyBackdropShaderProgram()
         textures = TextureFactory.createAll(appContext)
 
         unitCube = WorldMeshFactory.buildUnitCube()
         unitWheelSet = WorldMeshFactory.buildUnitWheelSet()
         groundQuad = WorldMeshFactory.buildGroundQuad()
         billboardQuad = WorldMeshFactory.buildBillboardQuad()
-        skyDomeMesh = WorldMeshFactory.buildSkyDomeMesh()
         terrainMesh = WorldMeshFactory.buildTerrainMesh()
         roadsMesh = WorldMeshFactory.buildRoadsAndMarkingsMesh()
         buildingsMesh = WorldMeshFactory.buildBuildingsMesh()
@@ -486,13 +486,6 @@ class TruckGLRenderer(
 
         Matrix.multiplyMM(vpMatrix, 0, projMatrix, 0, viewMatrix, 0)
 
-        worldShader.use()
-        GLES30.glActiveTexture(GLES30.GL_TEXTURE1)
-        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, shadowDepthTex)
-        GLES30.glUniform1i(worldShader.uShadowMapLoc, 1)
-        GLES30.glUniformMatrix4fv(worldShader.uLightVpLoc, 1, false, lightVpMatrix, 0)
-        GLES30.glUniform1f(worldShader.uShadowEnabledLoc, if (shadowEnabled) 1f else 0f)
-
         val starFade = when {
             physics.weather == WeatherType.RAIN -> 0f
             physics.timeOfDayHours >= 19.5f || physics.timeOfDayHours <= 5.5f -> 1f
@@ -500,6 +493,48 @@ class TruckGLRenderer(
             physics.timeOfDayHours < 6.8f -> ((6.8f - physics.timeOfDayHours) / 1.3f).coerceIn(0f, 1f)
             else -> 0f
         }
+
+        // 0. Flat Realistic Photographic Sky Backdrop (exact user image aligned to the 3D horizon)
+        val fx = -viewMatrix[2]
+        val fz = -viewMatrix[10]
+        val fLen = hypot(fx, fz).coerceAtLeast(0.001f)
+        val hx = camPos[0] + (fx / fLen) * 500f
+        val hy = camPos[1]
+        val hz = camPos[2] + (fz / fLen) * 500f
+        val clipY = vpMatrix[1] * hx + vpMatrix[5] * hy + vpMatrix[9] * hz + vpMatrix[13]
+        val clipW = vpMatrix[3] * hx + vpMatrix[7] * hy + vpMatrix[11] * hz + vpMatrix[15]
+        val ndcHorizon = if (clipW > 0.001f) (clipY / clipW).coerceIn(-0.4f, 0.72f) else 0.1f
+        val horizonScreenY = ndcHorizon * 0.5f + 0.5f
+        val skyBottomUvY = (horizonScreenY - 0.13f).coerceIn(0.18f, 0.54f)
+
+        GLES30.glDepthMask(false)
+        GLES30.glDisable(GLES30.GL_DEPTH_TEST)
+        skyShader.use()
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, textures.skyPhotoTex)
+        GLES30.glUniform1i(skyShader.uTextureLoc, 0)
+        GLES30.glUniform1f(skyShader.uHorizonYLoc, skyBottomUvY)
+        GLES30.glUniform3f(skyShader.uFogColorLoc, env.skyR, env.skyG, env.skyB)
+        val weatherDim = when (physics.weather) {
+            WeatherType.CLEAR -> 0f
+            WeatherType.CLOUDY -> 0.35f
+            WeatherType.RAIN -> 0.62f
+        } * (1f - starFade)
+        val isTwilight = physics.timeOfDayHours in 6.0f..7.6f || physics.timeOfDayHours in 17.4f..19.5f
+        val sunsetWarmth = if (isTwilight && physics.weather != WeatherType.RAIN) 0.48f * (1f - starFade) else 0f
+        GLES30.glUniform1f(skyShader.uWeatherDimLoc, weatherDim)
+        GLES30.glUniform1f(skyShader.uSunsetWarmthLoc, sunsetWarmth)
+        GLES30.glUniform1f(skyShader.uNightAmountLoc, starFade)
+        GLES30.glUniform1f(skyShader.uTimeLoc, physics.simTimeSeconds)
+        screenQuad.draw()
+        GLES30.glEnable(GLES30.GL_DEPTH_TEST)
+
+        worldShader.use()
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE1)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, shadowDepthTex)
+        GLES30.glUniform1i(worldShader.uShadowMapLoc, 1)
+        GLES30.glUniformMatrix4fv(worldShader.uLightVpLoc, 1, false, lightVpMatrix, 0)
+        GLES30.glUniform1f(worldShader.uShadowEnabledLoc, if (shadowEnabled) 1f else 0f)
         GLES30.glUniform1f(worldShader.uStarIntensityLoc, starFade)
 
         bindTexture(textures.whiteTex)
@@ -527,16 +562,6 @@ class TruckGLRenderer(
         GLES30.glUniform3f(worldShader.uHeadlightPosLoc, physics.x + fwdX * 3.1f, physics.y + 1.15f, physics.z + fwdZ * 3.1f)
         GLES30.glUniform3f(worldShader.uHeadlightDirLoc, fwdX, -0.09f, fwdZ)
         GLES30.glUniform1f(worldShader.uHeadlightIntensityLoc, hlIntensity)
-
-        // 0. Realistic Panoramic Sky Dome (User sky photo + seamless horizon & weather blend)
-        GLES30.glDepthMask(false)
-        bindTexture(textures.skyPhotoTex)
-        GLES30.glUniform1f(worldShader.uEmissiveLoc, 2f)
-        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
-        Matrix.setIdentityM(modelMatrix, 0)
-        Matrix.translateM(modelMatrix, 0, camPos[0], camPos[1] - 8f, camPos[2])
-        Matrix.rotateM(modelMatrix, 0, 68f + physics.simTimeSeconds * 0.08f, 0f, 1f, 0f)
-        drawMeshWithModelMatrix(skyDomeMesh, 1f, 1f, 1f, 1f)
 
         // 1. Nighttime Moon Corona Billboard Disc (daytime uses the sun inside the realistic sky photo)
         if (env.isNight) {

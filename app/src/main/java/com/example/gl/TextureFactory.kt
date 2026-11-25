@@ -804,74 +804,10 @@ object TextureFactory {
                 )
             }
             canvas.drawRect(0f, 0f, 256f, 256f, paint)
-            return uploadTexture(fallback, repeat = true, mipmap = true, repeatVertical = false)
+            return uploadTexture(fallback, repeat = false, mipmap = true, repeatVertical = false)
         }
 
-        val dstW = 2048
-        val dstH = 1024
-        val scaledW = 2400
-        val blendW = scaledW - dstW
-        val scaled = if (rawBmp.width == scaledW && rawBmp.height == dstH) {
-            rawBmp
-        } else {
-            val s = Bitmap.createScaledBitmap(rawBmp, scaledW, dstH, true)
-            if (s != rawBmp) rawBmp.recycle()
-            s
-        }
-
-        val srcPixels = IntArray(scaledW * dstH)
-        scaled.getPixels(srcPixels, 0, scaledW, 0, 0, scaledW, dstH)
-        scaled.recycle()
-
-        var zenithSumR = 0L
-        var zenithSumG = 0L
-        var zenithSumB = 0L
-        for (x in 0 until dstW) {
-            val c = srcPixels[x]
-            zenithSumR += Color.red(c)
-            zenithSumG += Color.green(c)
-            zenithSumB += Color.blue(c)
-        }
-        val zenR = (zenithSumR / dstW).toInt()
-        val zenG = (zenithSumG / dstW).toInt()
-        val zenB = (zenithSumB / dstW).toInt()
-
-        val dstPixels = IntArray(dstW * dstH)
-        val poleFadeRows = 76
-        for (y in 0 until dstH) {
-            val rowOff = y * scaledW
-            val dstRowOff = y * dstW
-            val poleWeight = if (y < poleFadeRows) {
-                val p = 1f - y.toFloat() / poleFadeRows
-                p * p * (3f - 2f * p)
-            } else {
-                0f
-            }
-            for (x in 0 until dstW) {
-                val mainC = srcPixels[rowOff + x]
-                var r = Color.red(mainC)
-                var g = Color.green(mainC)
-                var b = Color.blue(mainC)
-                if (x < blendW) {
-                    val wrapC = srcPixels[rowOff + dstW + x]
-                    val t = x.toFloat() / (blendW - 1f)
-                    val w = 1f - t * t * (3f - 2f * t)
-                    r = (r + (Color.red(wrapC) - r) * w).toInt()
-                    g = (g + (Color.green(wrapC) - g) * w).toInt()
-                    b = (b + (Color.blue(wrapC) - b) * w).toInt()
-                }
-                if (poleWeight > 0f) {
-                    r = (r + (zenR - r) * poleWeight).toInt()
-                    g = (g + (zenG - g) * poleWeight).toInt()
-                    b = (b + (zenB - b) * poleWeight).toInt()
-                }
-                dstPixels[dstRowOff + x] = Color.argb(255, r, g, b)
-            }
-        }
-
-        val outBmp = Bitmap.createBitmap(dstW, dstH, Bitmap.Config.ARGB_8888)
-        outBmp.setPixels(dstPixels, 0, dstW, 0, 0, dstW, dstH)
-        return uploadTexture(outBmp, repeat = true, mipmap = true, repeatVertical = false)
+        return uploadTexture(rawBmp, repeat = false, mipmap = true, repeatVertical = false)
     }
 
     private fun uploadTexture(
