@@ -156,7 +156,7 @@ class CareerRepository(
             val uid = requireUserId()
             check(uid == userId) { "Refusing cross-user garage update" }
             require(money >= 0L) { "Insufficient funds" }
-            require(ownedTruckIds.isNotEmpty() && ownedTruckIds.size <= 10)
+            require(ownedTruckIds.isNotEmpty() && ownedTruckIds.size <= 30)
             require(truckPaintHex.matches(Regex("^#[0-9A-Fa-f]{6}$")))
             db.collection("users").document(uid).update(
                 mapOf(

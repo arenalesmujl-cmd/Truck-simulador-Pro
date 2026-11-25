@@ -5,7 +5,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,9 +14,11 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,13 +28,14 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -51,20 +54,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.model.CareerProfile
 import com.example.model.TruckCatalog
 import com.example.model.TruckModel
-import com.example.model.TruckStyle
-import com.example.ui.components.ShowroomViewport
+import com.example.ui.theme.AmberSignal
 import com.example.ui.theme.EmeraldGo
 import com.example.ui.theme.RacingOrange
 import com.example.ui.theme.SimBackground
@@ -85,22 +87,29 @@ fun TruckSelectScreen(
     onBack: () -> Unit
 ) {
     BackHandler { onBack() }
-    val currency = NumberFormat.getNumberInstance(Locale.US).format(profile.money)
+    val formatter = remember { NumberFormat.getNumberInstance(Locale.US) }
+    val currency = formatter.format(profile.money)
     var focusedTruckId by remember(profile.selectedTruckId) { mutableStateOf(profile.selectedTruckId) }
-    val focusedTruck = TruckCatalog.byId(focusedTruckId)
-    val focusedPaintHex = if (focusedTruck.id == profile.selectedTruckId) profile.truckPaintHex else focusedTruck.defaultColorHex
+    val focusedIndex = remember(focusedTruckId) {
+        TruckCatalog.all.indexOfFirst { it.id == focusedTruckId }.coerceAtLeast(0)
+    }
+    val focusedTruck = TruckCatalog.all[focusedIndex]
+    val focusedOwned = profile.ownedTruckIds.contains(focusedTruck.id)
+    val focusedSelected = profile.selectedTruckId == focusedTruck.id
+    val focusedCanAfford = profile.money >= focusedTruck.price
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFF0A111D), SimBackground, Color(0xFF070B12))
+                    colors = listOf(Color(0xFF070D19), SimBackground, Color(0xFF050912))
                 )
             )
             .windowInsetsPadding(WindowInsets.safeDrawing)
-            .padding(horizontal = 20.dp, vertical = 12.dp)
+            .padding(horizontal = 18.dp, vertical = 10.dp)
     ) {
+        // Header bar
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -124,28 +133,47 @@ fun TruckSelectScreen(
                 Spacer(Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = "CONCESIONARIO DE FLOTA 3D",
+                        text = "TIENDA DE CAMIONES",
                         style = MaterialTheme.typography.headlineMedium,
-                        color = TextPrimary
+                        color = TextPrimary,
+                        fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Inspecciona cada tractocamión en tiempo real antes de conducir",
+                        text = "Paquetes especiales de flota — 20 modelos coleccionables",
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary
                     )
                 }
             }
-            Surface(
-                color = EmeraldGo.copy(alpha = 0.16f),
-                border = BorderStroke(1.dp, EmeraldGo.copy(alpha = 0.5f)),
-                shape = RoundedCornerShape(10.dp)
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "$$currency USD",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = EmeraldGo,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
-                )
+                Surface(
+                    color = SkyCyan.copy(alpha = 0.14f),
+                    border = BorderStroke(1.dp, SkyCyan.copy(alpha = 0.45f)),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text(
+                        text = "${profile.ownedTruckIds.size}/${TruckCatalog.all.size} EN FLOTA",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = SkyCyan,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                    )
+                }
+                Surface(
+                    color = EmeraldGo.copy(alpha = 0.16f),
+                    border = BorderStroke(1.dp, EmeraldGo.copy(alpha = 0.5f)),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text(
+                        text = "$$currency USD",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = EmeraldGo,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                    )
+                }
             }
         }
 
@@ -153,68 +181,118 @@ fun TruckSelectScreen(
 
         Row(
             modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Left: Live 3D Studio Showroom of Focused Truck
+            // Left: Pure 2D Illustrated Truck Pack Showcase (no 3D)
             Card(
                 modifier = Modifier
-                    .weight(1.1f)
+                    .weight(0.92f)
                     .fillMaxHeight(),
-                colors = CardDefaults.cardColors(containerColor = SimSurface),
-                border = BorderStroke(1.dp, SkyCyan.copy(alpha = 0.38f)),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0A1324)),
+                border = BorderStroke(
+                    width = 1.5.dp,
+                    color = if (focusedSelected) RacingOrange.copy(alpha = 0.72f) else SkyCyan.copy(alpha = 0.48f)
+                ),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(3.dp)
-                        .background(Brush.horizontalGradient(listOf(SkyCyan, RacingOrange)))
+                        .background(Brush.horizontalGradient(listOf(RacingOrange, AmberSignal, SkyCyan)))
                 )
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    // Crisp 2D truck showcase image
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF050A14)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        ShowroomViewport(
-                            truckStyle = focusedTruck.style,
-                            paintHex = focusedPaintHex,
-                            showDriver = true,
+                        Image(
+                            painter = painterResource(id = focusedTruck.drawableRes),
+                            contentDescription = focusedTruck.name,
+                            contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()
                         )
                         Surface(
-                            color = SimSurfaceGlass,
-                            border = BorderStroke(1.dp, SimOutline),
-                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xCC060B16),
+                            border = BorderStroke(1.dp, SkyCyan.copy(alpha = 0.55f)),
+                            shape = RoundedCornerShape(8.dp),
                             modifier = Modifier
                                 .align(Alignment.TopStart)
                                 .padding(8.dp)
                         ) {
-                            Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
-                                Text(
-                                    text = focusedTruck.name,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextPrimary
-                                )
-                                Text(
-                                    text = focusedTruck.subtitle,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = SkyCyan
-                                )
-                            }
+                            Text(
+                                text = "PAQUETE #${focusedIndex + 1}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = SkyCyan,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                        Surface(
+                            color = when {
+                                focusedSelected -> RacingOrange.copy(alpha = 0.92f)
+                                focusedOwned -> EmeraldGo.copy(alpha = 0.90f)
+                                else -> Color(0xCC060B16)
+                            },
+                            border = BorderStroke(
+                                1.dp,
+                                when {
+                                    focusedSelected -> RacingOrange
+                                    focusedOwned -> EmeraldGo
+                                    else -> AmberSignal.copy(alpha = 0.75f)
+                                }
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(8.dp)
+                        ) {
+                            Text(
+                                text = when {
+                                    focusedSelected -> "ACTIVO"
+                                    focusedOwned -> "EN FLOTA"
+                                    else -> "$${formatter.format(focusedTruck.price)} USD"
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (focusedOwned || focusedSelected) Color(0xFF041016) else AmberSignal,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
                         }
                     }
 
-                    // Live Spec Telemetry Bars
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = focusedTruck.name,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = focusedTruck.subtitle,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextSecondary,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    // Spec bars
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         StatBarRow(
                             label = "Potencia",
@@ -226,29 +304,68 @@ fun TruckSelectScreen(
                         StatBarRow(
                             label = "Vel. Máx",
                             value = "${focusedTruck.baseTopSpeedKmh.toInt()} km/h",
-                            fraction = focusedTruck.baseTopSpeedKmh / 140f,
+                            fraction = focusedTruck.baseTopSpeedKmh / 145f,
                             color = SkyCyan,
                             modifier = Modifier.weight(1f)
                         )
                         StatBarRow(
-                            label = "Torque",
-                            value = "${(focusedTruck.baseTorque * 100).toInt()}%",
-                            fraction = focusedTruck.baseTorque / 1.6f,
+                            label = "Tanque",
+                            value = "${focusedTruck.baseTankLiters.toInt()}L",
+                            fraction = focusedTruck.baseTankLiters / 820f,
                             color = EmeraldGo,
                             modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Button(
+                        onClick = { onBuyOrSelect(focusedTruck) },
+                        enabled = !focusedSelected && (focusedOwned || focusedCanAfford),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = when {
+                                focusedSelected -> SimSurfaceElevated
+                                focusedOwned -> SkyCyan
+                                else -> RacingOrange
+                            },
+                            contentColor = if (focusedOwned && !focusedSelected) SimBackground else TextPrimary
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .minimumInteractiveComponentSize()
+                            .testTag("truck_showcase_action")
+                    ) {
+                        Icon(
+                            imageVector = if (focusedOwned) Icons.Filled.CheckCircle else Icons.Filled.ShoppingCart,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = when {
+                                focusedSelected -> "CAMIÓN EQUIPADO EN RUTA"
+                                focusedOwned -> "EQUIPAR ${focusedTruck.name.uppercase()}"
+                                focusedCanAfford -> "COMPRAR POR $${formatter.format(focusedTruck.price)} USD"
+                                else -> "FALTAN $${formatter.format(focusedTruck.price - profile.money)} USD"
+                            },
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
             }
 
-            // Right: Fleet Selection & Purchase Cards
-            LazyColumn(
+            // Right: 20 Illustrated 2D Truck Packs Store Grid (2 columns)
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
                 modifier = Modifier
-                    .weight(0.95f)
+                    .weight(1.18f)
                     .fillMaxHeight(),
+                contentPadding = PaddingValues(bottom = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                items(TruckCatalog.all, key = { it.id }) { truck ->
+                itemsIndexed(TruckCatalog.all, key = { _, truck -> truck.id }) { index, truck ->
                     val isOwned = profile.ownedTruckIds.contains(truck.id)
                     val isSelected = profile.selectedTruckId == truck.id
                     val isFocused = focusedTruckId == truck.id
@@ -257,9 +374,9 @@ fun TruckSelectScreen(
                     val cardInteraction = remember { MutableInteractionSource() }
                     val cardPressed by cardInteraction.collectIsPressedAsState()
                     val cardScale by animateFloatAsState(
-                        targetValue = if (cardPressed) 0.98f else 1f,
+                        targetValue = if (cardPressed) 0.97f else 1f,
                         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                        label = "truckCardScale"
+                        label = "truckPackScale"
                     )
 
                     Card(
@@ -280,63 +397,76 @@ fun TruckSelectScreen(
                             color = when {
                                 isSelected -> RacingOrange
                                 isFocused -> SkyCyan
+                                isOwned -> EmeraldGo.copy(alpha = 0.55f)
                                 else -> SimOutline
                             }
                         ),
                         shape = RoundedCornerShape(14.dp)
                     ) {
-                        if (isSelected || isFocused) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(2.5.dp)
-                                    .background(
-                                        Brush.horizontalGradient(
-                                            if (isSelected) listOf(RacingOrange, EmeraldGo) else listOf(SkyCyan, RacingOrange.copy(alpha = 0.5f))
-                                        )
-                                    )
-                            )
-                        }
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Filled.LocalShipping,
-                                        contentDescription = null,
-                                        tint = if (isSelected) RacingOrange else SkyCyan,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(Modifier.width(6.dp))
+                                    .aspectRatio(1.20f)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0xFF050A14))
+                            ) {
+                                Image(
+                                    painter = painterResource(id = truck.drawableRes),
+                                    contentDescription = truck.name,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                                Surface(
+                                    color = Color(0xBB060B16),
+                                    shape = RoundedCornerShape(6.dp),
+                                    modifier = Modifier
+                                        .align(Alignment.TopStart)
+                                        .padding(6.dp)
+                                ) {
                                     Text(
-                                        text = truck.name,
-                                        style = MaterialTheme.typography.titleMedium,
+                                        text = "#${index + 1}",
+                                        style = MaterialTheme.typography.labelSmall,
                                         color = TextPrimary,
-                                        fontWeight = FontWeight.Bold
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
-                                    if (isSelected) {
-                                        Spacer(Modifier.width(6.dp))
-                                        Icon(
-                                            imageVector = Icons.Filled.CheckCircle,
-                                            contentDescription = "Activo",
-                                            tint = RacingOrange,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
                                 }
+                                if (isSelected) {
+                                    Icon(
+                                        imageVector = Icons.Filled.CheckCircle,
+                                        contentDescription = "Activo",
+                                        tint = RacingOrange,
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(6.dp)
+                                            .size(20.dp)
+                                    )
+                                }
+                            }
+
+                            Column {
                                 Text(
-                                    text = "${truck.basePowerHp} HP • ${truck.baseTopSpeedKmh.toInt()} km/h • ${truck.baseTankLiters.toInt()}L",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = TextSecondary
+                                    text = truck.name,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = TextPrimary,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = "${truck.basePowerHp} HP • ${truck.baseTopSpeedKmh.toInt()} km/h",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = TextSecondary,
+                                    maxLines = 1
                                 )
                             }
 
-                            Spacer(Modifier.width(10.dp))
                             Button(
                                 onClick = {
                                     focusedTruckId = truck.id
@@ -345,14 +475,16 @@ fun TruckSelectScreen(
                                 enabled = !isSelected && (isOwned || canAfford),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = when {
-                                        isSelected -> SimSurface
+                                        isSelected -> Color(0xFF172133)
                                         isOwned -> SkyCyan
                                         else -> RacingOrange
                                     },
                                     contentColor = if (isOwned && !isSelected) SimBackground else TextPrimary
                                 ),
-                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                shape = RoundedCornerShape(9.dp),
                                 modifier = Modifier
+                                    .fillMaxWidth()
                                     .height(48.dp)
                                     .minimumInteractiveComponentSize()
                                     .testTag("truck_action_${truck.id}")
@@ -360,35 +492,20 @@ fun TruckSelectScreen(
                                 val label = when {
                                     isSelected -> "ACTIVO"
                                     isOwned -> "USAR"
-                                    else -> "$${NumberFormat.getNumberInstance(Locale.US).format(truck.price)}"
+                                    truck.price == 0L -> "GRATIS"
+                                    else -> "$${formatter.format(truck.price)}"
                                 }
-                                Text(text = label, style = MaterialTheme.typography.labelLarge)
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
                             }
                         }
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun TruckSilhouettePreview(
-    style: TruckStyle,
-    cabColor: Color,
-    modifier: Modifier = Modifier
-) {
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-        val baseY = h * 0.78f
-        drawLine(Color(0xFF334155), Offset(w * 0.04f, baseY + 13f), Offset(w * 0.96f, baseY + 13f), strokeWidth = 3f)
-        drawRoundRect(Color(0xFF1E293B), Offset(w * 0.14f, baseY - 12f), Size(w * 0.72f, 13f), CornerRadius(4f, 4f))
-        drawRoundRect(cabColor, Offset(w * 0.35f, baseY - 56f), Size(w * 0.28f, 44f), CornerRadius(6f, 6f))
-        drawRoundRect(cabColor, Offset(w * 0.60f, baseY - 36f), Size(w * 0.22f, 24f), CornerRadius(4f, 4f))
-        for (wx in listOf(w * 0.22f, w * 0.33f, w * 0.75f)) {
-            drawCircle(Color(0xFF0F172A), radius = 12f, center = Offset(wx, baseY + 2f))
-            drawCircle(Color(0xFFCBD5E1), radius = 6f, center = Offset(wx, baseY + 2f))
         }
     }
 }

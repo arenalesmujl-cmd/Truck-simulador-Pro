@@ -24,7 +24,13 @@ service cloud.firestore {
     }
 
     function isValidTruckId(truckId) {
-      return truckId in ['titan_680', 'euro_fh16', 'volcano_v8', 'arctic_hauler'];
+      return truckId in [
+        'titan_680', 'euro_fh16', 'volcano_v8', 'arctic_hauler',
+        'pack_02', 'pack_03', 'pack_04', 'pack_05',
+        'pack_07', 'pack_08', 'pack_09', 'pack_10',
+        'pack_11', 'pack_12', 'pack_13', 'pack_14',
+        'pack_15', 'pack_17', 'pack_18', 'pack_19'
+      ];
     }
 
     function isValidCareerProfile(data) {
@@ -34,7 +40,7 @@ service cloud.firestore {
              data.xp is int && data.xp >= 0 && data.xp <= 100000000 &&
              data.level is int && data.level >= 1 && data.level <= 999 &&
              data.selectedTruckId is string && isValidTruckId(data.selectedTruckId) &&
-             data.ownedTruckIds is list && data.ownedTruckIds.size() >= 1 && data.ownedTruckIds.size() <= 10 &&
+             data.ownedTruckIds is list && data.ownedTruckIds.size() >= 1 && data.ownedTruckIds.size() <= 30 &&
              data.ownedTruckIds[0] is string &&
              data.truckPaintHex is string && data.truckPaintHex.size() == 7 && data.truckPaintHex.matches('^#[0-9A-Fa-f]{6}$') &&
              data.engineLevel is int && data.engineLevel >= 1 && data.engineLevel <= 5 &&

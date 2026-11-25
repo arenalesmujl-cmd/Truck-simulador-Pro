@@ -80,13 +80,13 @@ test("Owner can create career profile, run action-based partial updates, and log
     aliceDb.collection("users").doc(ALICE_UID).set(validProfilePayload(ALICE_UID, created))
   );
 
-  // Action: garage purchase & upgrade
+  // Action: garage purchase & upgrade (including new store truck packs)
   await assertSucceeds(
     aliceDb.collection("users").doc(ALICE_UID).update({
-      money: 18000,
-      ownedTruckIds: ["titan_680", "euro_fh16"],
-      selectedTruckId: "euro_fh16",
-      truckPaintHex: "#1E88E5",
+      money: 18500,
+      ownedTruckIds: ["titan_680", "pack_02", "euro_fh16"],
+      selectedTruckId: "pack_02",
+      truckPaintHex: "#10B981",
       engineLevel: 2,
       updatedAt: new Date(Date.now() - 2000),
     })
