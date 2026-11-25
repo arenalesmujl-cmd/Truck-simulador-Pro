@@ -59,7 +59,7 @@ object TextureFactory {
     fun createAll(context: Context? = null): WorldTextureSet = WorldTextureSet(
         whiteTex = buildWhiteTexture(),
         asphaltTex = buildAsphaltTexture(),
-        terrainTex = buildTerrainTexture(),
+        terrainTex = buildTerrainTexture(context),
         buildingTex = buildBuildingFacadeTexture(),
         corrugatedTex = buildCorrugatedMetalTexture(),
         softShadowTex = buildSoftShadowTexture(),
@@ -106,7 +106,24 @@ object TextureFactory {
         return uploadTexture(bmp, repeat = true, mipmap = true)
     }
 
-    private fun buildTerrainTexture(): Int {
+    private fun buildTerrainTexture(context: Context?): Int {
+        val rawBmp = if (context != null) {
+            try {
+                val opts = BitmapFactory.Options().apply {
+                    inScaled = false
+                    inPreferredConfig = Bitmap.Config.ARGB_8888
+                }
+                BitmapFactory.decodeResource(context.resources, R.drawable.grass_realistic, opts)
+            } catch (_: Exception) {
+                null
+            }
+        } else {
+            null
+        }
+        if (rawBmp != null) {
+            return uploadTexture(rawBmp, repeat = true, mipmap = true)
+        }
+
         val size = 512
         val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val pixels = IntArray(size * size)

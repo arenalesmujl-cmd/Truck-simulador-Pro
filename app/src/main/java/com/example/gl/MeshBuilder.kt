@@ -1036,36 +1036,25 @@ object WorldMeshFactory {
                 val y = if (isOcean) -0.5f else TruckWorld.terrainHeightAt(x, z)
                 val (nx, ny, nz) = if (isOcean) Triple(0f, 1f, 0f) else terrainNormalAt(x, z)
 
-                val distCity = hypot(x, z)
-                val urbanBlend = (1f - ((distCity - 180f) / 145f).coerceIn(0f, 1f))
-                val isSierra = z > 450f
                 val steep = (1f - ny)
                 val shoreDepth = ((x - 870f) / 280f).coerceIn(0f, 1f)
-                val biomeNoise = (sin(x * 0.018f) * cos(z * 0.016f)) * 0.03f
 
-                val (baseR, baseG, baseB) = when {
+                val (r, g, b) = when {
                     isOcean -> Triple(
                         0.09f - shoreDepth * 0.05f,
                         0.42f - shoreDepth * 0.16f,
                         0.70f - shoreDepth * 0.14f
                     )
-                    isBeach -> Triple(0.77f, 0.69f, 0.52f)
+                    isBeach -> Triple(0.86f, 0.80f, 0.62f)
                     else -> {
-                        val rockBlend = ((steep - 0.075f) / 0.14f).coerceIn(0f, 1f)
-                        val elevWarm = ((y - 6f) / 28f).coerceIn(0f, 1f) * 0.05f
-                        val grassR = (if (isSierra) 0.22f else 0.23f) + elevWarm + biomeNoise
-                        val grassG = (if (isSierra) 0.39f else 0.48f) - elevWarm * 0.4f + biomeNoise * 0.6f
-                        val grassB = (if (isSierra) 0.21f else 0.19f) + biomeNoise * 0.3f
+                        val rockBlend = ((steep - 0.085f) / 0.14f).coerceIn(0f, 1f)
                         Triple(
-                            grassR + (0.43f - grassR) * rockBlend,
-                            grassG + (0.40f - grassG) * rockBlend,
-                            grassB + (0.37f - grassB) * rockBlend
+                            1.0f + (0.56f - 1.0f) * rockBlend,
+                            1.0f + (0.54f - 1.0f) * rockBlend,
+                            1.0f + (0.52f - 1.0f) * rockBlend
                         )
                     }
                 }
-                val r = if (!isOcean && !isBeach) baseR + (0.28f - baseR) * urbanBlend * 0.72f else baseR
-                val g = if (!isOcean && !isBeach) baseG + (0.31f - baseG) * urbanBlend * 0.72f else baseG
-                val b = if (!isOcean && !isBeach) baseB + (0.34f - baseB) * urbanBlend * 0.72f else baseB
 
                 posX[gx][gz] = x
                 posY[gx][gz] = y
@@ -1079,7 +1068,7 @@ object WorldMeshFactory {
             }
         }
 
-        val uvDiv = 14.0f
+        val uvDiv = 7.5f
         for (gx in 0 until grid) {
             for (gz in 0 until grid) {
                 val u0 = posX[gx][gz] / uvDiv
