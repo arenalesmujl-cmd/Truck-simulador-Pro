@@ -196,6 +196,7 @@ private fun AuthenticatedGameHost(
                             profile = profile,
                             onSelectPaint = { viewModel.changeTruckPaint(profile, it) },
                             onUpgrade = { viewModel.upgradeComponent(profile, it) },
+                            onOpenStore = { viewModel.navigateTo(AppScreen.TRUCK_SELECT) },
                             onBack = { viewModel.navigateTo(AppScreen.MENU) }
                         )
                         AppScreen.MAP -> MapScreen(

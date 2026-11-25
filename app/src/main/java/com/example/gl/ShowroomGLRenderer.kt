@@ -188,6 +188,7 @@ class ShowroomGLRenderer : GLSurfaceView.Renderer {
         Matrix.multiplyMM(vpMatrix, 0, projMatrix, 0, viewMatrix, 0)
 
         worldShader.use()
+        GLES30.glUniform4f(worldShader.uUvRectLoc, 0f, 0f, 1f, 1f)
         GLES30.glActiveTexture(GLES30.GL_TEXTURE1)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, shadowDepthTex)
         GLES30.glUniform1i(worldShader.uShadowMapLoc, 1)

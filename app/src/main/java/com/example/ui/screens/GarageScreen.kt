@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.filled.SettingsInputComponent
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -83,6 +84,7 @@ fun GarageScreen(
     profile: CareerProfile,
     onSelectPaint: (String) -> Unit,
     onUpgrade: (UpgradeType) -> Unit,
+    onOpenStore: () -> Unit,
     onBack: () -> Unit
 ) {
     BackHandler { onBack() }
@@ -134,17 +136,38 @@ fun GarageScreen(
                     )
                 }
             }
-            Surface(
-                color = EmeraldGo.copy(alpha = 0.16f),
-                border = BorderStroke(1.dp, EmeraldGo.copy(alpha = 0.5f)),
-                shape = RoundedCornerShape(10.dp)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "$$currency USD",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = EmeraldGo,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
-                )
+                Button(
+                    onClick = onOpenStore,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = RacingOrange,
+                        contentColor = TextPrimary
+                    ),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier
+                        .height(48.dp)
+                        .minimumInteractiveComponentSize()
+                        .testTag("garage_open_store_button")
+                ) {
+                    Icon(Icons.Filled.ShoppingCart, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Tienda (20)", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                }
+                Surface(
+                    color = EmeraldGo.copy(alpha = 0.16f),
+                    border = BorderStroke(1.dp, EmeraldGo.copy(alpha = 0.5f)),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text(
+                        text = "$$currency USD",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = EmeraldGo,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                    )
+                }
             }
         }
 

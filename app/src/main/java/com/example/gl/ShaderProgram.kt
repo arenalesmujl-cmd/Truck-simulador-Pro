@@ -58,6 +58,7 @@ class WorldShaderProgram {
     val uShadowEnabledLoc: Int
     val uTimeLoc: Int
     val uStarIntensityLoc: Int
+    val uUvRectLoc: Int
 
     init {
         programId = linkProgram(VERTEX_SHADER, FRAGMENT_SHADER)
@@ -82,6 +83,7 @@ class WorldShaderProgram {
         uShadowEnabledLoc = GLES30.glGetUniformLocation(programId, "uShadowEnabled")
         uTimeLoc = GLES30.glGetUniformLocation(programId, "uTime")
         uStarIntensityLoc = GLES30.glGetUniformLocation(programId, "uStarIntensity")
+        uUvRectLoc = GLES30.glGetUniformLocation(programId, "uUvRect")
     }
 
     fun use() {
@@ -106,6 +108,7 @@ class WorldShaderProgram {
             uniform mat4 uMVP;
             uniform mat4 uModel;
             uniform mat4 uLightVP;
+            uniform vec4 uUvRect;
 
             out vec3 vWorldPos;
             out vec3 vNormal;
@@ -117,7 +120,7 @@ class WorldShaderProgram {
                 vec4 worldPos = uModel * vec4(aPos, 1.0);
                 vWorldPos = worldPos.xyz;
                 vNormal = normalize(mat3(uModel) * aNormal);
-                vUv = aUv;
+                vUv = uUvRect.xy + aUv * uUvRect.zw;
                 vColor = aColor;
                 vShadowCoord = uLightVP * worldPos;
                 gl_Position = uMVP * vec4(aPos, 1.0);
@@ -228,6 +231,17 @@ class WorldShaderProgram {
                 vec4 texSample = texture(uTexture, vUv);
                 vec4 base = texSample * vColor * uColorTint;
                 if (base.a < 0.02) discard;
+
+                // Unshaded ground-anchored world sprites from user illustration atlas (uEmissive > 3.5)
+                if (uEmissive > 3.5) {
+                    if (base.a < 0.28) discard;
+                    float nightShade = mix(1.0, 0.56, clamp(uStarIntensity, 0.0, 1.0));
+                    float distCam = length(vWorldPos - uCameraPos);
+                    float fogFactor = clamp(1.0 - exp(-pow(distCam * uFogDensity, 2.0)), 0.0, 1.0);
+                    vec3 finalRgb = mix(base.rgb * nightShade, uFogColor, fogFactor * 0.88);
+                    fragColor = vec4(finalRgb, 1.0);
+                    return;
+                }
 
                 // Soft radial contact shadow or corona glow billboard (uEmissive > 2.5)
                 if (uEmissive > 2.5) {

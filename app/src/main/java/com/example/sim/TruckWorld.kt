@@ -66,6 +66,33 @@ data class WorldZone(
     val yawRad: Float = 0f
 )
 
+enum class WorldSpriteKind {
+    BANCO,
+    HOSPITAL,
+    POLICIA,
+    BOMBEROS,
+    ESCUELA,
+    MALL,
+    CASA_ROJA,
+    CASA_AZUL,
+    CASA_AMAR,
+    CASA_MOD,
+    CABANA,
+    CASA_NAV,
+    GAS,
+    RESTAURANTE,
+    PIZZERIA,
+    PANADERIA,
+    OBRA,
+    TALLER,
+    ARBOL1,
+    ARBOL2,
+    PINO,
+    PALMA,
+    ALTO,
+    CIUDAD
+}
+
 data class BuildingSpec(
     val x: Float,
     val z: Float,
@@ -75,7 +102,8 @@ data class BuildingSpec(
     val colorR: Float,
     val colorG: Float,
     val colorB: Float,
-    val isSkyscraper: Boolean = false
+    val isSkyscraper: Boolean = false,
+    val spriteKind: WorldSpriteKind = WorldSpriteKind.CASA_ROJA
 )
 
 data class TreeSpec(
@@ -282,97 +310,123 @@ object TruckWorld {
 
     private fun generateBuildings(): List<BuildingSpec> {
         val list = mutableListOf<BuildingSpec>()
-        // Downtown Ciudad Central blocks
-        val centralCoords = listOf(
-            -70f to -85f, 70f to -85f, -70f to 85f, -155f to -145f,
-            155f to -145f, 160f to 145f, -160f to 145f,
-            -80f to -170f, 80f to 165f, -180f to 55f, 185f to -65f,
-            55f to -165f, -55f to 165f
-        )
-        centralCoords.forEachIndexed { idx, (bx, bz) ->
-            if (isClearOfRoadsAndZones(bx, bz, 18f)) {
-                val h = if (idx % 3 == 0) 38f + (idx % 4) * 10f else 18f + (idx % 3) * 7f
-                val w = 22f + (idx % 3) * 5f
-                val d = 20f + ((idx + 1) % 3) * 5f
-                val shade = 0.30f + (idx % 5) * 0.06f
-                list.add(
-                    BuildingSpec(
-                        x = bx,
-                        z = bz,
-                        width = w,
-                        depth = d,
-                        height = h,
-                        colorR = shade,
-                        colorG = shade + 0.04f,
-                        colorB = shade + 0.10f,
-                        isSkyscraper = h > 30f
-                    )
-                )
+
+        fun addSpriteBuilding(bx: Float, bz: Float, kind: WorldSpriteKind, margin: Float = 12f) {
+            if (!isClearOfRoadsAndZones(bx, bz, margin)) return
+            val h = when (kind) {
+                WorldSpriteKind.BANCO,
+                WorldSpriteKind.HOSPITAL,
+                WorldSpriteKind.MALL -> 16.5f
+                WorldSpriteKind.POLICIA,
+                WorldSpriteKind.BOMBEROS,
+                WorldSpriteKind.ESCUELA,
+                WorldSpriteKind.OBRA -> 14.5f
+                WorldSpriteKind.RESTAURANTE,
+                WorldSpriteKind.PIZZERIA,
+                WorldSpriteKind.PANADERIA -> 12.2f
+                else -> 11.4f
             }
+            val w = (h * 1.15f).coerceIn(11f, 20f)
+            list.add(
+                BuildingSpec(
+                    x = bx,
+                    z = bz,
+                    width = w,
+                    depth = 10f,
+                    height = h,
+                    colorR = 1f,
+                    colorG = 1f,
+                    colorB = 1f,
+                    isSkyscraper = kind == WorldSpriteKind.BANCO || kind == WorldSpriteKind.HOSPITAL || kind == WorldSpriteKind.MALL,
+                    spriteKind = kind
+                )
+            )
         }
 
-        // Valle Verde town buildings & barns
-        val valleCoords = listOf(
-            -635f to -465f, -735f to -575f, -795f to -465f, -585f to -470f
-        )
-        valleCoords.forEachIndexed { idx, (bx, bz) ->
-            if (isClearOfRoadsAndZones(bx, bz, 14f)) {
-                list.add(
-                    BuildingSpec(
-                        x = bx,
-                        z = bz,
-                        width = 18f,
-                        depth = 14f,
-                        height = 9f + (idx % 2) * 4f,
-                        colorR = if (idx % 2 == 0) 0.65f else 0.55f,
-                        colorG = if (idx % 2 == 0) 0.30f else 0.50f,
-                        colorB = if (idx % 2 == 0) 0.22f else 0.42f
-                    )
-                )
-            }
-        }
+        // Ciudad Central — Avenue & downtown neighborhood blocks (including houses & shops visible directly ahead on spawn)
+        val centralBuildings = listOf(
+            // Main East-West Avenue North Side (z = -34..-38)
+            Triple(-184f, -35f, WorldSpriteKind.CASA_AZUL),
+            Triple(-150f, -35f, WorldSpriteKind.CASA_MOD),
+            Triple(-40f, -34f, WorldSpriteKind.CASA_AMAR),
+            Triple(34f, -34f, WorldSpriteKind.CASA_ROJA),
+            Triple(68f, -36f, WorldSpriteKind.BANCO),
+            Triple(104f, -34f, WorldSpriteKind.PIZZERIA),
+            Triple(140f, -34f, WorldSpriteKind.RESTAURANTE),
+            Triple(176f, -38f, WorldSpriteKind.HOSPITAL),
+            Triple(206f, -36f, WorldSpriteKind.OBRA),
 
-        // Puerto Bahia warehouses & containers
-        val puertoCoords = listOf(
-            685f to -420f, 775f to -540f, 835f to -425f, 645f to -565f
-        )
-        puertoCoords.forEachIndexed { idx, (bx, bz) ->
-            if (isClearOfRoadsAndZones(bx, bz, 14f)) {
-                list.add(
-                    BuildingSpec(
-                        x = bx,
-                        z = bz,
-                        width = 24f,
-                        depth = 15f,
-                        height = 12f + (idx % 3) * 5f,
-                        colorR = if (idx % 2 == 0) 0.22f else 0.72f,
-                        colorG = if (idx % 2 == 0) 0.42f else 0.34f,
-                        colorB = if (idx % 2 == 0) 0.62f else 0.18f
-                    )
-                )
-            }
-        }
+            // Main East-West Avenue South Side (z = +34..+38)
+            Triple(-184f, 36f, WorldSpriteKind.CASA_NAV),
+            Triple(-148f, 36f, WorldSpriteKind.ESCUELA),
+            Triple(-76f, 36f, WorldSpriteKind.BOMBEROS),
+            Triple(-42f, 36f, WorldSpriteKind.POLICIA),
+            Triple(34f, 34f, WorldSpriteKind.CASA_AZUL),
+            Triple(66f, 34f, WorldSpriteKind.PANADERIA),
+            Triple(166f, 35f, WorldSpriteKind.CASA_MOD),
+            Triple(202f, 35f, WorldSpriteKind.CASA_AMAR),
 
-        // Sierra Nevada quarry structures
-        val sierraCoords = listOf(
-            -85f to 815f, 135f to 705f, 20f to 835f
+            // Main North-South Avenue (x = +/-36)
+            Triple(36f, -74f, WorldSpriteKind.MALL),
+            Triple(-36f, -74f, WorldSpriteKind.CASA_AZUL),
+            Triple(36f, -118f, WorldSpriteKind.CASA_MOD),
+            Triple(-36f, -118f, WorldSpriteKind.RESTAURANTE),
+            Triple(36f, -164f, WorldSpriteKind.HOSPITAL),
+            Triple(-36f, -164f, WorldSpriteKind.ESCUELA),
+            Triple(36f, 80f, WorldSpriteKind.BANCO),
+            Triple(-36f, 80f, WorldSpriteKind.CASA_ROJA),
+            Triple(36f, 128f, WorldSpriteKind.PIZZERIA),
+            Triple(-36f, 128f, WorldSpriteKind.PANADERIA),
+            Triple(36f, 176f, WorldSpriteKind.POLICIA),
+            Triple(-36f, 176f, WorldSpriteKind.BOMBEROS),
+
+            // Inner City Residential & Commercial Blocks
+            Triple(-88f, -92f, WorldSpriteKind.MALL),
+            Triple(88f, -92f, WorldSpriteKind.OBRA),
+            Triple(-88f, 92f, WorldSpriteKind.CASA_MOD),
+            Triple(88f, 112f, WorldSpriteKind.CASA_AMAR),
+            Triple(-155f, -145f, WorldSpriteKind.BANCO),
+            Triple(160f, -145f, WorldSpriteKind.POLICIA),
+            Triple(160f, 145f, WorldSpriteKind.ESCUELA),
+            Triple(-160f, 145f, WorldSpriteKind.CASA_ROJA),
+            Triple(-185f, -82f, WorldSpriteKind.CASA_AZUL),
+            Triple(185f, 82f, WorldSpriteKind.RESTAURANTE),
+            Triple(55f, -195f, WorldSpriteKind.BOMBEROS),
+            Triple(-65f, -195f, WorldSpriteKind.CASA_NAV)
         )
-        sierraCoords.forEachIndexed { idx, (bx, bz) ->
-            if (isClearOfRoadsAndZones(bx, bz, 14f)) {
-                list.add(
-                    BuildingSpec(
-                        x = bx,
-                        z = bz,
-                        width = 18f,
-                        depth = 16f,
-                        height = 11f + idx * 3f,
-                        colorR = 0.45f,
-                        colorG = 0.42f,
-                        colorB = 0.38f
-                    )
-                )
-            }
-        }
+        centralBuildings.forEach { (bx, bz, kind) -> addSpriteBuilding(bx, bz, kind, margin = 11.5f) }
+
+        // Valle Verde town houses & local shops
+        val valleBuildings = listOf(
+            Triple(-635f, -465f, WorldSpriteKind.CABANA),
+            Triple(-735f, -575f, WorldSpriteKind.CASA_ROJA),
+            Triple(-795f, -465f, WorldSpriteKind.CASA_AMAR),
+            Triple(-585f, -470f, WorldSpriteKind.PANADERIA),
+            Triple(-685f, -465f, WorldSpriteKind.ESCUELA),
+            Triple(-785f, -570f, WorldSpriteKind.CASA_AZUL)
+        )
+        valleBuildings.forEach { (bx, bz, kind) -> addSpriteBuilding(bx, bz, kind, margin = 12f) }
+
+        // Puerto Bahia waterfront shops & modern buildings
+        val puertoBuildings = listOf(
+            Triple(685f, -420f, WorldSpriteKind.RESTAURANTE),
+            Triple(775f, -540f, WorldSpriteKind.MALL),
+            Triple(835f, -425f, WorldSpriteKind.OBRA),
+            Triple(645f, -565f, WorldSpriteKind.PIZZERIA),
+            Triple(625f, -430f, WorldSpriteKind.BANCO),
+            Triple(730f, -425f, WorldSpriteKind.CASA_MOD)
+        )
+        puertoBuildings.forEach { (bx, bz, kind) -> addSpriteBuilding(bx, bz, kind, margin = 12f) }
+
+        // Sierra Nevada alpine cabins & winter lodge homes
+        val sierraBuildings = listOf(
+            Triple(-85f, 815f, WorldSpriteKind.CABANA),
+            Triple(135f, 705f, WorldSpriteKind.OBRA),
+            Triple(20f, 835f, WorldSpriteKind.CASA_NAV),
+            Triple(-55f, 705f, WorldSpriteKind.BOMBEROS)
+        )
+        sierraBuildings.forEach { (bx, bz, kind) -> addSpriteBuilding(bx, bz, kind, margin = 12f) }
+
         return list
     }
 

@@ -29,11 +29,12 @@ class WorldTextureSet(
     val driverFaceTex: Int,
     val driverClothTex: Int,
     val gaugeFaceTex: Int,
-    val skyPhotoTex: Int
+    val skyPhotoTex: Int,
+    val worldSpritesTex: Int
 ) {
     fun release() {
         GLES30.glDeleteTextures(
-            11,
+            12,
             intArrayOf(
                 whiteTex,
                 asphaltTex,
@@ -45,7 +46,8 @@ class WorldTextureSet(
                 driverFaceTex,
                 driverClothTex,
                 gaugeFaceTex,
-                skyPhotoTex
+                skyPhotoTex,
+                worldSpritesTex
             ),
             0
         )
@@ -65,7 +67,8 @@ object TextureFactory {
         driverFaceTex = buildDriverFaceTexture(),
         driverClothTex = buildDriverClothTexture(),
         gaugeFaceTex = buildGaugeFaceTexture(),
-        skyPhotoTex = buildSkyPhotoTexture(context)
+        skyPhotoTex = buildSkyPhotoTexture(context),
+        worldSpritesTex = buildWorldSpritesTexture(context)
     )
 
     private fun buildWhiteTexture(): Int {
@@ -808,6 +811,26 @@ object TextureFactory {
         }
 
         return uploadTexture(rawBmp, repeat = false, mipmap = true, repeatVertical = false)
+    }
+
+    private fun buildWorldSpritesTexture(context: Context?): Int {
+        val rawBmp = if (context != null) {
+            try {
+                val opts = BitmapFactory.Options().apply {
+                    inScaled = false
+                    inPreferredConfig = Bitmap.Config.ARGB_8888
+                }
+                BitmapFactory.decodeResource(context.resources, R.drawable.world_sprites_atlas, opts)
+            } catch (_: Exception) {
+                null
+            }
+        } else {
+            null
+        }
+        val bmp = rawBmp ?: Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888).apply {
+            eraseColor(Color.TRANSPARENT)
+        }
+        return uploadTexture(bmp, repeat = false, mipmap = true, repeatVertical = false)
     }
 
     private fun uploadTexture(

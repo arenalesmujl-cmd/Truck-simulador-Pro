@@ -18,11 +18,14 @@ import com.example.model.TruckStyle
 import com.example.model.WeatherType
 import com.example.sim.DrivingInputs
 import com.example.sim.LightPhase
+import com.example.sim.SignType
 import com.example.sim.TrafficManager
 import com.example.sim.TrafficVehicleType
 import com.example.sim.TruckPhysicsEngine
 import com.example.sim.TruckTelemetry
 import com.example.sim.TruckWorld
+import com.example.sim.WorldSpriteKind
+import com.example.sim.ZoneType
 import java.nio.ByteBuffer
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
@@ -61,9 +64,9 @@ class TruckGLRenderer(
     private lateinit var unitWheelSet: WheelMeshSet
     private lateinit var groundQuad: MeshBuffer
     private lateinit var billboardQuad: MeshBuffer
+    private lateinit var groundBillboardQuad: MeshBuffer
     private lateinit var terrainMesh: MeshBuffer
     private lateinit var roadsMesh: MeshBuffer
-    private lateinit var buildingsMesh: MeshBuffer
     private lateinit var staticEnvMesh: MeshBuffer
     private lateinit var nightLightsMesh: MeshBuffer
     private lateinit var rainVolumeMesh: MeshBuffer
@@ -114,9 +117,9 @@ class TruckGLRenderer(
         unitWheelSet = WorldMeshFactory.buildUnitWheelSet()
         groundQuad = WorldMeshFactory.buildGroundQuad()
         billboardQuad = WorldMeshFactory.buildBillboardQuad()
+        groundBillboardQuad = WorldMeshFactory.buildGroundBillboardQuad()
         terrainMesh = WorldMeshFactory.buildTerrainMesh()
         roadsMesh = WorldMeshFactory.buildRoadsAndMarkingsMesh()
-        buildingsMesh = WorldMeshFactory.buildBuildingsMesh()
         staticEnvMesh = WorldMeshFactory.buildStaticEnvironmentMesh()
         nightLightsMesh = WorldMeshFactory.buildNightWindowsAndLightsMesh()
         rainVolumeMesh = WorldMeshFactory.buildRainVolumeMesh(360)
@@ -331,7 +334,6 @@ class TruckGLRenderer(
         if (quality == GraphicsQuality.HIGH) {
             Matrix.setIdentityM(modelMatrix, 0)
             drawShadowMesh(staticEnvMesh)
-            drawShadowMesh(buildingsMesh)
         }
 
         // Player Truck + Trailer
@@ -530,6 +532,7 @@ class TruckGLRenderer(
         GLES30.glEnable(GLES30.GL_DEPTH_TEST)
 
         worldShader.use()
+        GLES30.glUniform4f(worldShader.uUvRectLoc, 0f, 0f, 1f, 1f)
         GLES30.glActiveTexture(GLES30.GL_TEXTURE1)
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, shadowDepthTex)
         GLES30.glUniform1i(worldShader.uShadowMapLoc, 1)
@@ -594,12 +597,10 @@ class TruckGLRenderer(
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_ROAD)
         roadsMesh.draw()
 
-        bindTexture(textures.buildingTex)
-        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
-        buildingsMesh.draw()
-
         bindTexture(textures.whiteTex)
         staticEnvMesh.draw()
+
+        renderWorldSprites(camPos, quality)
 
         // 3. Nighttime windows, streetlights & warm asphalt light pools
         if (env.isNight) {
@@ -650,6 +651,81 @@ class TruckGLRenderer(
         if (physics.weather == WeatherType.RAIN) {
             renderRainVolume(camPos, quality)
         }
+    }
+
+    private fun renderWorldSprites(camPos: FloatArray, quality: GraphicsQuality) {
+        val maxDist = quality.drawDistance + 30f
+        bindTexture(textures.worldSpritesTex)
+        GLES30.glUniform1f(worldShader.uEmissiveLoc, 4.0f)
+        GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
+        GLES30.glDepthMask(true)
+
+        fun drawWorldSprite(x: Float, y: Float, z: Float, height: Float, kind: WorldSpriteKind) {
+            val dx = camPos[0] - x
+            val dz = camPos[2] - z
+            if (dx * dx + dz * dz > maxDist * maxDist) return
+            val entry = WorldMeshFactory.spriteEntryFor(kind)
+            val width = height * entry.aspect
+            val yawDeg = Math.toDegrees(atan2(dx.toDouble(), dz.toDouble())).toFloat()
+            GLES30.glUniform4f(
+                worldShader.uUvRectLoc,
+                entry.u0,
+                entry.v0,
+                entry.u1 - entry.u0,
+                entry.v1 - entry.v0
+            )
+            Matrix.setIdentityM(modelMatrix, 0)
+            Matrix.translateM(modelMatrix, 0, x, y, z)
+            Matrix.rotateM(modelMatrix, 0, yawDeg, 0f, 1f, 0f)
+            Matrix.scaleM(modelMatrix, 0, width, height, 1f)
+            drawMeshWithModelMatrix(groundBillboardQuad, 1f, 1f, 1f, 1f)
+        }
+
+        for (b in TruckWorld.buildings) {
+            val by = TruckWorld.terrainHeightAt(b.x, b.z) - 0.08f
+            drawWorldSprite(b.x, by, b.z, b.height.coerceIn(10f, 19f), b.spriteKind)
+        }
+
+        for (zone in TruckWorld.zones) {
+            val zy = TruckWorld.terrainHeightAt(zone.x, zone.z) - 0.06f
+            when (zone.type) {
+                ZoneType.GAS_STATION -> drawWorldSprite(zone.x + 8f, zy, zone.z - 8f, 11.5f, WorldSpriteKind.GAS)
+                ZoneType.WORKSHOP -> drawWorldSprite(zone.x + 10f, zy, zone.z + 10f, 11.2f, WorldSpriteKind.TALLER)
+                else -> Unit
+            }
+        }
+
+        TruckWorld.trees.forEachIndexed { idx, t ->
+            val ty = TruckWorld.terrainHeightAt(t.x, t.z) - 0.08f
+            val kind = when {
+                t.x > 550f && t.z < -250f -> WorldSpriteKind.PALMA
+                t.isPine -> WorldSpriteKind.PINO
+                idx % 2 == 0 -> WorldSpriteKind.ARBOL1
+                else -> WorldSpriteKind.ARBOL2
+            }
+            drawWorldSprite(t.x, ty, t.z, 9.6f * t.scale, kind)
+        }
+
+        for (sign in TruckWorld.roadSigns) {
+            if (sign.type == SignType.STOP) {
+                val sy = TruckWorld.terrainHeightAt(sign.x, sign.z) - 0.05f
+                drawWorldSprite(sign.x, sy, sign.z, 4.4f, WorldSpriteKind.ALTO)
+            }
+        }
+
+        for ((sx, sz) in listOf(
+            -250f to -14f,
+            250f to 14f,
+            -590f to -508f,
+            645f to -466f,
+            -14f to 675f
+        )) {
+            val sy = TruckWorld.terrainHeightAt(sx, sz) - 0.05f
+            drawWorldSprite(sx, sy, sz, 3.6f, WorldSpriteKind.CIUDAD)
+        }
+
+        GLES30.glUniform4f(worldShader.uUvRectLoc, 0f, 0f, 1f, 1f)
+        GLES30.glUniform1f(worldShader.uEmissiveLoc, 0f)
     }
 
     private fun renderTrafficLights() {

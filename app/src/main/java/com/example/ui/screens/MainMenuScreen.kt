@@ -32,10 +32,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -361,8 +361,8 @@ fun MainMenuScreen(
                     ) {
                         MenuTileCard(
                             title = stringResource(R.string.menu_trucks),
-                            subtitle = "${profile.ownedTruckIds.size}/${TruckCatalog.all.size} en flota",
-                            icon = Icons.Filled.LocalShipping,
+                            subtitle = "${TruckCatalog.all.size} paquetes • ${profile.ownedTruckIds.size}/${TruckCatalog.all.size} en flota",
+                            icon = Icons.Filled.ShoppingCart,
                             accent = RacingOrange,
                             testTag = "menu_trucks_button",
                             modifier = Modifier.weight(1f).fillMaxHeight(),

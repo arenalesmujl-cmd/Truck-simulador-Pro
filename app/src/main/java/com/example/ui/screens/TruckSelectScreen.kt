@@ -219,7 +219,7 @@ fun TruckSelectScreen(
                         Image(
                             painter = painterResource(id = focusedTruck.drawableRes),
                             contentDescription = focusedTruck.name,
-                            contentScale = ContentScale.Crop,
+                            contentScale = ContentScale.Fit,
                             modifier = Modifier.fillMaxSize()
                         )
                         Surface(
