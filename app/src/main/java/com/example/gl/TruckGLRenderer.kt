@@ -691,6 +691,10 @@ class TruckGLRenderer(
             when (zone.type) {
                 ZoneType.GAS_STATION -> drawWorldSprite(zone.x + 8f, zy, zone.z - 8f, 11.5f, WorldSpriteKind.GAS)
                 ZoneType.WORKSHOP -> drawWorldSprite(zone.x + 10f, zy, zone.z + 10f, 11.2f, WorldSpriteKind.TALLER)
+                ZoneType.CARGO_HUB -> {
+                    val hubKind = if (zone.id == "hub_sierra") WorldSpriteKind.OBRA else WorldSpriteKind.MALL
+                    drawWorldSprite(zone.x + 14f, zy, zone.z + 12f, 14.5f, hubKind)
+                }
                 else -> Unit
             }
         }

@@ -27,7 +27,7 @@ enum class AppScreen {
 enum class GraphicsQuality(val labelEs: String, val drawDistance: Float, val rainCount: Int, val treeDetail: Int) {
     LOW("Baja (Rápido)", 220f, 180, 1),
     MEDIUM("Media (Equilibrado)", 340f, 380, 2),
-    HIGH("Alta (Ultra 3D)", 480f, 650, 3);
+    HIGH("Alta (Ultra)", 480f, 650, 3);
 
     companion object {
         fun fromRaw(raw: String): GraphicsQuality =

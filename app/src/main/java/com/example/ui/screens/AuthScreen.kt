@@ -146,7 +146,7 @@ fun AuthScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "SIMULADOR 3D OPENGL ES",
+                            text = "SIMULADOR DE TRANSPORTE REALISTA",
                             style = MaterialTheme.typography.labelSmall,
                             color = RacingOrange
                         )
@@ -167,7 +167,7 @@ fun AuthScreen(
 
                 Spacer(Modifier.height(18.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FeatureRow(Icons.Filled.Speed, "Física realista, caja manual/automática y suspensión 3D")
+                    FeatureRow(Icons.Filled.Speed, "Física realista, caja manual/automática y suspensión hidráulica")
                     FeatureRow(Icons.Filled.WbSunny, "Ciclo día/noche, lluvia dinámica, tráfico y semáforos")
                     FeatureRow(Icons.Filled.CloudDone, "Progreso profesional, flota y rutas sincronizadas")
                 }

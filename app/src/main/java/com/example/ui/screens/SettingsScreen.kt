@@ -139,7 +139,7 @@ fun SettingsScreen(
                         fontWeight = FontWeight.ExtraBold
                     )
                     Text(
-                        text = "Gráficos 3D, transmisión, controles y clima",
+                        text = "Gráficos realistas, transmisión, controles y clima",
                         style = MaterialTheme.typography.bodyMedium,
                         color = SkyCyan
                     )
@@ -214,7 +214,7 @@ fun SettingsScreen(
                             .testTag("driver_name_input")
                     )
 
-                    Text("CALIDAD GRÁFICA 3D (OPTIMIZACIÓN)", style = MaterialTheme.typography.labelSmall, color = SkyCyan)
+                    Text("CALIDAD GRÁFICA (OPTIMIZACIÓN)", style = MaterialTheme.typography.labelSmall, color = SkyCyan)
                     Row(
                         modifier = Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)

@@ -1390,27 +1390,7 @@ object WorldMeshFactory {
     fun buildStaticEnvironmentMesh(): MeshBuffer {
         val mb = DynamicMeshBuilder()
 
-        // Ridged Multifractal Alpine Peaks with snow caps & foothills + weathered limestone rock outcrops
-        TruckWorld.mountains.forEachIndexed { idx, m ->
-            val my = TruckWorld.terrainHeightAt(m.x, m.z) - 2.5f
-            addFractalMountain(mb, m.x, my, m.z, m.radius * 1.15f, m.height, seedPhase = idx * 1.37f)
-            addFractalMountain(mb, m.x + m.radius * 0.42f, my, m.z - m.radius * 0.25f, m.radius * 0.65f, m.height * 0.64f, seedPhase = idx * 2.11f + 0.9f)
-            for (k in 0 until 5) {
-                val angle = idx * 1.25f + k * 1.22f
-                val dist = m.radius * (0.94f + (k % 3) * 0.08f)
-                val rx = m.x + cos(angle) * dist
-                val rz = m.z + sin(angle) * dist
-                val rq = TruckWorld.queryRoad(rx, rz)
-                if (!rq.onRoad && rq.distanceToCenter > rq.roadWidth * 0.5f + 16f && !(rx > 868f && rz < -180f)) {
-                    val ry = TruckWorld.terrainHeightAt(rx, rz)
-                    val rw = 4.2f + (k % 3) * 1.9f
-                    val rh = 2.6f + (k % 2) * 1.5f
-                    val tone = 0.36f + (k % 3) * 0.04f
-                    mb.addEllipsoid(rx, ry + rh * 0.36f, rz, rw, rh, rw * 0.86f, 5, 7, tone, tone * 0.97f, tone * 0.93f)
-                    mb.addEllipsoid(rx + rw * 0.45f, ry + rh * 0.22f, rz - rw * 0.25f, rw * 0.58f, rh * 0.56f, rw * 0.54f, 4, 6, tone * 0.90f, tone * 0.88f, tone * 0.84f)
-                }
-            }
-        }
+        // Keep horizon open and realistic with grass terrain meeting the sky photo cleanly (no low-poly cone mountains)
 
         // Highway Overhead Steel Gantry Sign Arches at city exits
         for (gantryZ in listOf(-245f, 245f)) {
@@ -1443,27 +1423,9 @@ object WorldMeshFactory {
                 ZoneType.CARGO_HUB -> {
                     val hx = zone.x + 14f
                     val hz = zone.z + 12f
-                    mb.addBox(hx, zy + 4.0f, hz, 16f, 8.0f, 12f, 0.34f, 0.38f, 0.44f)
-                    mb.addBeveledBox(hx, zy + 8.3f, hz, 16.8f, 0.6f, 12.8f, 0.2f, 0.16f, 0.54f, 0.38f)
-                    mb.addBox(hx - 4f, zy + 1.8f, hz - 6.2f, 5.5f, 3.6f, 0.4f, 0.15f, 0.68f, 0.42f)
-                    mb.addBox(hx + 3.5f, zy + 1.8f, hz - 6.2f, 5.5f, 3.6f, 0.4f, 0.22f, 0.26f, 0.30f)
-                    // Loading dock black rubber bumpers & yellow steel bollards
+                    // Cargo hub main building uses the user's crisp sprite atlas; keep low dock safety bollards & yard curb
                     for (dx in listOf(-6.8f, -1.2f, 0.7f, 6.3f)) {
-                        mb.addBox(hx + dx, zy + 0.9f, hz - 6.35f, 0.36f, 0.65f, 0.24f, 0.08f, 0.09f, 0.12f)
                         mb.addCylinderY(hx + dx, zy, hz - 6.95f, 0.14f, 1.25f, 8, 0.96f, 0.72f, 0.08f)
-                    }
-                    mb.addBox(hx - 14f, zy + 1.4f, hz + 1f, 2.5f, 2.8f, 6.4f, 0.82f, 0.26f, 0.16f)
-                    mb.addBox(hx - 14f, zy + 4.2f, hz + 1f, 2.5f, 2.8f, 6.4f, 0.14f, 0.46f, 0.76f)
-                    mb.addBox(hx - 11f, zy + 1.4f, hz + 1f, 2.5f, 2.8f, 6.4f, 0.16f, 0.58f, 0.36f)
-                    // Stacked wooden & shrink-wrapped freight pallets + yard safety wheel-stops
-                    for (pIdx in 0..2) {
-                        val px = hx - 8.5f + pIdx * 2.2f
-                        val pz = hz - 9.2f
-                        mb.addBox(px, zy + 0.14f, pz, 1.4f, 0.22f, 1.4f, 0.58f, 0.40f, 0.22f)
-                        mb.addBox(px, zy + 0.82f, pz, 1.32f, 1.15f, 1.32f, 0.78f, 0.64f, 0.44f)
-                        if (pIdx != 1) {
-                            mb.addBox(px, zy + 1.52f, pz, 1.15f, 0.24f, 1.15f, 0.24f, 0.56f, 0.82f)
-                        }
                     }
                     mb.addBox(hx - 0.5f, zy + 0.14f, hz - 8.2f, 14.2f, 0.18f, 0.32f, 0.96f, 0.72f, 0.08f)
                 }

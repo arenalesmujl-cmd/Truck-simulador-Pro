@@ -67,7 +67,6 @@ import com.example.model.AppScreen
 import com.example.model.CareerProfile
 import com.example.model.MissionContract
 import com.example.model.TruckCatalog
-import com.example.ui.components.ShowroomViewport
 import com.example.ui.theme.AmberSignal
 import com.example.ui.theme.EmeraldGo
 import com.example.ui.theme.RacingOrange
@@ -215,17 +214,33 @@ fun MainMenuScreen(
                             .padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        val activePaintColor = remember(profile.truckPaintHex) {
+                            runCatching { Color(android.graphics.Color.parseColor(profile.truckPaintHex)) }
+                                .getOrDefault(RacingOrange)
+                        }
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(
+                                    Brush.radialGradient(
+                                        colors = listOf(
+                                            activePaintColor.copy(alpha = 0.24f),
+                                            Color(0xFF0A1324),
+                                            Color(0xFF050A14)
+                                        )
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center
                         ) {
-                            ShowroomViewport(
-                                truckStyle = activeTruck.style,
-                                paintHex = profile.truckPaintHex,
-                                showDriver = true,
-                                badgeLabel = "360°",
-                                modifier = Modifier.fillMaxSize()
+                            Image(
+                                painter = painterResource(id = activeTruck.drawableRes),
+                                contentDescription = activeTruck.name,
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(10.dp)
                             )
                             Surface(
                                 color = SimSurfaceGlass,
@@ -268,7 +283,7 @@ fun MainMenuScreen(
                                             .background(EmeraldGo, CircleShape)
                                     )
                                     Text(
-                                        text = "SHOWROOM 3D EN VIVO",
+                                        text = "CAMIÓN EN SERVICIO",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = EmeraldGo
                                     )
@@ -284,7 +299,7 @@ fun MainMenuScreen(
                         ) {
                             Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
                                 Text(
-                                    text = if (activeMission != null) "MISIÓN: ${activeMission.title}" else "MODO LIBRE 3D LISTO",
+                                    text = if (activeMission != null) "MISIÓN: ${activeMission.title}" else "MODO LIBRE LISTO",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = if (activeMission != null) AmberSignal else SkyCyan,
                                     maxLines = 1

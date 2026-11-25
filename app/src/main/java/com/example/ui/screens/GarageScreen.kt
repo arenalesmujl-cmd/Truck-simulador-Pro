@@ -5,6 +5,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -58,13 +59,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.model.CareerProfile
 import com.example.model.PaintCatalog
 import com.example.model.TruckCatalog
-import com.example.ui.components.ShowroomViewport
 import com.example.ui.theme.EmeraldGo
 import com.example.ui.theme.RacingOrange
 import com.example.ui.theme.SimBackground
@@ -125,7 +127,7 @@ fun GarageScreen(
                 Spacer(Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = "TALLER Y PERSONALIZACIÓN 3D",
+                        text = "TALLER Y PERSONALIZACIÓN",
                         style = MaterialTheme.typography.headlineMedium,
                         color = TextPrimary
                     )
@@ -198,16 +200,36 @@ fun GarageScreen(
                         .padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    val activePaint = remember(profile.truckPaintHex) {
+                        PaintCatalog.options.firstOrNull { it.hex.equals(profile.truckPaintHex, ignoreCase = true) }
+                    }
+                    val activePaintColor = remember(profile.truckPaintHex) {
+                        runCatching { Color(android.graphics.Color.parseColor(profile.truckPaintHex)) }
+                            .getOrDefault(RacingOrange)
+                    }
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                Brush.radialGradient(
+                                    colors = listOf(
+                                        activePaintColor.copy(alpha = 0.28f),
+                                        Color(0xFF0A1324),
+                                        Color(0xFF050A14)
+                                    )
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
                     ) {
-                        ShowroomViewport(
-                            truckStyle = truck.style,
-                            paintHex = profile.truckPaintHex,
-                            showDriver = true,
-                            modifier = Modifier.fillMaxSize()
+                        Image(
+                            painter = painterResource(id = truck.drawableRes),
+                            contentDescription = truck.name,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(10.dp)
                         )
                         Surface(
                             color = SimSurfaceGlass,
@@ -226,6 +248,33 @@ fun GarageScreen(
                                     text = "$totalHp HP • $topSpeed km/h • ${tankL}L",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = SkyCyan
+                                )
+                            }
+                        }
+                        Surface(
+                            color = SimSurfaceGlass,
+                            border = BorderStroke(1.dp, activePaintColor.copy(alpha = 0.65f)),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(12.dp)
+                                        .clip(CircleShape)
+                                        .background(activePaintColor)
+                                        .border(1.dp, TextPrimary, CircleShape)
+                                )
+                                Text(
+                                    text = activePaint?.name ?: "Pintura",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = TextPrimary
                                 )
                             }
                         }
