@@ -1,6 +1,8 @@
 package com.example.gl
 
+import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
@@ -10,6 +12,7 @@ import android.graphics.RectF
 import android.graphics.Shader
 import android.opengl.GLES30
 import android.opengl.GLUtils
+import com.example.R
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
@@ -25,11 +28,12 @@ class WorldTextureSet(
     val glowDiscTex: Int,
     val driverFaceTex: Int,
     val driverClothTex: Int,
-    val gaugeFaceTex: Int
+    val gaugeFaceTex: Int,
+    val skyPhotoTex: Int
 ) {
     fun release() {
         GLES30.glDeleteTextures(
-            10,
+            11,
             intArrayOf(
                 whiteTex,
                 asphaltTex,
@@ -40,7 +44,8 @@ class WorldTextureSet(
                 glowDiscTex,
                 driverFaceTex,
                 driverClothTex,
-                gaugeFaceTex
+                gaugeFaceTex,
+                skyPhotoTex
             ),
             0
         )
@@ -49,7 +54,7 @@ class WorldTextureSet(
 
 object TextureFactory {
 
-    fun createAll(): WorldTextureSet = WorldTextureSet(
+    fun createAll(context: Context? = null): WorldTextureSet = WorldTextureSet(
         whiteTex = buildWhiteTexture(),
         asphaltTex = buildAsphaltTexture(),
         terrainTex = buildTerrainTexture(),
@@ -59,7 +64,8 @@ object TextureFactory {
         glowDiscTex = buildGlowDiscTexture(),
         driverFaceTex = buildDriverFaceTexture(),
         driverClothTex = buildDriverClothTexture(),
-        gaugeFaceTex = buildGaugeFaceTexture()
+        gaugeFaceTex = buildGaugeFaceTexture(),
+        skyPhotoTex = buildSkyPhotoTexture(context)
     )
 
     private fun buildWhiteTexture(): Int {
@@ -771,14 +777,117 @@ object TextureFactory {
         return uploadTexture(bmp, repeat = false, mipmap = true)
     }
 
-    private fun uploadTexture(bmp: Bitmap, repeat: Boolean, mipmap: Boolean): Int {
+    private fun buildSkyPhotoTexture(context: Context?): Int {
+        val rawBmp = if (context != null) {
+            try {
+                val opts = BitmapFactory.Options().apply {
+                    inScaled = false
+                    inPreferredConfig = Bitmap.Config.ARGB_8888
+                }
+                BitmapFactory.decodeResource(context.resources, R.drawable.sky_realistic, opts)
+            } catch (_: Exception) {
+                null
+            }
+        } else {
+            null
+        }
+
+        if (rawBmp == null) {
+            val fallback = Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(fallback)
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                shader = LinearGradient(
+                    0f, 0f, 0f, 256f,
+                    Color.rgb(8, 72, 178),
+                    Color.rgb(112, 184, 246),
+                    Shader.TileMode.CLAMP
+                )
+            }
+            canvas.drawRect(0f, 0f, 256f, 256f, paint)
+            return uploadTexture(fallback, repeat = true, mipmap = true, repeatVertical = false)
+        }
+
+        val dstW = 2048
+        val dstH = 1024
+        val scaledW = 2400
+        val blendW = scaledW - dstW
+        val scaled = if (rawBmp.width == scaledW && rawBmp.height == dstH) {
+            rawBmp
+        } else {
+            val s = Bitmap.createScaledBitmap(rawBmp, scaledW, dstH, true)
+            if (s != rawBmp) rawBmp.recycle()
+            s
+        }
+
+        val srcPixels = IntArray(scaledW * dstH)
+        scaled.getPixels(srcPixels, 0, scaledW, 0, 0, scaledW, dstH)
+        scaled.recycle()
+
+        var zenithSumR = 0L
+        var zenithSumG = 0L
+        var zenithSumB = 0L
+        for (x in 0 until dstW) {
+            val c = srcPixels[x]
+            zenithSumR += Color.red(c)
+            zenithSumG += Color.green(c)
+            zenithSumB += Color.blue(c)
+        }
+        val zenR = (zenithSumR / dstW).toInt()
+        val zenG = (zenithSumG / dstW).toInt()
+        val zenB = (zenithSumB / dstW).toInt()
+
+        val dstPixels = IntArray(dstW * dstH)
+        val poleFadeRows = 76
+        for (y in 0 until dstH) {
+            val rowOff = y * scaledW
+            val dstRowOff = y * dstW
+            val poleWeight = if (y < poleFadeRows) {
+                val p = 1f - y.toFloat() / poleFadeRows
+                p * p * (3f - 2f * p)
+            } else {
+                0f
+            }
+            for (x in 0 until dstW) {
+                val mainC = srcPixels[rowOff + x]
+                var r = Color.red(mainC)
+                var g = Color.green(mainC)
+                var b = Color.blue(mainC)
+                if (x < blendW) {
+                    val wrapC = srcPixels[rowOff + dstW + x]
+                    val t = x.toFloat() / (blendW - 1f)
+                    val w = 1f - t * t * (3f - 2f * t)
+                    r = (r + (Color.red(wrapC) - r) * w).toInt()
+                    g = (g + (Color.green(wrapC) - g) * w).toInt()
+                    b = (b + (Color.blue(wrapC) - b) * w).toInt()
+                }
+                if (poleWeight > 0f) {
+                    r = (r + (zenR - r) * poleWeight).toInt()
+                    g = (g + (zenG - g) * poleWeight).toInt()
+                    b = (b + (zenB - b) * poleWeight).toInt()
+                }
+                dstPixels[dstRowOff + x] = Color.argb(255, r, g, b)
+            }
+        }
+
+        val outBmp = Bitmap.createBitmap(dstW, dstH, Bitmap.Config.ARGB_8888)
+        outBmp.setPixels(dstPixels, 0, dstW, 0, 0, dstW, dstH)
+        return uploadTexture(outBmp, repeat = true, mipmap = true, repeatVertical = false)
+    }
+
+    private fun uploadTexture(
+        bmp: Bitmap,
+        repeat: Boolean,
+        mipmap: Boolean,
+        repeatVertical: Boolean = repeat
+    ): Int {
         val ids = IntArray(1)
         GLES30.glGenTextures(1, ids, 0)
         val texId = ids[0]
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, texId)
-        val wrap = if (repeat) GLES30.GL_REPEAT else GLES30.GL_CLAMP_TO_EDGE
-        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_S, wrap)
-        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_T, wrap)
+        val wrapS = if (repeat) GLES30.GL_REPEAT else GLES30.GL_CLAMP_TO_EDGE
+        val wrapT = if (repeatVertical) GLES30.GL_REPEAT else GLES30.GL_CLAMP_TO_EDGE
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_S, wrapS)
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_T, wrapT)
         GLES30.glTexParameteri(
             GLES30.GL_TEXTURE_2D,
             GLES30.GL_TEXTURE_MIN_FILTER,

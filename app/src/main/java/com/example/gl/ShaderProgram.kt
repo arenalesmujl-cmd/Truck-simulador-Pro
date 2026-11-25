@@ -235,47 +235,49 @@ class WorldShaderProgram {
                     return;
                 }
 
-                // Sky dome atmospheric Rayleigh/Mie scatter + volumetric FBM clouds + twinkling stars (uEmissive > 1.5)
+                // Realistic Photographic Sky Dome with seamless horizon blend, weather & day-night adaptation (uEmissive > 1.5)
                 if (uEmissive > 1.5) {
                     vec3 viewDir = normalize(vWorldPos - uCameraPos);
-                    float h = clamp(viewDir.y * 1.18 + 0.04, 0.0, 1.0);
-                    vec3 zenith = uFogColor * vec3(0.24, 0.48, 1.12);
-                    vec3 horizon = mix(uFogColor * 1.16, uLightColor * 0.72 + uFogColor * 0.56, 0.50);
-                    vec3 skyGrad = mix(horizon, zenith, pow(h, 0.50));
-                    vec3 L = normalize(uLightDir);
-                    float sunDot = max(dot(viewDir, L), 0.0);
-                    float sunDisc = smoothstep(0.9966, 0.9994, sunDot) * 1.60;
-                    float sunHalo = pow(sunDot, 24.0) * 0.52 + pow(sunDot, 5.0) * 0.22;
-                    skyGrad += uLightColor * (sunDisc + sunHalo);
+                    vec3 skyGrad = texSample.rgb;
 
-                    // Crisp twinkling starfield & faint Milky Way band at night
-                    if (uStarIntensity > 0.02 && viewDir.y > 0.04) {
-                        vec2 starUv = viewDir.xz / (viewDir.y + 0.28) * 32.0;
-                        vec2 cell = floor(starUv);
-                        vec2 f = fract(starUv) - 0.5;
-                        float rnd = hash21(cell);
-                        if (rnd > 0.968) {
-                            float d = length(f - (vec2(hash21(cell + 3.1), hash21(cell + 7.7)) - 0.5) * 0.55);
-                            float twinkle = 0.68 + 0.32 * sin(uTime * 2.8 + rnd * 90.0);
-                            float starBright = smoothstep(0.16, 0.02, d) * twinkle * uStarIntensity * smoothstep(0.04, 0.28, viewDir.y);
-                            skyGrad += vec3(0.86, 0.92, 1.0) * starBright * 1.25;
+                    // Cloudy / Rain overcast atmospheric desaturation & storm darkening
+                    float lightLuma = dot(uLightColor, vec3(0.333));
+                    float dimOvercast = clamp((0.88 - lightLuma) * 1.9, 0.0, 0.78);
+                    float weatherBlend = max(clamp(uWetness, 0.0, 1.0) * 0.72, dimOvercast) * (1.0 - clamp(uStarIntensity, 0.0, 1.0));
+                    if (weatherBlend > 0.01) {
+                        float skyLuma = dot(skyGrad, vec3(0.299, 0.587, 0.114));
+                        vec3 overcastCol = mix(vec3(skyLuma) * vec3(0.86, 0.91, 0.98), uFogColor * 1.06, 0.55);
+                        skyGrad = mix(skyGrad, overcastCol, weatherBlend);
+                    }
+
+                    // Golden sunset tinting across sunlit clouds and horizon
+                    float warmth = clamp((uLightColor.r - uLightColor.b) * 1.9, 0.0, 1.0) * (1.0 - clamp(uStarIntensity, 0.0, 1.0));
+                    if (warmth > 0.02) {
+                        float lowSky = 1.0 - smoothstep(0.02, 0.58, viewDir.y);
+                        vec3 sunsetTint = mix(vec3(0.66, 0.56, 0.76), vec3(1.16, 0.74, 0.44), lowSky);
+                        skyGrad = mix(skyGrad, skyGrad * sunsetTint, warmth * 0.75);
+                    }
+
+                    // Night sky darkening + twinkling starfield
+                    if (uStarIntensity > 0.02) {
+                        skyGrad = mix(skyGrad, skyGrad * vec3(0.05, 0.08, 0.17) + uFogColor * 0.45, clamp(uStarIntensity, 0.0, 1.0));
+                        if (viewDir.y > 0.04) {
+                            vec2 starUv = viewDir.xz / (viewDir.y + 0.28) * 32.0;
+                            vec2 cell = floor(starUv);
+                            vec2 f = fract(starUv) - 0.5;
+                            float rnd = hash21(cell);
+                            if (rnd > 0.968) {
+                                float d = length(f - (vec2(hash21(cell + 3.1), hash21(cell + 7.7)) - 0.5) * 0.55);
+                                float twinkle = 0.68 + 0.32 * sin(uTime * 2.8 + rnd * 90.0);
+                                float starBright = smoothstep(0.16, 0.02, d) * twinkle * uStarIntensity * smoothstep(0.04, 0.28, viewDir.y);
+                                skyGrad += vec3(0.86, 0.92, 1.0) * starBright * 1.25;
+                            }
                         }
                     }
 
-                    // Multi-octave drifting procedural cumulus cloud deck with sunlit silver lining
-                    if (viewDir.y > 0.022) {
-                        vec2 cloudProj = viewDir.xz / (viewDir.y + 0.16) * 1.85 + vec2(uTime * 0.012, uTime * 0.005);
-                        float density = fbmClouds(cloudProj);
-                        float detail = fbmClouds(cloudProj * 2.35 - vec2(uTime * 0.008, 0.0));
-                        float coverage = mix(0.45, 0.28, clamp(uWetness * 0.85, 0.0, 1.0));
-                        float cloudAlpha = smoothstep(coverage, coverage + 0.32, density * 0.78 + detail * 0.22);
-                        cloudAlpha *= smoothstep(0.022, 0.15, viewDir.y);
-                        float silverLining = pow(sunDot, 5.0) * (1.0 - smoothstep(0.45, 0.85, density));
-                        vec3 cloudUnder = mix(uFogColor * 0.56, uAmbientColor * 1.10, 0.42);
-                        vec3 cloudLit = mix(uFogColor * 1.22, uLightColor * 1.18, 0.58 + 0.42 * pow(sunDot, 3.0)) + uLightColor * silverLining * 0.48;
-                        vec3 cloudColor = mix(cloudUnder, cloudLit, smoothstep(0.22, 0.80, detail));
-                        skyGrad = mix(skyGrad, cloudColor, cloudAlpha * 0.90);
-                    }
+                    // Soft horizon fog skirt so terrain/sea blends naturally into the photo sky
+                    float horizonBlend = smoothstep(-0.045, 0.055, viewDir.y);
+                    skyGrad = mix(uFogColor, skyGrad, horizonBlend);
 
                     fragColor = vec4(clamp(skyGrad, 0.0, 1.0), 1.0);
                     return;

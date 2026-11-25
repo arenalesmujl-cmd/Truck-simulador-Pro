@@ -722,27 +722,35 @@ object WorldMeshFactory {
 
     fun buildSkyDomeMesh(): MeshBuffer {
         val mb = DynamicMeshBuilder()
-        val radius = 380f
-        val rings = 8
-        val sectors = 24
+        val radius = 165f
+        val rings = 24
+        val sectors = 48
+        val minPhi = -0.06f
+        val maxPhi = (PI * 0.5).toFloat()
         for (ring in 0 until rings) {
-            val p0 = (ring.toFloat() / rings) * (PI.toFloat() * 0.52f) - 0.04f
-            val p1 = ((ring + 1).toFloat() / rings) * (PI.toFloat() * 0.52f) - 0.04f
+            val p0 = minPhi + (ring.toFloat() / rings) * (maxPhi - minPhi)
+            val p1 = minPhi + ((ring + 1).toFloat() / rings) * (maxPhi - minPhi)
+            val elev0 = ((p0 - minPhi) / (maxPhi - minPhi)).coerceIn(0f, 1f)
+            val elev1 = ((p1 - minPhi) / (maxPhi - minPhi)).coerceIn(0f, 1f)
+            val v0 = 1f - elev0.pow(0.52f)
+            val v1 = 1f - elev1.pow(0.52f)
             for (sec in 0 until sectors) {
-                val t0 = (sec.toFloat() / sectors) * 2f * PI.toFloat()
-                val t1 = ((sec + 1).toFloat() / sectors) * 2f * PI.toFloat()
+                val u0 = sec.toFloat() / sectors
+                val u1 = (sec + 1).toFloat() / sectors
+                val t0 = u0 * 2f * PI.toFloat()
+                val t1 = u1 * 2f * PI.toFloat()
                 val x00 = cos(p0) * cos(t0) * radius; val y00 = sin(p0) * radius; val z00 = cos(p0) * sin(t0) * radius
                 val x10 = cos(p0) * cos(t1) * radius; val y10 = sin(p0) * radius; val z10 = cos(p0) * sin(t1) * radius
                 val x11 = cos(p1) * cos(t1) * radius; val y11 = sin(p1) * radius; val z11 = cos(p1) * sin(t1) * radius
                 val x01 = cos(p1) * cos(t0) * radius; val y01 = sin(p1) * radius; val z01 = cos(p1) * sin(t0) * radius
 
-                mb.addVertex(x00, y00, z00, 0f, 1f, 0f, 0f, 0f, 1f, 1f, 1f)
-                mb.addVertex(x11, y11, z11, 0f, 1f, 0f, 1f, 1f, 1f, 1f, 1f)
-                mb.addVertex(x10, y10, z10, 0f, 1f, 0f, 1f, 0f, 1f, 1f, 1f)
+                mb.addVertex(x00, y00, z00, 0f, 1f, 0f, u0, v0, 1f, 1f, 1f)
+                mb.addVertex(x11, y11, z11, 0f, 1f, 0f, u1, v1, 1f, 1f, 1f)
+                mb.addVertex(x10, y10, z10, 0f, 1f, 0f, u1, v0, 1f, 1f, 1f)
 
-                mb.addVertex(x00, y00, z00, 0f, 1f, 0f, 0f, 0f, 1f, 1f, 1f)
-                mb.addVertex(x01, y01, z01, 0f, 1f, 0f, 0f, 1f, 1f, 1f, 1f)
-                mb.addVertex(x11, y11, z11, 0f, 1f, 0f, 1f, 1f, 1f, 1f, 1f)
+                mb.addVertex(x00, y00, z00, 0f, 1f, 0f, u0, v0, 1f, 1f, 1f)
+                mb.addVertex(x01, y01, z01, 0f, 1f, 0f, u0, v1, 1f, 1f, 1f)
+                mb.addVertex(x11, y11, z11, 0f, 1f, 0f, u1, v1, 1f, 1f, 1f)
             }
         }
         return mb.build()

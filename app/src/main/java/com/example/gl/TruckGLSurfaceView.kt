@@ -41,6 +41,7 @@ fun TruckGLSurfaceView(
     AndroidView(
         modifier = modifier,
         factory = { context ->
+            renderer.appContext = context.applicationContext
             GLSurfaceView(context).apply {
                 setEGLContextClientVersion(3)
                 setRenderer(renderer)

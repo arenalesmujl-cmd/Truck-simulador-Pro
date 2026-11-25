@@ -1,5 +1,6 @@
 package com.example.gl
 
+import android.content.Context
 import android.graphics.Color
 import android.opengl.GLES30
 import android.opengl.GLSurfaceView
@@ -38,6 +39,7 @@ class TruckGLRenderer(
     private val onTelemetry: (TruckTelemetry) -> Unit
 ) : GLSurfaceView.Renderer {
 
+    @Volatile var appContext: Context? = null
     @Volatile var currentInputs = DrivingInputs()
     @Volatile var currentProfile = CareerProfile()
     @Volatile var activeMission: MissionContract? = null
@@ -105,7 +107,7 @@ class TruckGLRenderer(
         shadowShader = ShadowDepthShaderProgram()
         worldShader = WorldShaderProgram()
         mirrorShader = MirrorQuadShaderProgram()
-        textures = TextureFactory.createAll()
+        textures = TextureFactory.createAll(appContext)
 
         unitCube = WorldMeshFactory.buildUnitCube()
         unitWheelSet = WorldMeshFactory.buildUnitWheelSet()
@@ -526,29 +528,33 @@ class TruckGLRenderer(
         GLES30.glUniform3f(worldShader.uHeadlightDirLoc, fwdX, -0.09f, fwdZ)
         GLES30.glUniform1f(worldShader.uHeadlightIntensityLoc, hlIntensity)
 
-        // 0. Atmospheric Sky Dome with Procedural Volumetric Clouds & Twinkling Night Stars
+        // 0. Realistic Panoramic Sky Dome (User sky photo + seamless horizon & weather blend)
         GLES30.glDepthMask(false)
+        bindTexture(textures.skyPhotoTex)
         GLES30.glUniform1f(worldShader.uEmissiveLoc, 2f)
         GLES30.glUniform1f(worldShader.uMaterialModeLoc, WorldShaderProgram.MAT_STANDARD)
         Matrix.setIdentityM(modelMatrix, 0)
-        Matrix.translateM(modelMatrix, 0, camPos[0], camPos[1] - 25f, camPos[2])
+        Matrix.translateM(modelMatrix, 0, camPos[0], camPos[1] - 8f, camPos[2])
+        Matrix.rotateM(modelMatrix, 0, 68f + physics.simTimeSeconds * 0.08f, 0f, 1f, 0f)
         drawMeshWithModelMatrix(skyDomeMesh, 1f, 1f, 1f, 1f)
 
-        // 1. Radiant Sun / Moon Corona Billboard Disc
-        val sunDist = 330f
-        val sunX = camPos[0] + env.lightDirX * sunDist
-        val sunY = camPos[1] + env.lightDirY * sunDist
-        val sunZ = camPos[2] + env.lightDirZ * sunDist
-        bindTexture(textures.glowDiscTex)
-        GLES30.glUniform1f(worldShader.uEmissiveLoc, 3f)
-        drawBillboard(
-            sunX, sunY, sunZ, camPos,
-            size = if (env.isNight) 46f else 82f,
-            r = if (env.isNight) 0.85f else 1.0f,
-            g = if (env.isNight) 0.92f else 0.94f,
-            b = if (env.isNight) 1.0f else 0.78f,
-            a = if (physics.weather == WeatherType.RAIN) 0.35f else 0.92f
-        )
+        // 1. Nighttime Moon Corona Billboard Disc (daytime uses the sun inside the realistic sky photo)
+        if (env.isNight) {
+            val moonDist = 152f
+            val moonX = camPos[0] + env.lightDirX * moonDist
+            val moonY = camPos[1] + env.lightDirY * moonDist
+            val moonZ = camPos[2] + env.lightDirZ * moonDist
+            bindTexture(textures.glowDiscTex)
+            GLES30.glUniform1f(worldShader.uEmissiveLoc, 3f)
+            drawBillboard(
+                moonX, moonY, moonZ, camPos,
+                size = 24f,
+                r = 0.85f,
+                g = 0.92f,
+                b = 1.0f,
+                a = if (physics.weather == WeatherType.RAIN) 0.25f else 0.90f
+            )
+        }
         GLES30.glDepthMask(true)
 
         // 2. Textured Terrain, Asphalt Highway, Architectural Curtain-Wall Buildings & Props
@@ -1573,7 +1579,7 @@ class TruckGLRenderer(
             isTwilight -> Triple(0.76f * cloudDim, 0.48f * cloudDim, 0.42f * cloudDim)
             weather == WeatherType.RAIN -> Triple(0.32f, 0.38f, 0.46f)
             weather == WeatherType.CLOUDY -> Triple(0.55f, 0.64f, 0.74f)
-            else -> Triple(0.46f, 0.72f, 0.96f)
+            else -> Triple(0.38f, 0.66f, 0.96f)
         }
 
         val (lr, lg, lb) = when {
